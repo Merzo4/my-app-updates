@@ -1,0 +1,4 @@
+{
+  "deprecated": true,
+  "message": "Темы перенесены в content/themes/<theme_id>/theme.json"
+}

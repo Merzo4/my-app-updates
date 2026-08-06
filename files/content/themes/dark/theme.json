@@ -1,0 +1,35 @@
+{
+  "appearance": "dark",
+  "default_color_theme": "blue",
+  "backgrounds": {
+    "main": "",
+    "sidebar": ""
+  },
+  "colors": {
+    "window": "#17191d",
+    "sidebar": "#202329",
+    "header": "#1e2127",
+    "card": "#24282f",
+    "selected": "#1976c9",
+    "hover": "#30353d",
+    "text": "#f5f7fa",
+    "muted_text": "#aeb8c4",
+    "nav_text": "#d9e0e8",
+    "accent_text": "#7ab8ff",
+    "success": "#49d17d",
+    "input": "#2a2f36",
+    "border": "#3a414b",
+    "notice": "#1f2c3a",
+    "notice_text": "#dbeafe"
+  },
+  "layout": {
+    "sidebar_width": 250,
+    "window_width": 1380,
+    "window_height": 900,
+    "min_width": 1120,
+    "min_height": 760,
+    "nav_button_height": 42,
+    "nav_corner_radius": 8,
+    "content_overlay": "#17191d"
+  }
+}
