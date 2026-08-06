@@ -21,6 +21,8 @@ from .ui.pages.error_page import ErrorPage
 from .ui.text_editing import install_text_editing
 from .ui.welcome import Welcome
 from .ui.widgets.system_monitor import SystemMonitorPanel
+from .chat.server import ChatWebServer
+from .chat.manager import chat_manager
 
 
 class App(ctk.CTk):
@@ -44,6 +46,8 @@ class App(ctk.CTk):
 
         self.stream_cfg = load_stream()
         self.player_cfg = load_player()
+        self.chat_server = ChatWebServer(chat_manager, port=5001)
+        self.chat_server.start()
         self.page_context = {
             "app": self, "app_cfg": self.app_cfg, "stream_cfg": self.stream_cfg,
             "player_cfg": self.player_cfg, "theme": self.theme,
@@ -51,6 +55,7 @@ class App(ctk.CTk):
             "settings": settings, "database": database,
             "module_manager": module_manager, "plugin_manager": plugin_manager,
             "update_manager": update_manager,
+            "chat_manager": chat_manager, "chat_port": 5001,
         }
         self.pages = {}
         self.nav_buttons = {}

@@ -37,6 +37,15 @@
       "class": "BackgroundMusicPage"
     },
     {
+      "id": "chat",
+      "title": "Единый чат",
+      "icon": "💬",
+      "group": "tools",
+      "enabled": true,
+      "module": "merzostream.ui.pages.chat_center",
+      "class": "ChatCenterPage"
+    },
+    {
       "id": "ai",
       "title": "AI Producer",
       "icon": "🤖",

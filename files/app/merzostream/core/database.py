@@ -45,6 +45,19 @@ class Database:
                     message TEXT NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_app_events_created ON app_events(created_at DESC);
+
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at REAL NOT NULL,
+                    platform TEXT NOT NULL,
+                    username TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    color TEXT DEFAULT '',
+                    badges TEXT DEFAULT '',
+                    avatar TEXT DEFAULT ''
+                );
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_platform ON chat_messages(platform);
                 """
             )
 
@@ -98,6 +111,30 @@ class Database:
     def clear_app_events(self) -> None:
         with self._lock, self.connect() as db:
             db.execute("DELETE FROM app_events")
+
+    def add_chat_message(self, platform: str, username: str, message: str, color: str = "", badges: str = "", avatar: str = "") -> None:
+        with self._lock, self.connect() as db:
+            db.execute(
+                "INSERT INTO chat_messages(created_at, platform, username, message, color, badges, avatar) VALUES(?,?,?,?,?,?,?)",
+                (time.time(), platform, username, message, color, badges, avatar),
+            )
+
+    def recent_chat(self, limit: int = 300, platform: str = "") -> list[dict[str, Any]]:
+        params: list[Any] = []
+        where = ""
+        if platform:
+            where = " WHERE platform = ?"
+            params.append(platform.lower())
+        params.append(max(1, min(5000, int(limit))))
+        with self._lock, self.connect() as db:
+            rows = db.execute(
+                f"SELECT * FROM chat_messages{where} ORDER BY created_at DESC LIMIT ?", tuple(params)
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def clear_chat_messages(self) -> None:
+        with self._lock, self.connect() as db:
+            db.execute("DELETE FROM chat_messages")
 
 
 database = Database()
