@@ -1,0 +1,6 @@
+ЗАГРУЗИТЬ В КОРЕНЬ РЕПОЗИТОРИЯ:
+1) manifest.json
+2) папку files
+
+НЕ загружать ZIP целиком и НЕ создавать папку MerzoStreamSuite_GitHub_Update_0.0.1b.
+После загрузки в корне GitHub должны быть видны manifest.json и files.
