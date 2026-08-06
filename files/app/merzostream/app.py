@@ -2,8 +2,6 @@ import importlib
 import os
 import subprocess
 import sys
-import threading
-import tkinter.messagebox as messagebox
 from pathlib import Path
 
 import customtkinter as ctk
@@ -22,6 +20,7 @@ from .core.update_manager import update_manager
 from .ui.pages.error_page import ErrorPage
 from .ui.text_editing import install_text_editing
 from .ui.welcome import Welcome
+from .ui.widgets.system_monitor import SystemMonitorPanel
 
 
 class App(ctk.CTk):
@@ -62,7 +61,9 @@ class App(ctk.CTk):
         self._background_label = None
 
         self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=0)
         self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=0)
         self.sidebar = ctk.CTkFrame(self, width=layout["sidebar_width"], corner_radius=0, fg_color=colors["sidebar"])
         self.sidebar.grid(row=0, column=0, sticky="nsew")
         self.sidebar.grid_propagate(False)
@@ -71,6 +72,15 @@ class App(ctk.CTk):
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(1, weight=1)
 
+        self.system_monitor = SystemMonitorPanel(self, self.theme)
+        self.system_monitor.grid(row=0, column=2, sticky="nsew")
+
+        self.status_bar = ctk.CTkFrame(self, height=28, corner_radius=0, fg_color=colors.get("header", colors["window"]))
+        self.status_bar.grid(row=1, column=0, columnspan=3, sticky="ew")
+        self.status_bar.grid_propagate(False)
+        self.status_text = ctk.CTkLabel(self.status_bar, text=f"MerzoStream Suite • {self.app_info['channel']} {self.app_info['version']} • GitHub Update Engine 2.0", font=("Arial", 10), text_color=colors.get("muted_text", colors["text"]))
+        self.status_text.pack(side="left", padx=12, pady=4)
+
         self._build_sidebar()
         self._build_content_shell()
         initial_page = "home" if "home" in self.page_specs else next(iter(self.page_specs), "")
@@ -78,9 +88,6 @@ class App(ctk.CTk):
             self.show_page(initial_page)
         if first_run:
             self.after(350, lambda: Welcome(self))
-        self.after(900, self._show_pending_changelog)
-        if update_manager.load_config().get("check_on_start", True):
-            self.after(2500, self._auto_check_updates)
 
     def _build_sidebar(self):
         colors = self.theme["colors"]
@@ -212,35 +219,6 @@ class App(ctk.CTk):
                 text_color="#ffffff" if name == key else colors["nav_text"],
             )
 
-
-    def _show_pending_changelog(self):
-        data = update_manager.pop_pending_changelog()
-        if not data:
-            return
-        notes = data.get("release_notes") or []
-        files = data.get("updated_files") or []
-        text = [f'Обновление {data.get("from_version", "?")} → {data.get("to_version", "?")} установлено.']
-        if notes:
-            text.append("\nЧто изменилось:")
-            text.extend(f"• {item}" for item in notes)
-        text.append(f"\nОбновлено файлов: {len(files)}")
-        messagebox.showinfo("MerzoStream Suite — Что нового", "\n".join(text))
-
-    def _auto_check_updates(self):
-        def worker():
-            try:
-                result = update_manager.check(str(self.app_info.get("version", "0.0.1")))
-                if result.available:
-                    self.after(0, lambda: self._notify_update_available(result))
-            except Exception as exc:
-                log("UPDATER", f"Автопроверка не выполнена: {exc}")
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _notify_update_available(self, result):
-        self.status_label.configure(text=f"● Доступно обновление {result.remote_version}", text_color="#f6c85f")
-        if messagebox.askyesno("MerzoStream Suite", f"Доступно обновление {result.remote_version}.\nИзменено файлов: {len(result.files)}\n\nОткрыть раздел обновлений?"):
-            self.show_page("updates")
-
     def _on_close(self):
         """Даёт модулям корректно сохранить состояние и остановить фоновые процессы."""
         log("APP", "Закрытие приложения")
@@ -251,6 +229,10 @@ class App(ctk.CTk):
                     shutdown()
                 except Exception as exc:
                     log("APP", f"Ошибка завершения модуля {type(page).__name__}: {exc}")
+        try:
+            self.system_monitor.shutdown()
+        except Exception:
+            pass
         self.destroy()
 
     def restart_application(self):
@@ -264,6 +246,10 @@ class App(ctk.CTk):
                     log("APP", f"Ошибка завершения модуля {type(page).__name__}: {exc}")
         args = [sys.executable] + sys.argv
         subprocess.Popen(args, cwd=str(Path.cwd()))
+        try:
+            self.system_monitor.shutdown()
+        except Exception:
+            pass
         self.destroy()
 
 

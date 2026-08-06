@@ -91,6 +91,15 @@
       "class": "HelpPage"
     },
     {
+      "id": "developer",
+      "title": "Разработка",
+      "icon": "🛠️",
+      "group": "system",
+      "enabled": true,
+      "module": "merzostream.ui.pages.developer",
+      "class": "DeveloperPage"
+    },
+    {
       "id": "about",
       "title": "О программе",
       "icon": "ℹ️",

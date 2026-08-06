@@ -69,5 +69,35 @@ class Database:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def recent_app_events(self, limit: int = 500, module: str = "", level: str = "", search: str = "") -> list[dict[str, Any]]:
+        clauses = []
+        params: list[Any] = []
+        if module:
+            clauses.append("module = ?")
+            params.append(module.upper())
+        if level:
+            clauses.append("level = ?")
+            params.append(level.upper())
+        if search:
+            clauses.append("message LIKE ?")
+            params.append(f"%{search}%")
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(max(1, min(5000, int(limit))))
+        with self._lock, self.connect() as db:
+            rows = db.execute(
+                f"SELECT * FROM app_events{where} ORDER BY created_at DESC LIMIT ?", tuple(params)
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def app_event_filters(self) -> tuple[list[str], list[str]]:
+        with self._lock, self.connect() as db:
+            modules = [row[0] for row in db.execute("SELECT DISTINCT module FROM app_events ORDER BY module").fetchall()]
+            levels = [row[0] for row in db.execute("SELECT DISTINCT level FROM app_events ORDER BY level").fetchall()]
+        return modules, levels
+
+    def clear_app_events(self) -> None:
+        with self._lock, self.connect() as db:
+            db.execute("DELETE FROM app_events")
+
 
 database = Database()
