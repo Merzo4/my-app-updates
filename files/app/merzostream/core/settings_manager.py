@@ -34,7 +34,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "auto_pause_yandex": True, "auto_resume_yandex": True, "yandex_enabled": True,
     },
     "obs": {"browser_url": "http://127.0.0.1:5000/player", "clear_on_exit": True},
-    "ui": {"scale": 1.0, "show_status_bar": True},
+    "ui": {"scale": 1.0, "show_status_bar": True, "mode": "classic", "qt_theme_id": "merzostream_dark"},
     "developer": {"verbose_logging": False, "allow_unsigned_plugins": False},
 }
 
@@ -107,6 +107,8 @@ class SettingsManager:
         elif section=='ui':
             try: data['scale']=float(data.get('scale',1.0))
             except Exception: data['scale']=1.0
+            if data.get('mode') not in {'classic','qt'}: data['mode']='classic'
+            if not str(data.get('qt_theme_id','')).strip(): data['qt_theme_id']='merzostream_dark'
 
     def save(self, section: str, data: dict[str, Any] | None = None) -> None:
         payload=data if data is not None else self._cache.get(section,self.load(section))
