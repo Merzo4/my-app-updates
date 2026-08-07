@@ -1,0 +1,28 @@
+{
+  "id": "aurora_glass",
+  "title": "Aurora Glass",
+  "description": "Стеклянная тема с северным сиянием, мягкими градиентами и подсветкой.",
+  "colors": {
+    "window": "#09112b",
+    "sidebar": "rgba(10,15,45,220)",
+    "panel": "rgba(17,25,66,220)",
+    "card": "rgba(26,37,82,205)",
+    "border": "#5165b9",
+    "text": "#f5f4ff",
+    "muted": "#aab5dc",
+    "accent": "#8b5cff",
+    "success": "#31e4c2",
+    "warning": "#ffca6b",
+    "danger": "#ff6e9d"
+  },
+  "layout": {
+    "sidebar_width": 230,
+    "monitor_width": 285,
+    "radius": 16
+  },
+  "assets": {
+    "background": "background.png",
+    "preview": "preview.png",
+    "icons_dir": "icons"
+  }
+}

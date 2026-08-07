@@ -64,6 +64,15 @@
       "class": "AuthorizationPage"
     },
     {
+      "id": "designer",
+      "title": "Дизайнер",
+      "icon": "🎨",
+      "group": "system",
+      "enabled": true,
+      "module": "merzostream.ui.pages.designer",
+      "class": "DesignerPage"
+    },
+    {
       "id": "settings",
       "title": "Настройки",
       "icon": "⚙️",

@@ -1,0 +1,33 @@
+{
+  "id": "aurora_glass_pro",
+  "title": "Aurora Glass PRO",
+  "description": "Второй выбранный стиль: северное сияние, стеклянные панели, сине-фиолетовое свечение и мягкие градиенты.",
+  "colors": {
+    "window": "#070d27",
+    "sidebar": "rgba(7,12,43,185)",
+    "panel": "rgba(18,27,78,178)",
+    "card": "rgba(31,43,99,170)",
+    "border": "#6574d8",
+    "text": "#fbf9ff",
+    "muted": "#b9c4ed",
+    "accent": "#8b5cff",
+    "success": "#2ee0c3",
+    "warning": "#ffd06f",
+    "danger": "#ff70ad"
+  },
+  "layout": {
+    "sidebar_width": 215,
+    "monitor_width": 325,
+    "radius": 17,
+    "header_height": 64
+  },
+  "assets": {
+    "background": "skin.png",
+    "preview": "preview.png",
+    "icons_dir": "icons"
+  },
+  "presentation": {
+    "full_window_background": true,
+    "background_dimming": 4
+  }
+}

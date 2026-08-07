@@ -1,0 +1,28 @@
+{
+  "id": "cosmic_void",
+  "title": "Cosmic Void",
+  "description": "Глубокий космос, тёмно-синие панели и фиолетово-синие акценты.",
+  "colors": {
+    "window": "#050a1b",
+    "sidebar": "rgba(7,12,34,230)",
+    "panel": "rgba(10,17,45,226)",
+    "card": "rgba(12,24,59,215)",
+    "border": "#273f82",
+    "text": "#eef3ff",
+    "muted": "#91a0c9",
+    "accent": "#5b6cff",
+    "success": "#45d7b1",
+    "warning": "#e7b95c",
+    "danger": "#f06f8e"
+  },
+  "layout": {
+    "sidebar_width": 230,
+    "monitor_width": 285,
+    "radius": 12
+  },
+  "assets": {
+    "background": "background.png",
+    "preview": "preview.png",
+    "icons_dir": "icons"
+  }
+}

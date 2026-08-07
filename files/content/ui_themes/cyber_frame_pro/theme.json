@@ -1,0 +1,33 @@
+{
+  "id": "cyber_frame_pro",
+  "title": "Cyber Frame PRO",
+  "description": "Первый выбранный стиль: тёмный футуристический HUD, бирюзовая подсветка, технические рамки и прозрачные панели.",
+  "colors": {
+    "window": "#030911",
+    "sidebar": "rgba(2,10,18,205)",
+    "panel": "rgba(4,20,30,205)",
+    "card": "rgba(4,23,34,188)",
+    "border": "#08b8d7",
+    "text": "#edfaff",
+    "muted": "#87adba",
+    "accent": "#00cce8",
+    "success": "#42e5a0",
+    "warning": "#ffc65c",
+    "danger": "#ff6175"
+  },
+  "layout": {
+    "sidebar_width": 220,
+    "monitor_width": 325,
+    "radius": 9,
+    "header_height": 64
+  },
+  "assets": {
+    "background": "skin.png",
+    "preview": "preview.png",
+    "icons_dir": "icons"
+  },
+  "presentation": {
+    "full_window_background": true,
+    "background_dimming": 10
+  }
+}
