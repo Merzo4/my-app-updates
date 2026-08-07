@@ -4,9 +4,9 @@ import subprocess
 import sys
 
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
-    QApplication, QComboBox, QFrame, QHBoxLayout, QLabel, QListWidget,
+    QApplication, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QListWidget,
     QListWidgetItem, QMainWindow, QPushButton, QStackedWidget, QVBoxLayout, QWidget,
 )
 
@@ -18,8 +18,6 @@ from .theme_pack import background_path, icon_path, list_qt_themes, load_qt_them
 
 
 class SkinRoot(QWidget):
-    """Полнооконный графический скин под настоящими элементами PySide6."""
-
     def __init__(self, theme: dict):
         super().__init__()
         self.theme = theme
@@ -29,22 +27,47 @@ class SkinRoot(QWidget):
             self._background.load(str(path))
 
     def paintEvent(self, event):
+        c = self.theme["colors"]
         painter = QPainter(self)
         painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
-        painter.fillRect(self.rect(), QColor(str(self.theme["colors"].get("window", "#10141b"))))
+        grad = QLinearGradient(0, 0, 0, self.height())
+        grad.setColorAt(0.0, QColor(str(c.get("window", "#071019"))))
+        grad.setColorAt(1.0, QColor("#040812"))
+        painter.fillRect(self.rect(), grad)
 
         if not self._background.isNull():
-            scaled = self._background.scaled(
-                self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
-            )
+            scaled = self._background.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
             sx = max(0, (scaled.width() - self.width()) // 2)
             sy = max(0, (scaled.height() - self.height()) // 2)
-            source = scaled.rect().adjusted(sx, sy, -sx, -sy)
-            painter.drawPixmap(self.rect(), scaled, source)
+            painter.setOpacity(0.88)
+            painter.drawPixmap(self.rect(), scaled, scaled.rect().adjusted(sx, sy, -sx, -sy))
+            painter.setOpacity(1.0)
 
         dim = int(self.theme.get("presentation", {}).get("background_dimming", 0))
         if dim > 0:
             painter.fillRect(self.rect(), QColor(0, 0, 0, max(0, min(220, dim))))
+
+        glow = QLinearGradient(0, 0, self.width(), 0)
+        glow.setColorAt(0.0, QColor(255, 255, 255, 8))
+        glow.setColorAt(0.5, QColor(255, 255, 255, 22))
+        glow.setColorAt(1.0, QColor(255, 255, 255, 8))
+        painter.fillRect(0, 0, self.width(), 110, glow)
+
+
+class InfoCard(QFrame):
+    def __init__(self, title: str, body: str):
+        super().__init__()
+        self.setObjectName("contentCard")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(8)
+        h = QLabel(title)
+        h.setObjectName("cardTitle")
+        t = QLabel(body)
+        t.setWordWrap(True)
+        t.setObjectName("cardText")
+        layout.addWidget(h)
+        layout.addWidget(t)
 
 
 class PlaceholderPage(QWidget):
@@ -52,7 +75,8 @@ class PlaceholderPage(QWidget):
         super().__init__()
         self.setObjectName("pageContainer")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(34, 28, 34, 28)
+        layout.setContentsMargins(28, 22, 28, 26)
+        layout.setSpacing(14)
 
         heading = QLabel(title)
         heading.setObjectName("pageTitle")
@@ -60,21 +84,39 @@ class PlaceholderPage(QWidget):
         text.setWordWrap(True)
         text.setObjectName("pageSubtitle")
 
-        card = QFrame()
-        card.setObjectName("contentCard")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(22, 20, 22, 20)
-        info = QLabel(
-            "Это уже не картинка предпросмотра. Реальные элементы MerzoStream Suite "
-            "работают поверх графического скина: навигация, страницы, кнопки и мониторинг ПК."
+        hero = QFrame()
+        hero.setObjectName("heroCard")
+        hero_l = QVBoxLayout(hero)
+        hero_l.setContentsMargins(22, 20, 22, 20)
+        hero_l.setSpacing(8)
+        hero_title = QLabel("MerzoStream Suite")
+        hero_title.setObjectName("heroTitle")
+        hero_body = QLabel(
+            "Теперь тема оформляет настоящий интерфейс, а не подменяет его картинкой. "
+            "Следующий шаг — наполнить реальные модули и дать дизайнеру возможность конструировать своё оформление."
         )
-        info.setWordWrap(True)
-        card_layout.addWidget(info)
+        hero_body.setWordWrap(True)
+        hero_body.setObjectName("heroText")
+        hero_l.addWidget(hero_title)
+        hero_l.addWidget(hero_body)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(14)
+        grid.setVerticalSpacing(14)
+        cards = [
+            ("Тема", "Фон художественный, а панели, меню и карточки собираются кодом PySide6."),
+            ("Sidebar", "Иконки и пункты меню настоящие, поэтому тема может менять стиль, не ломая структуру."),
+            ("Dashboard", "Справа всегда виден мониторинг ПК — это реальный блок, а не часть изображения."),
+            ("Следующий этап", "После этой базы можно делать редактор темы: свои фоны, кнопки, цвета и пакеты иконок."),
+        ]
+        for i, (a, b) in enumerate(cards):
+            card = InfoCard(a, b)
+            grid.addWidget(card, i // 2, i % 2)
 
         layout.addWidget(heading)
         layout.addWidget(text)
-        layout.addSpacing(12)
-        layout.addWidget(card)
+        layout.addWidget(hero)
+        layout.addLayout(grid)
         layout.addStretch(1)
 
 
@@ -84,12 +126,9 @@ class MainWindow(QMainWindow):
         self.app_info = load_app_info()
         ui_cfg = settings.load("ui", force=True)
         self.theme = load_qt_theme(str(ui_cfg.get("qt_theme_id", "merzostream_dark")))
-
-        self.setWindowTitle(
-            f"MerzoStream Suite — {self.app_info.get('channel')} {self.app_info.get('version')}"
-        )
-        self.resize(1500, 920)
-        self.setMinimumSize(1120, 720)
+        self.setWindowTitle(f"MerzoStream Suite — {self.app_info.get('channel')} {self.app_info.get('version')}")
+        self.resize(1536, 930)
+        self.setMinimumSize(1220, 760)
         self._build()
         self._apply_theme()
 
@@ -99,30 +138,31 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(root)
 
         outer = QVBoxLayout(root)
-        outer.setContentsMargins(12, 12, 12, 8)
-        outer.setSpacing(8)
+        outer.setContentsMargins(14, 14, 14, 10)
+        outer.setSpacing(10)
 
         body = QHBoxLayout()
-        body.setSpacing(10)
+        body.setSpacing(12)
         outer.addLayout(body, 1)
 
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(int(self.theme["layout"]["sidebar_width"]))
-        side_layout = QVBoxLayout(sidebar)
-        side_layout.setContentsMargins(14, 18, 14, 14)
-        side_layout.setSpacing(8)
-
+        sidebar.setFixedWidth(int(self.theme["layout"].get("sidebar_width", 230)))
+        side = QVBoxLayout(sidebar)
+        side.setContentsMargins(16, 16, 16, 16)
+        side.setSpacing(8)
         brand = QLabel("MERZOSTREAM")
         brand.setObjectName("brand")
         version = QLabel(f"SUITE • {self.app_info.get('version')}")
         version.setObjectName("versionLabel")
+        side.addWidget(brand)
+        side.addWidget(version)
+        side.addSpacing(8)
 
         self.nav = QListWidget()
         self.nav.setObjectName("navigation")
         self.nav.setIconSize(QSize(20, 20))
-        self.nav.setSpacing(2)
-
+        self.nav.setSpacing(4)
         for item in load_navigation().get("items", []):
             if not item.get("enabled", True):
                 continue
@@ -132,13 +172,13 @@ class MainWindow(QMainWindow):
             if path:
                 row.setIcon(QIcon(str(path)))
             self.nav.addItem(row)
+        side.addWidget(self.nav, 1)
 
-        theme_label = QLabel("Оформление")
-        theme_label.setObjectName("themeLabel")
+        self.theme_label = QLabel("Оформление")
+        self.theme_label.setObjectName("themeLabel")
         self.theme_combo = QComboBox()
         self.theme_combo.setObjectName("themeCombo")
         self._theme_ids = []
-
         current_theme_id = str(self.theme.get("id", "merzostream_dark"))
         current_index = 0
         for idx, item in enumerate(list_qt_themes()):
@@ -146,66 +186,63 @@ class MainWindow(QMainWindow):
             self._theme_ids.append(item["id"])
             if item["id"] == current_theme_id:
                 current_index = idx
-
         if self._theme_ids:
             self.theme_combo.setCurrentIndex(current_index)
             self.theme_combo.currentIndexChanged.connect(self.change_theme)
-
-        switch_button = QPushButton("Классический интерфейс")
-        switch_button.clicked.connect(self.return_to_classic)
-
-        side_layout.addWidget(brand)
-        side_layout.addWidget(version)
-        side_layout.addSpacing(10)
-        side_layout.addWidget(self.nav, 1)
-        side_layout.addWidget(theme_label)
-        side_layout.addWidget(self.theme_combo)
-        side_layout.addWidget(switch_button)
+        classic = QPushButton("Классический интерфейс")
+        classic.setObjectName("secondaryButton")
+        classic.clicked.connect(self.return_to_classic)
+        side.addWidget(self.theme_label)
+        side.addWidget(self.theme_combo)
+        side.addWidget(classic)
         body.addWidget(sidebar)
 
         center = QFrame()
         center.setObjectName("workspace")
-        center_layout = QVBoxLayout(center)
-        center_layout.setContentsMargins(0, 0, 0, 0)
-        center_layout.setSpacing(8)
+        center_l = QVBoxLayout(center)
+        center_l.setContentsMargins(0, 0, 0, 0)
+        center_l.setSpacing(10)
 
         header = QFrame()
         header.setObjectName("header")
-        header.setFixedHeight(int(self.theme["layout"].get("header_height", 64)))
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(24, 0, 24, 0)
-
+        header.setFixedHeight(int(self.theme["layout"].get("header_height", 72)))
+        hl = QHBoxLayout(header)
+        hl.setContentsMargins(26, 0, 26, 0)
         self.header_title = QLabel("Главная")
         self.header_title.setObjectName("headerTitle")
-        badge = QLabel("PYSIDE6 • THEME ENGINE")
+        self.header_subtitle = QLabel("Переход на новый уровень оформления: тема управляет видом, но не ломает структуру.")
+        self.header_subtitle.setObjectName("headerSubtitle")
+        left = QVBoxLayout()
+        left.setSpacing(1)
+        left.addWidget(self.header_title)
+        left.addWidget(self.header_subtitle)
+        left_w = QWidget()
+        left_w.setLayout(left)
+        badge = QLabel("PYSIDE6 • REAL UI SKIN")
         badge.setObjectName("badge")
-        header_layout.addWidget(self.header_title)
-        header_layout.addStretch(1)
-        header_layout.addWidget(badge)
+        hl.addWidget(left_w)
+        hl.addStretch(1)
+        hl.addWidget(badge)
+        center_l.addWidget(header)
 
+        page_shell = QFrame()
+        page_shell.setObjectName("pageShell")
+        ps_l = QVBoxLayout(page_shell)
+        ps_l.setContentsMargins(0, 0, 0, 0)
         self.stack = QStackedWidget()
         self.stack.setObjectName("pageStack")
-        for index in range(self.nav.count()):
-            item = self.nav.item(index)
-            self.stack.addWidget(
-                PlaceholderPage(
-                    item.text(),
-                    "Фон, иконки, прозрачность и геометрия интерфейса загружаются из пакета темы."
-                )
-            )
-
-        center_layout.addWidget(header)
-        center_layout.addWidget(self.stack, 1)
+        for i in range(self.nav.count()):
+            item = self.nav.item(i)
+            self.stack.addWidget(PlaceholderPage(item.text(), "Текущая версия показывает реальную основу будущего интерфейса, которую уже можно красиво оформлять."))
+        ps_l.addWidget(self.stack)
+        center_l.addWidget(page_shell, 1)
         body.addWidget(center, 1)
 
-        monitor = SystemMonitorPanel(self.theme)
-        monitor.setFixedWidth(int(self.theme["layout"]["monitor_width"]))
-        body.addWidget(monitor)
+        self.monitor = SystemMonitorPanel(self.theme)
+        self.monitor.setFixedWidth(int(self.theme["layout"].get("monitor_width", 310)))
+        body.addWidget(self.monitor)
 
-        status = QLabel(
-            f"  MerzoStream Suite • {self.app_info.get('version')} • "
-            f"{self.theme.get('title')} • графический скин активен"
-        )
+        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Real UI Skin Foundation")
         status.setObjectName("statusBar")
         status.setFixedHeight(28)
         outer.addWidget(status)
@@ -217,8 +254,10 @@ class MainWindow(QMainWindow):
     def change_page(self, row: int):
         if row < 0:
             return
+        item = self.nav.item(row)
         self.stack.setCurrentIndex(row)
-        self.header_title.setText(self.nav.item(row).text())
+        self.header_title.setText(item.text())
+        self.header_subtitle.setText("Тема оформляет реальный интерфейс MerzoStream Suite, а не изображает его поверх программы.")
 
     def change_theme(self, index: int):
         if index < 0 or index >= len(getattr(self, "_theme_ids", [])):
@@ -239,109 +278,42 @@ class MainWindow(QMainWindow):
 
     def _apply_theme(self):
         c = self.theme["colors"]
-        radius = int(self.theme["layout"].get("radius", 12))
-        presentation = self.theme.get("presentation", {})
-        full_skin = bool(presentation.get("full_window_background", False))
-        workspace_bg = "rgba(3, 10, 20, 105)" if full_skin else c["window"]
-
+        radius = int(self.theme["layout"].get("radius", 14))
         self.setStyleSheet(f"""
             QMainWindow {{ background-color: {c['window']}; }}
-            QWidget {{
-                color: {c['text']};
-                font-family: 'Segoe UI';
-                font-size: 13px;
-            }}
-            #skinRoot {{ background: transparent; }}
-            #sidebar {{
-                background-color: {c['sidebar']};
+            QWidget {{ color: {c['text']}; font-family: 'Segoe UI'; font-size: 13px; }}
+            #sidebar, #monitorPanel, #workspace, #header, #pageShell, #contentCard, #metricCard, #heroCard {{
                 border: 1px solid {c['border']};
                 border-radius: {radius}px;
             }}
-            #workspace {{
-                background-color: {workspace_bg};
-                border: 1px solid {c['border']};
-                border-radius: {radius}px;
-            }}
-            #header {{
-                background-color: {c['panel']};
-                border: 1px solid {c['border']};
-                border-radius: {radius}px;
-            }}
-            #pageStack, #pageContainer {{ background: transparent; }}
-            #monitorPanel {{
-                background-color: {c['sidebar']};
-                border: 1px solid {c['border']};
-                border-radius: {radius}px;
-            }}
-            #brand {{ font-size: 23px; font-weight: 800; letter-spacing: 1px; }}
+            #sidebar {{ background-color: {c['sidebar']}; }}
+            #monitorPanel {{ background-color: {c['sidebar']}; }}
+            #workspace {{ background-color: rgba(6, 12, 24, 120); }}
+            #header {{ background-color: rgba(9, 17, 36, 170); }}
+            #pageShell {{ background-color: rgba(5, 10, 22, 72); }}
+            #contentCard {{ background-color: rgba(13, 22, 47, 146); }}
+            #heroCard {{ background-color: rgba(10, 19, 43, 112); }}
+            #metricCard {{ background-color: rgba(13, 22, 47, 138); }}
+            #brand {{ font-size: 23px; font-weight: 800; letter-spacing: 0.6px; }}
             #versionLabel {{ color: {c['accent']}; font-weight: 700; }}
-            #headerTitle, #pageTitle {{ font-size: 23px; font-weight: 700; }}
-            #pageSubtitle, #metricTitle {{ color: {c['muted']}; }}
-            #panelHeading {{ font-weight: 800; letter-spacing: 1px; }}
-            #metricValue {{ font-size: 15px; font-weight: 650; }}
-            #themeLabel {{ color: {c['muted']}; font-size: 11px; }}
-            #themeCombo {{
-                background-color: {c['card']};
-                border: 1px solid {c['border']};
-                border-radius: 8px;
-                padding: 7px;
-            }}
-            #themeCombo QAbstractItemView {{
-                background-color: {c['panel']};
-                color: {c['text']};
-                selection-background-color: {c['accent']};
-            }}
-            #badge {{
-                color: {c['accent']};
-                background-color: {c['card']};
-                border: 1px solid {c['accent']};
-                border-radius: 10px;
-                padding: 5px 10px;
-                font-weight: 800;
-            }}
-            #contentCard, #metricCard {{
-                background-color: {c['card']};
-                border: 1px solid {c['border']};
-                border-radius: {radius}px;
-            }}
-            #navigation {{
-                background: transparent;
-                border: none;
-                outline: none;
-            }}
-            #navigation::item {{
-                padding: 11px 10px;
-                border-radius: 9px;
-                margin: 1px 0;
-            }}
-            #navigation::item:hover {{ background-color: {c['panel']}; }}
-            #navigation::item:selected {{
-                background-color: {c['accent']};
-                color: white;
-            }}
-            QPushButton {{
-                background-color: {c['card']};
-                border: 1px solid {c['border']};
-                border-radius: 8px;
-                padding: 10px;
-            }}
-            QPushButton:hover {{ border-color: {c['accent']}; }}
-            QProgressBar {{
-                background: {c['panel']};
-                border: none;
-                border-radius: 3px;
-            }}
-            QProgressBar::chunk {{
-                background: {c['accent']};
-                border-radius: 3px;
-            }}
-            #statusBar {{
-                background-color: {c['panel']};
-                color: {c['muted']};
-                border: 1px solid {c['border']};
-                border-radius: 8px;
-                padding-left: 6px;
-            }}
+            #headerTitle, #pageTitle {{ font-size: 22px; font-weight: 800; }}
+            #headerSubtitle, #pageSubtitle, #metricTitle, #cardText, #heroText {{ color: {c['muted']}; }}
+            #cardTitle, #heroTitle, #panelHeading {{ font-size: 15px; font-weight: 700; }}
+            #heroTitle {{ color: {c.get('accent2', c['accent'])}; font-size: 18px; }}
+            #metricValue {{ font-size: 15px; font-weight: 700; }}
+            #themeLabel {{ color: {c['muted']}; font-size: 11px; margin-top: 6px; }}
+            #themeCombo {{ background-color: rgba(255,255,255,0.04); border: 1px solid {c['border']}; border-radius: 8px; padding: 8px; }}
+            #themeCombo QAbstractItemView {{ background-color: {c['panel']}; color: {c['text']}; selection-background-color: {c['accent']}; }}
+            #badge {{ color: {c['accent']}; background-color: rgba(255,255,255,0.04); border: 1px solid {c['border']}; border-radius: 10px; padding: 8px 14px; font-weight: 800; }}
+            #navigation {{ background: transparent; border: none; outline: none; }}
+            #navigation::item {{ padding: 12px 12px; border-radius: 11px; margin: 1px 0; }}
+            #navigation::item:hover {{ background-color: rgba(255,255,255,0.05); }}
+            #navigation::item:selected {{ background-color: {c['accent']}; color: white; }}
+            QPushButton {{ background-color: rgba(255,255,255,0.04); border: 1px solid {c['border']}; border-radius: 9px; padding: 10px 12px; }}
+            QPushButton:hover {{ background-color: rgba(255,255,255,0.08); }}
+            QProgressBar {{ background: rgba(255,255,255,0.05); border: none; border-radius: 4px; }}
+            QProgressBar::chunk {{ background: {c['accent']}; border-radius: 4px; }}
+            #statusBar {{ background-color: rgba(9, 17, 36, 168); color: {c['muted']}; border: 1px solid {c['border']}; border-radius: 8px; padding-left: 6px; }}
         """)
 
 

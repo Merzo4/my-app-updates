@@ -1,33 +1,35 @@
 {
   "id": "cyber_frame_pro",
   "title": "Cyber Frame PRO",
-  "description": "Первый выбранный стиль: тёмный футуристический HUD, бирюзовая подсветка, технические рамки и прозрачные панели.",
+  "description": "Тёмная cyber-тема с техно-фоном и собранным кодом интерфейсом.",
   "colors": {
-    "window": "#030911",
-    "sidebar": "rgba(2,10,18,205)",
-    "panel": "rgba(4,20,30,205)",
-    "card": "rgba(4,23,34,188)",
-    "border": "#08b8d7",
-    "text": "#edfaff",
-    "muted": "#87adba",
-    "accent": "#00cce8",
-    "success": "#42e5a0",
-    "warning": "#ffc65c",
-    "danger": "#ff6175"
+    "window": "#071019",
+    "sidebar": "rgba(5,14,22,220)",
+    "panel": "rgba(8,18,28,220)",
+    "card": "rgba(10,23,34,192)",
+    "border": "rgba(0,212,255,160)",
+    "text": "#eefcff",
+    "muted": "#8ea9b5",
+    "accent": "#00d8ff",
+    "accent2": "#00f0b5",
+    "success": "#44e7ac",
+    "warning": "#ffd76a",
+    "danger": "#ff7284"
   },
   "layout": {
-    "sidebar_width": 220,
-    "monitor_width": 325,
-    "radius": 9,
-    "header_height": 64
+    "sidebar_width": 230,
+    "monitor_width": 310,
+    "radius": 12,
+    "header_height": 72
   },
   "assets": {
-    "background": "skin.png",
+    "background": "background.png",
     "preview": "preview.png",
     "icons_dir": "icons"
   },
   "presentation": {
-    "full_window_background": true,
-    "background_dimming": 10
+    "background_dimming": 18,
+    "show_page_hero": true,
+    "transparent_workspace": true
   }
 }

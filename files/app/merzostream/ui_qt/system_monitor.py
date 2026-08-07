@@ -19,7 +19,7 @@ class MetricCard(QFrame):
         super().__init__()
         self.setObjectName("metricCard")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 9, 12, 9)
+        layout.setContentsMargins(14, 10, 14, 10)
         layout.setSpacing(5)
         self.title = QLabel(title)
         self.title.setObjectName("metricTitle")
@@ -28,7 +28,7 @@ class MetricCard(QFrame):
         self.bar = QProgressBar()
         self.bar.setRange(0, 100)
         self.bar.setTextVisible(False)
-        self.bar.setFixedHeight(6)
+        self.bar.setFixedHeight(8)
         layout.addWidget(self.title)
         layout.addWidget(self.value)
         layout.addWidget(self.bar)
@@ -49,15 +49,23 @@ class SystemMonitorPanel(QFrame):
         layout.setSpacing(10)
         heading = QLabel("МОНИТОРИНГ ПК")
         heading.setObjectName("panelHeading")
+        subtitle = QLabel("Постоянно видимая панель состояния системы")
+        subtitle.setObjectName("metricTitle")
         layout.addWidget(heading)
+        layout.addWidget(subtitle)
         self.cards = {
-            "cpu": MetricCard("CPU"), "gpu": MetricCard("GPU"),
-            "ram": MetricCard("RAM"), "disk": MetricCard("Диск C:"),
+            "cpu": MetricCard("CPU"),
+            "gpu": MetricCard("GPU"),
+            "ram": MetricCard("RAM"),
+            "disk": MetricCard("Диск"),
             "net": MetricCard("Сеть"),
         }
         for card in self.cards.values():
             layout.addWidget(card)
         layout.addStretch(1)
+        foot = QLabel("LIVE")
+        foot.setObjectName("panelHeading")
+        layout.addWidget(foot)
         self._last_net = None
         self._last_time = time.monotonic()
         self.timer = QTimer(self)
@@ -75,7 +83,8 @@ class SystemMonitorPanel(QFrame):
         self.cards["cpu"].update_value(f"{cpu:.0f}%", cpu)
         self.cards["ram"].update_value(f"{ram.used / 2**30:.1f} / {ram.total / 2**30:.1f} ГБ", ram.percent)
         self.cards["disk"].update_value(f"Свободно {disk.free / 2**30:.0f} ГБ", disk.percent)
-        now = time.monotonic(); net = psutil.net_io_counters()
+        now = time.monotonic()
+        net = psutil.net_io_counters()
         if self._last_net is not None:
             dt = max(0.1, now - self._last_time)
             down = (net.bytes_recv - self._last_net.bytes_recv) / dt / 2**20
@@ -90,10 +99,17 @@ class SystemMonitorPanel(QFrame):
             self.cards["gpu"].update_value("NVIDIA не найдена")
             return
         try:
-            result = subprocess.run([
-                exe, "--query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total",
-                "--format=csv,noheader,nounits"
-            ], capture_output=True, text=True, timeout=2, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            result = subprocess.run(
+                [
+                    exe,
+                    "--query-gpu=utilization.gpu,temperature.gpu,memory.used,memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
             values = [x.strip() for x in result.stdout.splitlines()[0].split(",")]
             load, temp, used, total = map(float, values[:4])
             self.cards["gpu"].update_value(f"{load:.0f}% • {temp:.0f}°C • {used/1024:.1f}/{total/1024:.1f} ГБ", load)
