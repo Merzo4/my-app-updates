@@ -259,17 +259,21 @@ class App(ctk.CTk):
 
 
 def run():
-    # Новый PySide6-интерфейс запускается только по явному выбору пользователя.
-    # При любой ошибке автоматически возвращаемся в надёжный классический режим.
-    ui_mode = settings.get("ui", "mode", "classic")
-    if ui_mode == "qt":
+    # 0.0.2k: автоматический fallback больше не запирает пользователя в Classic.
+    # Classic сохраняется только если пользователь сам нажал «Классический интерфейс».
+    ui_mode = settings.get("ui", "mode", "qt")
+    classic_user_selected = settings.get_bool("ui", "classic_user_selected", False)
+    try_qt = (ui_mode == "qt") or (ui_mode == "classic" and not classic_user_selected)
+    if try_qt:
         try:
             from .ui_qt.run import run_qt
+            settings.set("ui", "mode", "qt")
             run_qt()
             return
         except Exception as exc:
-            log("UI", f"Новый PySide6-интерфейс не запущен, возвращаем классический: {exc}")
-            settings.set("ui", "mode", "classic")
+            log("UI", f"PySide6 startup error; Classic только на эту сессию: {exc}")
+            settings.set("ui", "last_qt_error", str(exc))
+            # Не меняем mode на classic: после исправления следующий запуск снова попробует Qt.
 
     app_cfg = load_app()
     theme = load_theme(app_cfg.get("theme_id", "dark"))

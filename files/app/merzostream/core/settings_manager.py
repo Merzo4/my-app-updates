@@ -11,7 +11,7 @@ from .paths import BACKUPS_DIR, SETTINGS_DIR
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {
-        "version": "0.0.2j-beta", "theme_id": "dark", "check_updates": False,
+        "version": "0.0.2k-beta", "theme_id": "dark", "check_updates": False,
         "show_changelog": True, "github_repo": "Merzo4/my-app-updates", "developer_mode": False,
     },
     "stream": {
@@ -40,6 +40,7 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "effects_enabled": True, "economy_disable_background": False,
         "window_width": 1536, "window_height": 930, "window_x": None, "window_y": None,
         "window_maximized": False,
+        "classic_user_selected": False, "last_qt_error": "",
     },
     "storage": {
         "music_library_mode": "standard",
@@ -133,7 +134,7 @@ class SettingsManager:
             if data.get('mode') not in {'classic','qt'}: data['mode']='classic'
             if not str(data.get('qt_theme_id','')).strip(): data['qt_theme_id']='merzostream_dark'
             if data.get('graphics_quality') not in {'high','medium','economy'}: data['graphics_quality']='high'
-            for key in ('background_enabled','transparency_enabled','effects_enabled','economy_disable_background','window_maximized'):
+            for key in ('background_enabled','transparency_enabled','effects_enabled','economy_disable_background','window_maximized','classic_user_selected'):
                 data[key]=bool(data.get(key, DEFAULTS['ui'][key]))
             for key, fallback in (('window_width',1536),('window_height',930)):
                 try: data[key]=int(data.get(key,fallback))

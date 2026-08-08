@@ -11,24 +11,11 @@ from PySide6.QtWidgets import (
 )
 
 from ..core.content import load_app_info, load_navigation
+from ..core.event_log import log
 from ..core.paths import bundle_root
 from ..core.settings_manager import settings
 from .system_monitor import SystemMonitorPanel
 from .theme_pack import background_path, icon_path, list_qt_themes, load_qt_theme
-from .pages.authorization import AuthorizationPage
-from .pages.stream_control import StreamControlPage
-from .pages.home import HomePage
-from .pages.media_player import MediaPlayerPage
-from .pages.background_music import BackgroundMusicPage
-from .pages.chat_center import ChatCenterPage
-from .pages.ai_producer import AIProducerPage
-from .pages.designer import DesignerPage
-from .pages.settings import SettingsPage
-from .pages.logs import LogsPage
-from .pages.updates import UpdatesPage
-from .pages.help import HelpPage
-from .pages.developer import DeveloperPage
-from .pages.about import AboutPage
 from .runtime import get_runtime
 from .help_system import enhance_help, page_description, show_page_help
 
@@ -170,6 +157,37 @@ class PlaceholderPage(QWidget):
         layout.addWidget(text)
         layout.addWidget(hero)
         layout.addLayout(grid)
+        layout.addStretch(1)
+
+
+class ModuleErrorPage(QWidget):
+    """Ошибка конкретного модуля не должна ронять весь новый интерфейс."""
+    def __init__(self, title: str, page_id: str, exc: Exception):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 22, 28, 26)
+        layout.setSpacing(12)
+        heading = QLabel(title)
+        heading.setObjectName("pageTitle")
+        subtitle = QLabel("Этот модуль временно не загрузился, но остальные разделы MerzoStream Suite продолжают работать.")
+        subtitle.setWordWrap(True)
+        subtitle.setObjectName("pageSubtitle")
+        card = QFrame()
+        card.setObjectName("heroCard")
+        box = QVBoxLayout(card)
+        box.setContentsMargins(18, 16, 18, 16)
+        label = QLabel(f"Модуль: {page_id}\nОшибка: {exc}")
+        label.setWordWrap(True)
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.TextSelectableByKeyboard)
+        label.setObjectName("cardText")
+        hint = QLabel("Открой Настройки → Логи и пришли текст ошибки. После исправления модуль вернётся без отката всего интерфейса.")
+        hint.setWordWrap(True)
+        hint.setObjectName("cardText")
+        box.addWidget(label)
+        box.addWidget(hint)
+        layout.addWidget(heading)
+        layout.addWidget(subtitle)
+        layout.addWidget(card)
         layout.addStretch(1)
 
 
@@ -317,7 +335,7 @@ class MainWindow(QMainWindow):
         self.monitor.setFixedWidth(int(self.theme["layout"].get("monitor_width", 310)))
         body.addWidget(self.monitor)
 
-        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Simplified Navigation • Adaptive UI • Storage")
+        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Stability Hotfix • Adaptive UI • Storage")
         status.setObjectName("statusBar")
         status.setFixedHeight(28)
         outer.addWidget(status)
@@ -328,35 +346,38 @@ class MainWindow(QMainWindow):
         self._update_adaptive_layout()
 
     def _create_page(self, page_id: str, title: str):
-        if page_id == "home":
-            return HomePage(self.theme, self.app_info, navigate=self.navigate_to_id)
-        if page_id == "stream":
-            return StreamControlPage(self.theme, navigate=self.navigate_to_id, platforms_changed=self.refresh_authorization_page)
-        if page_id == "player":
-            return MediaPlayerPage(self.theme)
-        if page_id == "background_music":
-            return BackgroundMusicPage(self.theme, open_help=lambda: self.open_help_for("background_music"))
-        if page_id == "chat":
-            return ChatCenterPage(self.theme)
-        if page_id == "ai":
-            return AIProducerPage(self.theme, use_title=self.use_ai_title)
-        if page_id == "auth":
-            return AuthorizationPage(self.theme)
-        if page_id == "designer":
-            return DesignerPage(self.theme, restart=self._restart)
-        if page_id == "settings":
-            return SettingsPage(self.theme, self.app_info, restart=self._restart)
-        if page_id == "logs":
-            return LogsPage(self.theme)
-        if page_id == "updates":
-            return UpdatesPage(self.theme, self.app_info, restart=self._restart)
-        if page_id == "help":
-            return HelpPage(self.theme)
-        if page_id == "developer":
-            return DeveloperPage(self.theme)
-        if page_id == "about":
-            return AboutPage(self.theme, self.app_info)
-        return PlaceholderPage(title, "Страница подключается к новому интерфейсу.")
+        try:
+            if page_id == "home":
+                from .pages.home import HomePage
+                return HomePage(self.theme, self.app_info, navigate=self.navigate_to_id)
+            if page_id == "stream":
+                from .pages.stream_control import StreamControlPage
+                return StreamControlPage(self.theme, navigate=self.navigate_to_id, platforms_changed=self.refresh_authorization_page)
+            if page_id == "player":
+                from .pages.media_player import MediaPlayerPage
+                return MediaPlayerPage(self.theme)
+            if page_id == "background_music":
+                from .pages.background_music import BackgroundMusicPage
+                return BackgroundMusicPage(self.theme, open_help=lambda: self.open_help_for("background_music"))
+            if page_id == "chat":
+                from .pages.chat_center import ChatCenterPage
+                return ChatCenterPage(self.theme)
+            if page_id == "ai":
+                from .pages.ai_producer import AIProducerPage
+                return AIProducerPage(self.theme, use_title=self.use_ai_title)
+            if page_id == "auth":
+                from .pages.authorization import AuthorizationPage
+                return AuthorizationPage(self.theme)
+            if page_id == "designer":
+                from .pages.designer import DesignerPage
+                return DesignerPage(self.theme, restart=self._restart)
+            if page_id == "settings":
+                from .pages.settings import SettingsPage
+                return SettingsPage(self.theme, self.app_info, restart=self._restart)
+            return PlaceholderPage(title, "Страница подключается к новому интерфейсу.")
+        except Exception as exc:
+            log("UI-QT", f"Ошибка модуля {page_id}: {exc}")
+            return ModuleErrorPage(title, page_id, exc)
 
     def use_ai_title(self, title: str):
         page = getattr(self, "pages_by_id", {}).get("stream")
@@ -430,6 +451,7 @@ class MainWindow(QMainWindow):
         self._restart()
 
     def return_to_classic(self):
+        settings.set("ui", "classic_user_selected", True)
         settings.set("ui", "mode", "classic")
         self._restart()
 

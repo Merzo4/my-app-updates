@@ -11,7 +11,7 @@ from ...core.content import load_theme_index
 from ...core.database import database
 from ...core.settings_manager import settings
 from ...core.yt_dlp_tools import current_version, update as update_ytdlp
-from ...player.background_music import MUSIC_DIR
+from ...player.background_music import music_directory
 
 
 class AccordionSection(ctk.CTkFrame):
@@ -84,6 +84,7 @@ class SettingsPage(ctk.CTkScrollableFrame):
         current=str(self.app_cfg.get("theme_id","dark")); current_title=next((t for t,i in self.theme_map.items() if i==current),next(iter(self.theme_map)))
         self.theme_var=ctk.StringVar(value=current_title); ctk.CTkComboBox(card,values=list(self.theme_map),variable=self.theme_var,width=320).pack(anchor="w",padx=8,pady=8)
         ctk.CTkButton(card,text="Применить тему",command=self.apply_theme).pack(anchor="w",padx=8,pady=(0,8))
+        ctk.CTkButton(card,text="Вернуться в новый интерфейс PySide6",command=self.enable_qt).pack(anchor="w",padx=8,pady=(0,8))
 
     def _build_limits(self):
         card=self._section("🎵 Очередь и лимиты","Здесь задаются ограничения заказов. Кулдаун и максимальная длительность указываются в минутах.")
@@ -133,7 +134,7 @@ class SettingsPage(ctk.CTkScrollableFrame):
 
     def _build_background(self):
         card=self._section("🎼 Фоновая музыка для YouTube","Это отдельный аудио-источник OBS без видео. Добавляй лицензированные MP3/WAV во вкладке «Фоновая музыка».")
-        ctk.CTkLabel(card,text=f"Папка музыки:\n{MUSIC_DIR}\n\nOBS Browser Source:\nhttp://127.0.0.1:{self.player_cfg.get('port',5000)}/music",
+        ctk.CTkLabel(card,text=f"Папка музыки:\n{music_directory()}\n\nOBS Browser Source:\nhttp://127.0.0.1:{self.player_cfg.get('port',5000)}/music",
                      justify="left",font=("Consolas",12),text_color=self.colors.get("text","#fff")).pack(anchor="w",padx=8,pady=8)
         ctk.CTkLabel(card,text="В OBS включи «Управлять аудио через OBS». Тогда музыка будет отдельным аудиоканалом и не смешается с видеоклипами.",wraplength=900,justify="left",text_color=self.colors.get("muted_text",self.colors.get("text","#fff"))).pack(anchor="w",padx=8,pady=(0,8))
 
@@ -149,6 +150,10 @@ class SettingsPage(ctk.CTkScrollableFrame):
         ctk.CTkButton(row,text="Экспорт JSON",command=self.export_settings).pack(side="left",padx=4)
         ctk.CTkButton(row,text="Импорт JSON",command=self.import_settings).pack(side="left",padx=4)
 
+    def enable_qt(self):
+        settings.set("ui", "classic_user_selected", False)
+        settings.set("ui", "mode", "qt")
+        self.app.restart_application()
     def apply_theme(self): settings.set("app","theme_id",self.theme_map.get(self.theme_var.get(),"dark")); self.app.restart_application()
     def save_player(self):
         errors=[]; int_keys={"port","min_duration_sec","max_duration_min","min_views","user_limit","global_limit","user_cooldown_min","volume","search_results","search_timeout_sec","parallel_checks"}
