@@ -1,1 +1,4 @@
-MerzoStream Suite 0.0.2g — GitHub root-ready. Скопируй manifest.json и files в корень my-app-updates, Commit to main, Push origin. Использовать после ручной установки 0.0.2g, чтобы GitHub-репозиторий догнал установленную версию.
+MerzoStream Suite 0.0.2h — GitHub ROOT READY
+
+Скопируй manifest.json и папку files в корень локального репозитория my-app-updates с заменой/объединением.
+GitHub Desktop: Commit to main -> Push origin. Затем в MerzoStream Suite: Обновления -> Проверить -> Установить и перезапустить.

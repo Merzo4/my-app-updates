@@ -30,6 +30,7 @@ from .pages.help import HelpPage
 from .pages.developer import DeveloperPage
 from .pages.about import AboutPage
 from .runtime import get_runtime
+from .help_system import enhance_help, page_description
 
 
 class SkinRoot(QWidget):
@@ -147,6 +148,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1220, 760)
         self._build()
         self._apply_theme()
+        enhance_help(self)
 
     def _build(self):
         root = SkinRoot(self.theme)
@@ -179,11 +181,17 @@ class MainWindow(QMainWindow):
         self.nav.setObjectName("navigation")
         self.nav.setIconSize(QSize(20, 20))
         self.nav.setSpacing(4)
+        self.nav.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.nav.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.nav.setTextElideMode(Qt.ElideRight)
+        self.nav.setWordWrap(False)
+        self.nav.setToolTip("Навигация MerzoStream Suite. Длинные названия теперь не создают горизонтальную прокрутку.")
         for item in load_navigation().get("items", []):
             if not item.get("enabled", True):
                 continue
             row = QListWidgetItem(item.get("title", item.get("id", "")))
             row.setData(Qt.UserRole, item.get("id"))
+            row.setToolTip(page_description(str(item.get("id", ""))))
             path = icon_path(self.theme, item.get("id", ""))
             if path:
                 row.setIcon(QIcon(str(path)))
@@ -226,7 +234,7 @@ class MainWindow(QMainWindow):
         hl.setContentsMargins(26, 0, 26, 0)
         self.header_title = QLabel("Главная")
         self.header_title.setObjectName("headerTitle")
-        self.header_subtitle = QLabel("Переход на новый уровень оформления: тема управляет видом, но не ломает структуру.")
+        self.header_subtitle = QLabel(page_description("home"))
         self.header_subtitle.setObjectName("headerSubtitle")
         left = QVBoxLayout()
         left.setSpacing(1)
@@ -262,7 +270,7 @@ class MainWindow(QMainWindow):
         self.monitor.setFixedWidth(int(self.theme["layout"].get("monitor_width", 310)))
         body.addWidget(self.monitor)
 
-        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Dashboard Pro • Home Center")
+        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Dashboard Pro • URL Music • UX Help")
         status.setObjectName("statusBar")
         status.setFixedHeight(28)
         outer.addWidget(status)
@@ -329,7 +337,7 @@ class MainWindow(QMainWindow):
             self.refresh_authorization_page()
         self.stack.setCurrentIndex(row)
         self.header_title.setText(item.text())
-        self.header_subtitle.setText("Рабочий модуль PySide6 подключён к существующей логике MerzoStream Suite.")
+        self.header_subtitle.setText(page_description(page_id))
 
     def change_theme(self, index: int):
         if index < 0 or index >= len(getattr(self, "_theme_ids", [])):
@@ -419,6 +427,8 @@ class MainWindow(QMainWindow):
             #dangerButton {{ background-color: rgba(160, 50, 67, 150); border: 1px solid rgba(255, 100, 120, 170); }}
             #pageScroll, #scrollContent, #realPage {{ background: transparent; border: none; }}
             #authStatus {{ color: {c['muted']}; font-family: 'Consolas'; }}
+            #dashboardScroll, #dashboardHost {{ background: transparent; border: none; }}
+            QToolTip {{ background-color: {c['panel']}; color: {c['text']}; border: 1px solid {c['border']}; padding: 6px; }}
         """)
 
 
