@@ -11,7 +11,7 @@ from .paths import BACKUPS_DIR, SETTINGS_DIR
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {
-        "version": "0.0.1-beta", "theme_id": "dark", "check_updates": False,
+        "version": "0.0.2g-beta", "theme_id": "dark", "check_updates": False,
         "show_changelog": True, "github_repo": "Merzo4/my-app-updates", "developer_mode": False,
     },
     "stream": {
@@ -35,12 +35,25 @@ DEFAULTS: dict[str, dict[str, Any]] = {
     },
     "obs": {"browser_url": "http://127.0.0.1:5000/player", "clear_on_exit": True},
     "ui": {"scale": 1.0, "show_status_bar": True, "mode": "classic", "qt_theme_id": "merzostream_dark"},
+    "monitor": {
+        "show_cpu": True,
+        "show_ram": True,
+        "show_network": True,
+        "show_platforms": True,
+        "show_media_queue": True,
+        "show_background_music": True,
+        "disk_mode": "all",
+        "disks": [],
+        "gpu_mode": "all",
+        "gpus": [],
+        "refresh_ms": 1500,
+    },
     "developer": {"verbose_logging": False, "allow_unsigned_plugins": False},
 }
 
 FILE_NAMES = {
     "app": "app.json", "stream": "stream_control.json", "player": "media_player.json",
-    "obs": "obs.json", "ui": "ui.json", "developer": "developer.json",
+    "obs": "obs.json", "ui": "ui.json", "monitor": "monitor.json", "developer": "developer.json",
 }
 
 class SettingsManager:
@@ -109,6 +122,16 @@ class SettingsManager:
             except Exception: data['scale']=1.0
             if data.get('mode') not in {'classic','qt'}: data['mode']='classic'
             if not str(data.get('qt_theme_id','')).strip(): data['qt_theme_id']='merzostream_dark'
+        elif section=='monitor':
+            for key in ('show_cpu','show_ram','show_network','show_platforms','show_media_queue','show_background_music'):
+                data[key]=bool(data.get(key, DEFAULTS['monitor'][key]))
+            if data.get('disk_mode') not in {'all','custom'}: data['disk_mode']='all'
+            if data.get('gpu_mode') not in {'all','custom'}: data['gpu_mode']='all'
+            if not isinstance(data.get('disks'),list): data['disks']=[]
+            if not isinstance(data.get('gpus'),list): data['gpus']=[]
+            try: data['refresh_ms']=int(data.get('refresh_ms',1500))
+            except Exception: data['refresh_ms']=1500
+            data['refresh_ms']=max(750,min(10000,data['refresh_ms']))
 
     def save(self, section: str, data: dict[str, Any] | None = None) -> None:
         payload=data if data is not None else self._cache.get(section,self.load(section))

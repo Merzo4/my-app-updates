@@ -1,5 +1,1 @@
-MerzoStream Suite 0.0.2d FIXED
-
-Исправлен manifest: удалены __pycache__/*.pyc.
-Скопируй manifest.json и files поверх текущего репозитория, Commit, Push origin.
-После этого снова нажми «Проверить обновления» и «Установить и перезапустить».
+MerzoStream Suite 0.0.2g — GitHub root-ready. Скопируй manifest.json и files в корень my-app-updates, Commit to main, Push origin. Использовать после ручной установки 0.0.2g, чтобы GitHub-репозиторий догнал установленную версию.

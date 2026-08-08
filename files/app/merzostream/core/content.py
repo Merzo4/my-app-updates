@@ -9,12 +9,12 @@ from .paths import CONTENT_DIR
 
 DEFAULT_APP_INFO = {
     "name": "MerzoStream Suite",
-    "window_title": "MerzoStream Suite — Beta 0.0.1",
-    "version": "0.0.1",
+    "window_title": "MerzoStream Suite — Beta 0.0.2f",
+    "version": "0.0.2f",
     "channel": "Beta",
     "author": "Merzo4",
     "sidebar_brand": "MERZOSTREAM",
-    "sidebar_subtitle": "SUITE  •  BETA 0.0.1",
+    "sidebar_subtitle": "SUITE  •  BETA 0.0.2f",
 }
 
 DEFAULT_THEME = {

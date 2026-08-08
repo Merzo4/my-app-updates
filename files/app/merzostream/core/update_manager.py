@@ -154,6 +154,22 @@ class UpdateManager:
             raise UpdateError("manifest.json должен содержать JSON-объект")
         return payload
 
+    def _get_file_response(self, url: str, timeout: int):
+        """Download update files without stale raw.githubusercontent.com cache."""
+        separator = "&" if "?" in url else "?"
+        no_cache_url = f"{url}{separator}_={time.time_ns()}"
+        try:
+            response = self._session.get(
+                no_cache_url,
+                timeout=timeout,
+                stream=True,
+                headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+            )
+            response.raise_for_status()
+            return response
+        except requests.RequestException as exc:
+            raise UpdateError(f"Не удалось скачать файл с GitHub: {url}\\n{exc}") from exc
+
     def fetch_manifest(self) -> dict:
         config = self.load_config()
         if not config.get("enabled", True):
@@ -207,8 +223,12 @@ class UpdateManager:
                 restart_required=bool(raw.get("restart_required", True)),
             ))
 
-        newer = self._version_key(remote_version) > self._version_key(current_version)
+        remote_key = self._version_key(remote_version)
+        current_key = self._version_key(current_version)
+        newer = remote_key > current_key
         notes = [str(x).strip() for x in manifest.get("release_notes", []) if str(x).strip()]
+        if remote_key < current_key:
+            return UpdateCheck(False, current_version, remote_version, notes, [], manifest, "На GitHub лежит более старая версия — обновление не требуется")
         available = bool(changed) or newer
         return UpdateCheck(
             available=available,
@@ -244,8 +264,7 @@ class UpdateManager:
             for index, item in enumerate(check.files, start=1):
                 if progress:
                     progress(index - 1, total_steps, f"Скачивание: {item.path}")
-                response = self._session.get(item.url, timeout=timeout, stream=True)
-                response.raise_for_status()
+                response = self._get_file_response(item.url, timeout)
                 temp_file = temp_root / item.path
                 temp_file.parent.mkdir(parents=True, exist_ok=True)
                 with temp_file.open("wb") as output:
@@ -253,7 +272,7 @@ class UpdateManager:
                         if chunk:
                             output.write(chunk)
                 if self.sha256(temp_file).lower() != item.sha256:
-                    raise UpdateError(f"Не совпал SHA-256: {item.path}")
+                    raise UpdateError(f"Не совпал SHA-256: {item.path}\nGitHub мог отдать старую кэшированную версию файла.")
 
             backup_root.mkdir(parents=True, exist_ok=True)
             (backup_root / "backup_info.json").write_text(json.dumps({

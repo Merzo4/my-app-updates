@@ -1,0 +1,4 @@
+from PySide6.QtWidgets import QLabel,QTextEdit,QVBoxLayout,QWidget
+class HelpPage(QWidget):
+    def __init__(self,theme:dict):
+        super().__init__(); l=QVBoxLayout(self); l.setContentsMargins(28,22,28,26); t=QLabel('Инструкция'); t.setObjectName('pageTitle'); l.addWidget(t); box=QTextEdit(); box.setReadOnly(True); box.setPlainText('УПРАВЛЕНИЕ ТРАНСЛЯЦИЕЙ\\nНазвание и категория отправляются в выбранные площадки.\\n\\nМЕДИАПЛЕЕР\\nStreamer.bot Fetch URL:\\nhttp://127.0.0.1:5000/add?user=%userName%&query=%rawInput%\\nOBS Browser Source: http://127.0.0.1:5000/player\\n\\nФОНОВАЯ МУЗЫКА\\nOBS Browser Source: http://127.0.0.1:5000/music\\n\\nЕДИНЫЙ ЧАТ\\nOBS Browser Source: http://127.0.0.1:5001/chat\\nДобавление сообщений: /chat/add?platform=Twitch&user=%userName%&message=%rawInput%\\n\\nОБНОВЛЕНИЯ\\nОткрой раздел «Обновления», проверь GitHub, изучи список изменённых файлов и установи. Перед заменой Update Engine создаёт резервную копию.'); l.addWidget(box,1)

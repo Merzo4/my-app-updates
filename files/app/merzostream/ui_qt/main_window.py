@@ -15,6 +15,21 @@ from ..core.paths import bundle_root
 from ..core.settings_manager import settings
 from .system_monitor import SystemMonitorPanel
 from .theme_pack import background_path, icon_path, list_qt_themes, load_qt_theme
+from .pages.authorization import AuthorizationPage
+from .pages.stream_control import StreamControlPage
+from .pages.home import HomePage
+from .pages.media_player import MediaPlayerPage
+from .pages.background_music import BackgroundMusicPage
+from .pages.chat_center import ChatCenterPage
+from .pages.ai_producer import AIProducerPage
+from .pages.designer import DesignerPage
+from .pages.settings import SettingsPage
+from .pages.logs import LogsPage
+from .pages.updates import UpdatesPage
+from .pages.help import HelpPage
+from .pages.developer import DeveloperPage
+from .pages.about import AboutPage
+from .runtime import get_runtime
 
 
 class SkinRoot(QWidget):
@@ -126,6 +141,7 @@ class MainWindow(QMainWindow):
         self.app_info = load_app_info()
         ui_cfg = settings.load("ui", force=True)
         self.theme = load_qt_theme(str(ui_cfg.get("qt_theme_id", "merzostream_dark")))
+        self.runtime = get_runtime()
         self.setWindowTitle(f"MerzoStream Suite — {self.app_info.get('channel')} {self.app_info.get('version')}")
         self.resize(1536, 930)
         self.setMinimumSize(1220, 760)
@@ -218,7 +234,7 @@ class MainWindow(QMainWindow):
         left.addWidget(self.header_subtitle)
         left_w = QWidget()
         left_w.setLayout(left)
-        badge = QLabel("PYSIDE6 • REAL UI SKIN")
+        badge = QLabel("PYSIDE6 • DASHBOARD PRO")
         badge.setObjectName("badge")
         hl.addWidget(left_w)
         hl.addStretch(1)
@@ -231,9 +247,13 @@ class MainWindow(QMainWindow):
         ps_l.setContentsMargins(0, 0, 0, 0)
         self.stack = QStackedWidget()
         self.stack.setObjectName("pageStack")
+        self.pages_by_id = {}
         for i in range(self.nav.count()):
             item = self.nav.item(i)
-            self.stack.addWidget(PlaceholderPage(item.text(), "Текущая версия показывает реальную основу будущего интерфейса, которую уже можно красиво оформлять."))
+            page_id = str(item.data(Qt.UserRole) or "")
+            page = self._create_page(page_id, item.text())
+            self.pages_by_id[page_id] = page
+            self.stack.addWidget(page)
         ps_l.addWidget(self.stack)
         center_l.addWidget(page_shell, 1)
         body.addWidget(center, 1)
@@ -242,7 +262,7 @@ class MainWindow(QMainWindow):
         self.monitor.setFixedWidth(int(self.theme["layout"].get("monitor_width", 310)))
         body.addWidget(self.monitor)
 
-        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Real UI Skin Foundation")
+        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Dashboard Pro • Home Center")
         status.setObjectName("statusBar")
         status.setFixedHeight(28)
         outer.addWidget(status)
@@ -251,13 +271,65 @@ class MainWindow(QMainWindow):
         if self.nav.count():
             self.nav.setCurrentRow(0)
 
+    def _create_page(self, page_id: str, title: str):
+        if page_id == "home":
+            return HomePage(self.theme, self.app_info, navigate=self.navigate_to_id)
+        if page_id == "stream":
+            return StreamControlPage(self.theme, navigate=self.navigate_to_id, platforms_changed=self.refresh_authorization_page)
+        if page_id == "player":
+            return MediaPlayerPage(self.theme)
+        if page_id == "background_music":
+            return BackgroundMusicPage(self.theme)
+        if page_id == "chat":
+            return ChatCenterPage(self.theme)
+        if page_id == "ai":
+            return AIProducerPage(self.theme, use_title=self.use_ai_title)
+        if page_id == "auth":
+            return AuthorizationPage(self.theme)
+        if page_id == "designer":
+            return DesignerPage(self.theme, restart=self._restart)
+        if page_id == "settings":
+            return SettingsPage(self.theme)
+        if page_id == "logs":
+            return LogsPage(self.theme)
+        if page_id == "updates":
+            return UpdatesPage(self.theme, self.app_info, restart=self._restart)
+        if page_id == "help":
+            return HelpPage(self.theme)
+        if page_id == "developer":
+            return DeveloperPage(self.theme)
+        if page_id == "about":
+            return AboutPage(self.theme, self.app_info)
+        return PlaceholderPage(title, "Страница подключается к новому интерфейсу.")
+
+    def use_ai_title(self, title: str):
+        page = getattr(self, "pages_by_id", {}).get("stream")
+        if page is not None and hasattr(page, "title_entry"):
+            page.title_entry.setText(title)
+        self.navigate_to_id("stream")
+
+    def navigate_to_id(self, page_id: str):
+        for row in range(self.nav.count()):
+            item = self.nav.item(row)
+            if str(item.data(Qt.UserRole) or "") == page_id:
+                self.nav.setCurrentRow(row)
+                return
+
+    def refresh_authorization_page(self):
+        page = getattr(self, "pages_by_id", {}).get("auth")
+        if page is not None and hasattr(page, "reload_from_settings"):
+            page.reload_from_settings()
+
     def change_page(self, row: int):
         if row < 0:
             return
         item = self.nav.item(row)
+        page_id = str(item.data(Qt.UserRole) or "")
+        if page_id == "auth":
+            self.refresh_authorization_page()
         self.stack.setCurrentIndex(row)
         self.header_title.setText(item.text())
-        self.header_subtitle.setText("Тема оформляет реальный интерфейс MerzoStream Suite, а не изображает его поверх программы.")
+        self.header_subtitle.setText("Рабочий модуль PySide6 подключён к существующей логике MerzoStream Suite.")
 
     def change_theme(self, index: int):
         if index < 0 or index >= len(getattr(self, "_theme_ids", [])):
@@ -272,7 +344,21 @@ class MainWindow(QMainWindow):
         settings.set("ui", "mode", "classic")
         self._restart()
 
+    def _shutdown_pages(self):
+        for page in getattr(self, "pages_by_id", {}).values():
+            shutdown = getattr(page, "shutdown", None)
+            if callable(shutdown):
+                try:
+                    shutdown()
+                except Exception:
+                    pass
+
+    def closeEvent(self, event):
+        self._shutdown_pages()
+        event.accept()
+
     def _restart(self):
+        self._shutdown_pages()
         subprocess.Popen([sys.executable] + sys.argv, cwd=str(bundle_root()))
         QApplication.quit()
 
@@ -314,6 +400,25 @@ class MainWindow(QMainWindow):
             QProgressBar {{ background: rgba(255,255,255,0.05); border: none; border-radius: 4px; }}
             QProgressBar::chunk {{ background: {c['accent']}; border-radius: 4px; }}
             #statusBar {{ background-color: rgba(9, 17, 36, 168); color: {c['muted']}; border: 1px solid {c['border']}; border-radius: 8px; padding-left: 6px; }}
+            #sectionCard {{ background-color: rgba(13, 22, 47, 146); border: 1px solid {c['border']}; border-radius: {radius}px; }}
+            #authRow {{ background-color: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05); border-radius: 9px; }}
+            #fieldLabel {{ font-weight: 650; }}
+            QLineEdit, QComboBox, QSpinBox, QTextEdit, QListWidget {{
+                background-color: rgba(5, 10, 22, 165);
+                color: {c['text']};
+                border: 1px solid {c['border']};
+                border-radius: 8px;
+                padding: 9px 10px;
+                selection-background-color: {c['accent']};
+            }}
+            QComboBox QAbstractItemView {{ background-color: {c['panel']}; color: {c['text']}; selection-background-color: {c['accent']}; }}
+            QTextEdit#statusBox {{ font-family: 'Consolas'; }}
+            QCheckBox {{ spacing: 7px; padding: 5px 8px; }}
+            #primaryButton, #primarySmallButton {{ background-color: {c['accent']}; color: white; border: 1px solid {c['accent']}; font-weight: 750; }}
+            #primaryButton:hover, #primarySmallButton:hover {{ background-color: {c.get('accent2', c['accent'])}; }}
+            #dangerButton {{ background-color: rgba(160, 50, 67, 150); border: 1px solid rgba(255, 100, 120, 170); }}
+            #pageScroll, #scrollContent, #realPage {{ background: transparent; border: none; }}
+            #authStatus {{ color: {c['muted']}; font-family: 'Consolas'; }}
         """)
 
 

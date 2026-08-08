@@ -1,0 +1,30 @@
+{
+  "updated": "2026-08-08",
+  "notice": "Лицензии могут меняться. Проверяй страницу лицензии и условия конкретного трека перед использованием.",
+  "sources": [
+    {
+      "name": "StreamBeats",
+      "url": "https://www.streambeats.com/",
+      "button": "Открыть / скачать",
+      "note": "Музыка специально для стримов и видео; официальный сайт разрешает Twitch/YouTube и бесплатное скачивание. Атрибуция не требуется по текущей лицензии."
+    },
+    {
+      "name": "YouTube Audio Library",
+      "url": "https://www.youtube.com/audiolibrary",
+      "button": "Открыть фонотеку",
+      "note": "Фонотека YouTube Studio: треки и эффекты можно скачивать MP3. Для части Creative Commons-треков требуется указание автора."
+    },
+    {
+      "name": "Pixabay Music",
+      "url": "https://pixabay.com/music/",
+      "button": "Открыть / скачать",
+      "note": "Большая библиотека royalty-free музыки. Сохраняй название/URL трека и подтверждение лицензии на случай Content ID."
+    },
+    {
+      "name": "Mixkit Music",
+      "url": "https://mixkit.co/free-stock-music/",
+      "button": "Открыть / скачать",
+      "note": "Бесплатная royalty-free музыка. Атрибуция обычно не требуется, но перед использованием проверь актуальную лицензию и ограничения проекта."
+    }
+  ]
+}
