@@ -11,7 +11,7 @@
     },
     {
       "id": "stream",
-      "title": "Управление трансляцией",
+      "title": "Трансляция",
       "icon": "📡",
       "group": "tools",
       "enabled": true,
@@ -38,7 +38,7 @@
     },
     {
       "id": "chat",
-      "title": "Единый чат",
+      "title": "Чат",
       "icon": "💬",
       "group": "tools",
       "enabled": true,
@@ -86,7 +86,7 @@
       "title": "Логи",
       "icon": "📜",
       "group": "system",
-      "enabled": true,
+      "enabled": false,
       "module": "merzostream.ui.pages.logs",
       "class": "LogsPage"
     },
@@ -95,7 +95,7 @@
       "title": "Обновления",
       "icon": "⬇️",
       "group": "system",
-      "enabled": true,
+      "enabled": false,
       "module": "merzostream.ui.pages.updates",
       "class": "UpdatesPage"
     },
@@ -104,7 +104,7 @@
       "title": "Инструкция",
       "icon": "📘",
       "group": "system",
-      "enabled": true,
+      "enabled": false,
       "module": "merzostream.ui.pages.help",
       "class": "HelpPage"
     },
@@ -113,7 +113,7 @@
       "title": "Разработка",
       "icon": "🛠️",
       "group": "system",
-      "enabled": true,
+      "enabled": false,
       "module": "merzostream.ui.pages.developer",
       "class": "DeveloperPage"
     },
@@ -122,7 +122,7 @@
       "title": "О программе",
       "icon": "ℹ️",
       "group": "system",
-      "enabled": true,
+      "enabled": false,
       "module": "merzostream.ui.pages.about",
       "class": "AboutPage"
     }

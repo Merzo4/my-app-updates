@@ -12,7 +12,7 @@ class DeveloperPage(QWidget):
         box = QTextEdit()
         box.setReadOnly(True)
         box.setPlainText(
-            "Текущий этап: 0.0.2i — Help Center + Selectable Text + Music Repeatnter + Selectable Text + Music Repeat\n\n"
+            "Текущий этап: 0.0.2j — Simplified Navigation + Storage + Adaptive UI\n\n"
             "Готово в новом PySide6:\n"
             "• Главная\n• Управление трансляцией\n• Медиаплеер\n• Фоновая музыка\n"
             "• Единый чат\n• AI Producer\n• Авторизация\n• Дизайнер тем\n"

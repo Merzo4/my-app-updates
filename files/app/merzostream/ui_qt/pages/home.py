@@ -36,7 +36,7 @@ class HomePage(QWidget):
         qr = QHBoxLayout(); qr.setSpacing(8)
         for label, page_id in (
             ("📡 Трансляция", "stream"), ("🎵 Медиаплеер", "player"),
-            ("🎼 Фоновая музыка", "background_music"), ("⬇ Обновления", "updates"),
+            ("🎼 Фоновая музыка", "background_music"), ("⬇ Обновления", "settings:updates"),
             ("⚙ Настройки", "settings"),
         ):
             b = QPushButton(label); b.clicked.connect(lambda _=False, p=page_id: self.navigate(p) if self.navigate else None); qr.addWidget(b)
@@ -64,7 +64,7 @@ class HomePage(QWidget):
             ("Медиаплеер", f"127.0.0.1:{player.get('port',5000)}", "API заказов и OBS Browser Source"),
             ("Dashboard Pro", " • ".join(monitor_parts), "Настраивается шестерёнкой в правой панели"),
             ("Авторизация", " • ".join(auth) or "Проверь Авторизацию", "Токены хранятся вне папки программы"),
-            ("Фоновая музыка", "Каталог источников добавлен", "YouTube Audio Library • StreamBeats • Pixabay • Mixkit"),
+            ("Фоновая музыка", f"Библиотека: {settings.get('storage','music_library_mode','standard')}", "Папку можно выбрать в Настройки → Хранилище"),
         ]
         for i,(name,value,detail) in enumerate(info):
             card=QFrame(); card.setObjectName("contentCard"); l=QVBoxLayout(card); l.setContentsMargins(18,15,18,15)
@@ -76,7 +76,7 @@ class HomePage(QWidget):
 
         release=QFrame(); release.setObjectName("heroCard"); rl=QVBoxLayout(release); rl.setContentsMargins(20,18,20,18); rl.setSpacing(8)
         head=QHBoxLayout(); ht=QLabel(f"Что нового в {self.app_info.get('version','')}"); ht.setObjectName("heroTitle")
-        up=QPushButton("Открыть обновления"); up.setObjectName("primarySmallButton"); up.clicked.connect(lambda: self.navigate("updates") if self.navigate else None)
+        up=QPushButton("Открыть обновления"); up.setObjectName("primarySmallButton"); up.clicked.connect(lambda: self.navigate("settings:updates") if self.navigate else None)
         head.addWidget(ht); head.addStretch(1); head.addWidget(up); rl.addLayout(head)
         notes=self._release_notes()
         for note in notes[:10]:

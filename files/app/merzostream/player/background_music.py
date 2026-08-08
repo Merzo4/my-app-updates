@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 import shutil
@@ -13,11 +14,26 @@ from urllib.parse import urlparse
 
 from ..core.event_log import log
 from ..core.paths import APP_DATA, DATA_DIR
+from ..core.settings_manager import settings
 
-MUSIC_DIR = APP_DATA / "music" / "youtube_safe"
+DEFAULT_MUSIC_DIR = APP_DATA / "music" / "youtube_safe"
 STATE_FILE = DATA_DIR / "background_music_state.json"
-META_FILE = MUSIC_DIR / "attribution.json"
 SUPPORTED = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".webm", ".opus"}
+
+def music_directory() -> Path:
+    data = settings.load("storage")
+    if str(data.get("music_library_mode", "standard")) == "custom":
+        raw = str(data.get("music_library_path") or "").strip()
+        if raw:
+            value = os.path.expandvars(os.path.expanduser(raw))
+            path = Path(value)
+            if not path.is_absolute():
+                path = path.resolve()
+            return path
+    return DEFAULT_MUSIC_DIR
+
+def metadata_file() -> Path:
+    return music_directory() / "attribution.json"
 
 
 @dataclass
@@ -31,19 +47,19 @@ class MusicTrack:
 
     @property
     def path(self) -> Path:
-        return MUSIC_DIR / self.filename
+        return music_directory() / self.filename
 
 
 class BackgroundMusicController:
     """Отдельная библиотека фоновой музыки для OBS Browser Source /music.
 
-    Треки хранятся локально в AppData. Добавление по URL сначала пытается
+    Треки хранятся в выбранной пользователем библиотеке (по умолчанию LocalAppData). Добавление по URL сначала пытается
     скачать аудио через yt-dlp. Это специально сделано как импорт в локальную
     библиотеку: после импорта музыка не зависит от открытой страницы сайта.
     """
 
     def __init__(self) -> None:
-        MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+        music_directory().mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
         self.tracks: list[MusicTrack] = []
         self.current_index = -1
@@ -59,24 +75,24 @@ class BackgroundMusicController:
         self._load_state()
 
     def _metadata(self) -> dict[str, Any]:
-        if not META_FILE.exists():
+        if not metadata_file().exists():
             return {}
         try:
-            raw = json.loads(META_FILE.read_text(encoding="utf-8"))
+            raw = json.loads(metadata_file().read_text(encoding="utf-8"))
             return raw if isinstance(raw, dict) else {}
         except Exception:
             return {}
 
     def _save_metadata(self, data: dict[str, Any]) -> None:
-        MUSIC_DIR.mkdir(parents=True, exist_ok=True)
-        META_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        music_directory().mkdir(parents=True, exist_ok=True)
+        metadata_file().write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def reload_library(self) -> None:
         with self._lock:
-            MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+            music_directory().mkdir(parents=True, exist_ok=True)
             metadata = self._metadata()
             files = sorted(
-                (p for p in MUSIC_DIR.iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED),
+                (p for p in music_directory().iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED),
                 key=lambda p: p.name.lower(),
             )
             self.tracks = []
@@ -106,15 +122,15 @@ class BackgroundMusicController:
             source = Path(raw)
             if not source.exists() or source.suffix.lower() not in SUPPORTED:
                 continue
-            target = MUSIC_DIR / source.name
+            target = music_directory() / source.name
             if source.resolve() != target.resolve():
                 # Do not silently overwrite another track with the same file name.
                 if target.exists():
                     stem, suffix = target.stem, target.suffix
                     n = 2
-                    while (MUSIC_DIR / f"{stem} ({n}){suffix}").exists():
+                    while (music_directory() / f"{stem} ({n}){suffix}").exists():
                         n += 1
-                    target = MUSIC_DIR / f"{stem} ({n}){suffix}"
+                    target = music_directory() / f"{stem} ({n}){suffix}"
                 shutil.copy2(source, target)
             count += 1
         self.reload_library()
@@ -138,13 +154,13 @@ class BackgroundMusicController:
         except Exception:
             return False, "yt-dlp не установлен. Обнови yt-dlp в настройках или добавь скачанный файл вручную.", ""
 
-        MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+        music_directory().mkdir(parents=True, exist_ok=True)
         if progress:
             progress("Получаю информацию о треке…")
 
-        before = {p.resolve() for p in MUSIC_DIR.iterdir() if p.is_file()}
+        before = {p.resolve() for p in music_directory().iterdir() if p.is_file()}
         title_hint = self._safe_name(Path(parsed.path).stem or parsed.netloc, "music")
-        outtmpl = str(MUSIC_DIR / "%(title).150s [%(id)s].%(ext)s")
+        outtmpl = str(music_directory() / "%(title).150s [%(id)s].%(ext)s")
 
         def hook(data: dict[str, Any]):
             if not progress:
@@ -188,14 +204,14 @@ class BackgroundMusicController:
                 except Exception:
                     pass
 
-            after = [p for p in MUSIC_DIR.iterdir() if p.is_file() and p.resolve() not in before]
+            after = [p for p in music_directory().iterdir() if p.is_file() and p.resolve() not in before]
             for p in after:
                 candidates.append(p)
             file_path = next((p for p in candidates if p.exists() and p.is_file()), None)
             if file_path is None:
                 # yt-dlp may decide an existing file already satisfies the request.
                 recent = sorted(
-                    (p for p in MUSIC_DIR.iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED),
+                    (p for p in music_directory().iterdir() if p.is_file() and p.suffix.lower() in SUPPORTED),
                     key=lambda p: p.stat().st_mtime,
                     reverse=True,
                 )
@@ -224,6 +240,39 @@ class BackgroundMusicController:
             text = str(exc).strip().splitlines()[-1] if str(exc).strip() else exc.__class__.__name__
             log("BACKGROUND MUSIC", f"URL import error: {text}")
             return False, "Не удалось скачать автоматически. Открой сайт, нажми официальный Download и добавь полученный файл вручную.\n" + text[:500], ""
+
+    def migrate_library(self, source: Path, target: Path) -> tuple[int, list[str]]:
+        """Копирует текущую библиотеку в новую папку без удаления оригиналов."""
+        source = Path(source)
+        target = Path(target)
+        target.mkdir(parents=True, exist_ok=True)
+        copied = 0
+        skipped: list[str] = []
+        if not source.exists() or source.resolve() == target.resolve():
+            return copied, skipped
+        for item in source.iterdir():
+            if not item.is_file() or item.suffix.lower() not in SUPPORTED:
+                continue
+            dest = target / item.name
+            if dest.exists():
+                skipped.append(item.name)
+                continue
+            shutil.copy2(item, dest)
+            copied += 1
+        old_meta = source / "attribution.json"
+        if old_meta.exists():
+            try:
+                old_data = json.loads(old_meta.read_text(encoding="utf-8"))
+                new_meta = target / "attribution.json"
+                current = json.loads(new_meta.read_text(encoding="utf-8")) if new_meta.exists() else {}
+                if not isinstance(current, dict): current = {}
+                if isinstance(old_data, dict):
+                    for key, value in old_data.items():
+                        current.setdefault(key, value)
+                new_meta.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception as exc:
+                log("BACKGROUND MUSIC", f"Не удалось перенести attribution.json: {exc}")
+        return copied, skipped
 
     def delete_track(self, index: int) -> tuple[bool, str]:
         with self._lock:
@@ -379,7 +428,7 @@ class BackgroundMusicController:
                 "current_index": self.current_index,
                 "current": asdict(track) if track else None,
                 "tracks": [asdict(item) for item in self.tracks],
-                "music_dir": str(MUSIC_DIR),
+                "music_dir": str(music_directory()),
             }
 
     def attribution_text(self) -> str:

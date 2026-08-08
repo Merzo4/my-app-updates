@@ -1,5 +1,4 @@
-MerzoStream Suite 0.0.2i — FIXED GitHub paths
+MerzoStream Suite 0.0.2j — Simplified Navigation + Storage + Adaptive UI
 
-Исправлено: файлы Python для автообновления лежат в files/app/merzostream, потому что Update Engine принимает логический путь app/merzostream и сам переводит его в src/merzostream при запуске из исходников.
-
-Скопировать manifest.json и папку files в корень репозитория my-app-updates с заменой, Commit, Push origin.
+Залить в корень GitHub: manifest.json и папку files с заменой/объединением.
+После Commit + Push обновление устанавливается через встроенный Update Center.

@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QTimer
 from PySide6.QtGui import QColor, QIcon, QLinearGradient, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QListWidget,
@@ -34,40 +34,77 @@ from .help_system import enhance_help, page_description, show_page_help
 
 
 class SkinRoot(QWidget):
+    """Фоновый слой с отложенным масштабированием: resize больше не пересчитывает большой PNG в paintEvent."""
     def __init__(self, theme: dict):
         super().__init__()
         self.theme = theme
-        self._background = QPixmap()
+        self.ui_cfg = settings.load("ui", force=True)
+        self._background_original = QPixmap()
+        self._background_cache = QPixmap()
         path = background_path(theme)
         if path is not None:
-            self._background.load(str(path))
+            self._background_original.load(str(path))
+        self._cache_timer = QTimer(self)
+        self._cache_timer.setSingleShot(True)
+        self._cache_timer.timeout.connect(self._rebuild_background_cache)
+        QTimer.singleShot(0, self._rebuild_background_cache)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._cache_timer.start(150)
+
+    def _background_allowed(self) -> bool:
+        if not bool(self.ui_cfg.get("background_enabled", True)):
+            return False
+        if self.ui_cfg.get("graphics_quality") == "economy" and bool(self.ui_cfg.get("economy_disable_background", False)):
+            return False
+        return not self._background_original.isNull()
+
+    def _rebuild_background_cache(self):
+        if not self._background_allowed() or self.width() <= 1 or self.height() <= 1:
+            self._background_cache = QPixmap()
+            self.update()
+            return
+        quality = str(self.ui_cfg.get("graphics_quality", "high"))
+        transform = Qt.SmoothTransformation if quality == "high" else Qt.FastTransformation
+        target = self.size()
+        if quality == "economy":
+            target = QSize(max(320, self.width() // 2), max(200, self.height() // 2))
+        try:
+            self._background_cache = self._background_original.scaled(target, Qt.KeepAspectRatioByExpanding, transform)
+        except Exception:
+            self._background_cache = QPixmap()
+        self.update()
 
     def paintEvent(self, event):
         c = self.theme["colors"]
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform, True)
         grad = QLinearGradient(0, 0, 0, self.height())
         grad.setColorAt(0.0, QColor(str(c.get("window", "#071019"))))
         grad.setColorAt(1.0, QColor("#040812"))
         painter.fillRect(self.rect(), grad)
 
-        if not self._background.isNull():
-            scaled = self._background.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-            sx = max(0, (scaled.width() - self.width()) // 2)
-            sy = max(0, (scaled.height() - self.height()) // 2)
+        if not self._background_cache.isNull():
+            pix = self._background_cache
+            ratio = max(self.width() / max(1, pix.width()), self.height() / max(1, pix.height()))
+            src_w = min(pix.width(), int(self.width() / max(ratio, 0.0001)))
+            src_h = min(pix.height(), int(self.height() / max(ratio, 0.0001)))
+            sx = max(0, (pix.width() - src_w) // 2)
+            sy = max(0, (pix.height() - src_h) // 2)
             painter.setOpacity(0.88)
-            painter.drawPixmap(self.rect(), scaled, scaled.rect().adjusted(sx, sy, -sx, -sy))
+            painter.drawPixmap(self.rect(), pix, pix.rect().adjusted(sx, sy, -(pix.width()-sx-src_w), -(pix.height()-sy-src_h)))
             painter.setOpacity(1.0)
 
         dim = int(self.theme.get("presentation", {}).get("background_dimming", 0))
         if dim > 0:
             painter.fillRect(self.rect(), QColor(0, 0, 0, max(0, min(220, dim))))
 
-        glow = QLinearGradient(0, 0, self.width(), 0)
-        glow.setColorAt(0.0, QColor(255, 255, 255, 8))
-        glow.setColorAt(0.5, QColor(255, 255, 255, 22))
-        glow.setColorAt(1.0, QColor(255, 255, 255, 8))
-        painter.fillRect(0, 0, self.width(), 110, glow)
+        if bool(self.ui_cfg.get("effects_enabled", True)):
+            glow = QLinearGradient(0, 0, self.width(), 0)
+            glow.setColorAt(0.0, QColor(255, 255, 255, 8))
+            glow.setColorAt(0.5, QColor(255, 255, 255, 22))
+            glow.setColorAt(1.0, QColor(255, 255, 255, 8))
+            painter.fillRect(0, 0, self.width(), 110, glow)
 
 
 class InfoCard(QFrame):
@@ -140,12 +177,15 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.app_info = load_app_info()
-        ui_cfg = settings.load("ui", force=True)
-        self.theme = load_qt_theme(str(ui_cfg.get("qt_theme_id", "merzostream_dark")))
+        self.ui_cfg = settings.load("ui", force=True)
+        self.theme = load_qt_theme(str(self.ui_cfg.get("qt_theme_id", "merzostream_dark")))
         self.runtime = get_runtime()
         self.setWindowTitle(f"MerzoStream Suite — {self.app_info.get('channel')} {self.app_info.get('version')}")
-        self.resize(1536, 930)
-        self.setMinimumSize(1220, 760)
+        self.resize(int(self.ui_cfg.get("window_width", 1536)), int(self.ui_cfg.get("window_height", 930)))
+        if self.ui_cfg.get("window_x") is not None and self.ui_cfg.get("window_y") is not None:
+            try: self.move(int(self.ui_cfg["window_x"]), int(self.ui_cfg["window_y"]))
+            except Exception: pass
+        self.setMinimumSize(1050, 680)
         self._build()
         self._apply_theme()
         enhance_help(self)
@@ -164,6 +204,7 @@ class MainWindow(QMainWindow):
         outer.addLayout(body, 1)
 
         sidebar = QFrame()
+        self.sidebar = sidebar
         sidebar.setObjectName("sidebar")
         sidebar.setFixedWidth(int(self.theme["layout"].get("sidebar_width", 230)))
         side = QVBoxLayout(sidebar)
@@ -246,7 +287,8 @@ class MainWindow(QMainWindow):
         self.help_button.setObjectName("helpButton")
         self.help_button.setToolTip("Подробная инструкция по текущей вкладке: назначение, шаги, адреса и важные замечания.")
         self.help_button.clicked.connect(self.open_current_help)
-        badge = QLabel("PYSIDE6 • HELP CENTER")
+        badge = QLabel("PYSIDE6 • ADAPTIVE UI")
+        self.badge = badge
         badge.setObjectName("badge")
         hl.addWidget(left_w)
         hl.addStretch(1)
@@ -275,7 +317,7 @@ class MainWindow(QMainWindow):
         self.monitor.setFixedWidth(int(self.theme["layout"].get("monitor_width", 310)))
         body.addWidget(self.monitor)
 
-        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Help Center • Selectable Text • Music Repeat")
+        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Simplified Navigation • Adaptive UI • Storage")
         status.setObjectName("statusBar")
         status.setFixedHeight(28)
         outer.addWidget(status)
@@ -283,6 +325,7 @@ class MainWindow(QMainWindow):
         self.nav.currentRowChanged.connect(self.change_page)
         if self.nav.count():
             self.nav.setCurrentRow(0)
+        self._update_adaptive_layout()
 
     def _create_page(self, page_id: str, title: str):
         if page_id == "home":
@@ -302,7 +345,7 @@ class MainWindow(QMainWindow):
         if page_id == "designer":
             return DesignerPage(self.theme, restart=self._restart)
         if page_id == "settings":
-            return SettingsPage(self.theme)
+            return SettingsPage(self.theme, self.app_info, restart=self._restart)
         if page_id == "logs":
             return LogsPage(self.theme)
         if page_id == "updates":
@@ -322,10 +365,24 @@ class MainWindow(QMainWindow):
         self.navigate_to_id("stream")
 
     def navigate_to_id(self, page_id: str):
+        value = str(page_id or "")
+        service_sections = {"updates", "help", "logs", "developer", "about"}
+        if value.startswith("settings:"):
+            section = value.split(":", 1)[1] or "general"
+            value = "settings"
+        elif value in service_sections:
+            section = value
+            value = "settings"
+        else:
+            section = None
         for row in range(self.nav.count()):
             item = self.nav.item(row)
-            if str(item.data(Qt.UserRole) or "") == page_id:
+            if str(item.data(Qt.UserRole) or "") == value:
                 self.nav.setCurrentRow(row)
+                if value == "settings" and section:
+                    page = getattr(self, "pages_by_id", {}).get("settings")
+                    if page is not None and hasattr(page, "select_section"):
+                        page.select_section(section)
                 return
 
     def refresh_authorization_page(self):
@@ -376,6 +433,38 @@ class MainWindow(QMainWindow):
         settings.set("ui", "mode", "classic")
         self._restart()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "sidebar"):
+            self._update_adaptive_layout()
+
+    def _update_adaptive_layout(self):
+        width = max(1, self.width())
+        base_sidebar = int(self.theme["layout"].get("sidebar_width", 230))
+        base_monitor = int(self.theme["layout"].get("monitor_width", 310))
+        if width >= 1500:
+            sidebar_w, monitor_w = base_sidebar, base_monitor
+        elif width >= 1300:
+            sidebar_w, monitor_w = min(base_sidebar, 210), min(base_monitor, 280)
+        elif width >= 1150:
+            sidebar_w, monitor_w = 190, 245
+        else:
+            sidebar_w, monitor_w = 178, 220
+        if hasattr(self, "sidebar"): self.sidebar.setFixedWidth(sidebar_w)
+        if hasattr(self, "monitor"): self.monitor.setFixedWidth(monitor_w)
+        if hasattr(self, "header_subtitle"): self.header_subtitle.setVisible(width >= 1260)
+        if hasattr(self, "badge"): self.badge.setVisible(width >= 1130)
+
+    def _save_window_state(self):
+        data = settings.load("ui", force=True)
+        geo = self.normalGeometry()
+        data["window_width"] = max(1050, geo.width())
+        data["window_height"] = max(680, geo.height())
+        data["window_x"] = geo.x()
+        data["window_y"] = geo.y()
+        data["window_maximized"] = self.isMaximized()
+        settings.save("ui", data)
+
     def _shutdown_pages(self):
         for page in getattr(self, "pages_by_id", {}).values():
             shutdown = getattr(page, "shutdown", None)
@@ -386,6 +475,7 @@ class MainWindow(QMainWindow):
                     pass
 
     def closeEvent(self, event):
+        self._save_window_state()
         self._shutdown_pages()
         event.accept()
 
@@ -397,6 +487,13 @@ class MainWindow(QMainWindow):
     def _apply_theme(self):
         c = self.theme["colors"]
         radius = int(self.theme["layout"].get("radius", 14))
+        transparent = settings.get_bool("ui", "transparency_enabled", True)
+        workspace_bg = "rgba(6, 12, 24, 120)" if transparent else "#08101d"
+        header_bg = "rgba(9, 17, 36, 170)" if transparent else "#101827"
+        shell_bg = "rgba(5, 10, 22, 72)" if transparent else "#07101f"
+        card_bg = "rgba(13, 22, 47, 146)" if transparent else "#111a2d"
+        hero_bg = "rgba(10, 19, 43, 112)" if transparent else "#0d1729"
+        metric_bg = "rgba(13, 22, 47, 138)" if transparent else "#111a2d"
         self.setStyleSheet(f"""
             QMainWindow {{ background-color: {c['window']}; }}
             QWidget {{ color: {c['text']}; font-family: 'Segoe UI'; font-size: 13px; }}
@@ -406,12 +503,12 @@ class MainWindow(QMainWindow):
             }}
             #sidebar {{ background-color: {c['sidebar']}; }}
             #monitorPanel {{ background-color: {c['sidebar']}; }}
-            #workspace {{ background-color: rgba(6, 12, 24, 120); }}
-            #header {{ background-color: rgba(9, 17, 36, 170); }}
-            #pageShell {{ background-color: rgba(5, 10, 22, 72); }}
-            #contentCard {{ background-color: rgba(13, 22, 47, 146); }}
-            #heroCard {{ background-color: rgba(10, 19, 43, 112); }}
-            #metricCard {{ background-color: rgba(13, 22, 47, 138); }}
+            #workspace {{ background-color: {workspace_bg}; }}
+            #header {{ background-color: {header_bg}; }}
+            #pageShell {{ background-color: {shell_bg}; }}
+            #contentCard {{ background-color: {card_bg}; }}
+            #heroCard {{ background-color: {hero_bg}; }}
+            #metricCard {{ background-color: {metric_bg}; }}
             #brand {{ font-size: 23px; font-weight: 800; letter-spacing: 0.6px; }}
             #versionLabel {{ color: {c['accent']}; font-weight: 700; }}
             #headerTitle, #pageTitle {{ font-size: 22px; font-weight: 800; }}
@@ -452,6 +549,10 @@ class MainWindow(QMainWindow):
             #pageScroll, #scrollContent, #realPage {{ background: transparent; border: none; }}
             #authStatus {{ color: {c['muted']}; font-family: 'Consolas'; }}
             #dashboardScroll, #dashboardHost {{ background: transparent; border: none; }}
+            #settingsNavigation {{ background-color: rgba(5,10,22,110); border: 1px solid {c['border']}; border-radius: 10px; padding: 5px; }}
+            #settingsNavigation::item {{ padding: 10px 9px; border-radius: 8px; margin: 2px; }}
+            #settingsNavigation::item:selected {{ background-color: {c['accent']}; color: white; }}
+            #settingsStack {{ background: transparent; border: none; }}
             QToolTip {{ background-color: {c['panel']}; color: {c['text']}; border: 1px solid {c['border']}; padding: 6px; }}
         """)
 
@@ -460,5 +561,8 @@ def run_qt() -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName("MerzoStream Suite")
     window = MainWindow()
-    window.show()
+    if settings.get_bool("ui", "window_maximized", False):
+        window.showMaximized()
+    else:
+        window.show()
     return app.exec()

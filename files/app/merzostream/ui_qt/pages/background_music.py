@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.settings_manager import settings
-from ...player.background_music import MUSIC_DIR, background_music
+from ...player.background_music import music_directory, background_music
 
 
 class MusicUrlWorker(QThread):
@@ -110,7 +110,7 @@ class BackgroundMusicPage(QWidget):
 
         library = QFrame(); library.setObjectName("contentCard"); ll = QVBoxLayout(library); ll.setContentsMargins(18, 15, 18, 15); ll.setSpacing(8)
         lt = QLabel("Локальная библиотека"); lt.setObjectName("cardTitle"); ll.addWidget(lt)
-        ld = QLabel("Треки, которые реально будут играть. Двойной щелчок по строке запускает композицию. Режим повтора применяется автоматически после окончания трека.")
+        ld = QLabel("Треки, которые реально будут играть. Папку библиотеки можно изменить в Настройки → Хранилище. Двойной щелчок запускает композицию, а выбранный режим повтора применяется автоматически.")
         ld.setWordWrap(True); ld.setObjectName("cardText"); ll.addWidget(ld)
         self.list = QListWidget(); self.list.setMinimumHeight(260); self.list.setToolTip("Локальные треки. Двойной щелчок — начать воспроизведение."); self.list.itemDoubleClicked.connect(lambda _i: self.play_selected()); ll.addWidget(self.list)
         row = QHBoxLayout()
@@ -122,7 +122,7 @@ class BackgroundMusicPage(QWidget):
         self.timer = QTimer(self); self.timer.timeout.connect(self.refresh); self.timer.start(1000); self.reload(); self.refresh()
 
     def help_context(self):
-        return {"music_dir": str(MUSIC_DIR), "obs_url": self.obs_url}
+        return {"music_dir": str(music_directory()), "obs_url": self.obs_url}
 
     def _open_help(self):
         if callable(self.open_help_callback):
@@ -183,9 +183,9 @@ class BackgroundMusicPage(QWidget):
             QMessageBox.warning(self, "Фоновая музыка", message)
 
     def open_folder(self):
-        MUSIC_DIR.mkdir(parents=True, exist_ok=True)
-        if os.name == "nt": os.startfile(str(MUSIC_DIR))
-        else: webbrowser.open(MUSIC_DIR.as_uri())
+        music_directory().mkdir(parents=True, exist_ok=True)
+        if os.name == "nt": os.startfile(str(music_directory()))
+        else: webbrowser.open(music_directory().as_uri())
 
     def attribution(self):
         text = background_music.attribution_text() or "Для добавленных треков обязательная атрибуция не указана. Это не заменяет проверку лицензии источника."

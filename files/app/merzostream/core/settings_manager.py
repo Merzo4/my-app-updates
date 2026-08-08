@@ -11,7 +11,7 @@ from .paths import BACKUPS_DIR, SETTINGS_DIR
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {
-        "version": "0.0.2i-beta", "theme_id": "dark", "check_updates": False,
+        "version": "0.0.2j-beta", "theme_id": "dark", "check_updates": False,
         "show_changelog": True, "github_repo": "Merzo4/my-app-updates", "developer_mode": False,
     },
     "stream": {
@@ -34,7 +34,17 @@ DEFAULTS: dict[str, dict[str, Any]] = {
         "auto_pause_yandex": True, "auto_resume_yandex": True, "yandex_enabled": True,
     },
     "obs": {"browser_url": "http://127.0.0.1:5000/player", "clear_on_exit": True},
-    "ui": {"scale": 1.0, "show_status_bar": True, "mode": "classic", "qt_theme_id": "merzostream_dark"},
+    "ui": {
+        "scale": 1.0, "show_status_bar": True, "mode": "classic", "qt_theme_id": "merzostream_dark",
+        "graphics_quality": "high", "background_enabled": True, "transparency_enabled": True,
+        "effects_enabled": True, "economy_disable_background": False,
+        "window_width": 1536, "window_height": 930, "window_x": None, "window_y": None,
+        "window_maximized": False,
+    },
+    "storage": {
+        "music_library_mode": "standard",
+        "music_library_path": "",
+    },
     "monitor": {
         "show_cpu": True,
         "show_ram": True,
@@ -53,7 +63,8 @@ DEFAULTS: dict[str, dict[str, Any]] = {
 
 FILE_NAMES = {
     "app": "app.json", "stream": "stream_control.json", "player": "media_player.json",
-    "obs": "obs.json", "ui": "ui.json", "monitor": "monitor.json", "developer": "developer.json",
+    "obs": "obs.json", "ui": "ui.json", "storage": "storage.json", "monitor": "monitor.json",
+    "developer": "developer.json",
 }
 
 class SettingsManager:
@@ -96,7 +107,6 @@ class SettingsManager:
             if isinstance(data.get('platforms'),dict): platforms.update(data['platforms'])
             data['platforms']=platforms
         elif section == 'player':
-            # migration from old seconds fields
             if 'max_duration_min' not in data or data.get('max_duration_min') is None:
                 try: data['max_duration_min']=max(1, round(int(data.get('max_duration',600))/60))
                 except Exception: data['max_duration_min']=10
@@ -122,6 +132,23 @@ class SettingsManager:
             except Exception: data['scale']=1.0
             if data.get('mode') not in {'classic','qt'}: data['mode']='classic'
             if not str(data.get('qt_theme_id','')).strip(): data['qt_theme_id']='merzostream_dark'
+            if data.get('graphics_quality') not in {'high','medium','economy'}: data['graphics_quality']='high'
+            for key in ('background_enabled','transparency_enabled','effects_enabled','economy_disable_background','window_maximized'):
+                data[key]=bool(data.get(key, DEFAULTS['ui'][key]))
+            for key, fallback in (('window_width',1536),('window_height',930)):
+                try: data[key]=int(data.get(key,fallback))
+                except Exception: data[key]=fallback
+            data['window_width']=max(1050,min(7680,data['window_width']))
+            data['window_height']=max(680,min(4320,data['window_height']))
+            for key in ('window_x','window_y'):
+                if data.get(key) is not None:
+                    try: data[key]=int(data[key])
+                    except Exception: data[key]=None
+        elif section=='storage':
+            if data.get('music_library_mode') not in {'standard','custom'}: data['music_library_mode']='standard'
+            data['music_library_path']=str(data.get('music_library_path') or '').strip()
+            if data['music_library_mode']=='custom' and not data['music_library_path']:
+                data['music_library_mode']='standard'
         elif section=='monitor':
             for key in ('show_cpu','show_ram','show_network','show_platforms','show_media_queue','show_background_music'):
                 data[key]=bool(data.get(key, DEFAULTS['monitor'][key]))
