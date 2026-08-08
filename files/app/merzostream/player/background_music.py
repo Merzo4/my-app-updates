@@ -50,7 +50,8 @@ class BackgroundMusicController:
         self.playing = False
         self.paused = False
         self.shuffle = False
-        self.repeat = True
+        self.repeat_mode = "all"
+        self.repeat = True  # backward compatibility for old UI/state
         self.volume = 35
         self.started_at = 0.0
         self.position = 0.0
@@ -293,7 +294,17 @@ class BackgroundMusicController:
             self.position = 0.0
             self._save_state()
 
+    def set_repeat_mode(self, mode: str) -> None:
+        with self._lock:
+            value = str(mode or "off").strip().lower()
+            if value not in {"off", "one", "all"}:
+                value = "off"
+            self.repeat_mode = value
+            self.repeat = value == "all"
+            self._save_state()
+
     def next(self) -> None:
+        """Manual/normal next. Repeat-one affects only automatic end of a track."""
         with self._lock:
             if not self.tracks:
                 return
@@ -302,7 +313,7 @@ class BackgroundMusicController:
                 self.current_index = random.choice(choices)
             elif self.current_index + 1 < len(self.tracks):
                 self.current_index += 1
-            elif self.repeat:
+            elif self.repeat_mode == "all":
                 self.current_index = 0
             else:
                 self.stop()
@@ -325,6 +336,16 @@ class BackgroundMusicController:
             self._save_state()
 
     def ended(self) -> None:
+        with self._lock:
+            if not self.tracks:
+                return
+            if self.repeat_mode == "one" and 0 <= self.current_index < len(self.tracks):
+                self.position = 0.0
+                self.playing = True
+                self.paused = False
+                self.started_at = time.time()
+                self._save_state()
+                return
         self.next()
 
     def set_volume(self, value: int | float) -> None:
@@ -352,6 +373,7 @@ class BackgroundMusicController:
                 "paused": self.paused,
                 "shuffle": self.shuffle,
                 "repeat": self.repeat,
+                "repeat_mode": self.repeat_mode,
                 "volume": self.volume,
                 "position": self.current_position(),
                 "current_index": self.current_index,
@@ -376,6 +398,7 @@ class BackgroundMusicController:
             "paused": self.paused,
             "shuffle": self.shuffle,
             "repeat": self.repeat,
+            "repeat_mode": self.repeat_mode,
             "volume": self.volume,
             "position": self.current_position(),
         }
@@ -391,7 +414,11 @@ class BackgroundMusicController:
             self.playing = bool(data.get("playing", False))
             self.paused = bool(data.get("paused", False))
             self.shuffle = bool(data.get("shuffle", False))
-            self.repeat = bool(data.get("repeat", True))
+            mode = str(data.get("repeat_mode", "")).strip().lower()
+            if mode not in {"off", "one", "all"}:
+                mode = "all" if bool(data.get("repeat", True)) else "off"
+            self.repeat_mode = mode
+            self.repeat = mode == "all"
             self.volume = max(0, min(100, int(data.get("volume", 35))))
             self.position = max(0.0, float(data.get("position", 0.0)))
             if self.current_index >= len(self.tracks):

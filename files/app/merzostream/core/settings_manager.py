@@ -11,7 +11,7 @@ from .paths import BACKUPS_DIR, SETTINGS_DIR
 
 DEFAULTS: dict[str, dict[str, Any]] = {
     "app": {
-        "version": "0.0.2h-beta", "theme_id": "dark", "check_updates": False,
+        "version": "0.0.2i-beta", "theme_id": "dark", "check_updates": False,
         "show_changelog": True, "github_repo": "Merzo4/my-app-updates", "developer_mode": False,
     },
     "stream": {

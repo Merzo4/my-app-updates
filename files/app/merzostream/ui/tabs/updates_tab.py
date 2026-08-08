@@ -15,7 +15,7 @@ class UpdatesTab(ctk.CTkFrame):
         card = ctk.CTkFrame(self, fg_color="#24282f", corner_radius=14)
         card.pack(fill="x", padx=24, pady=10)
         ctk.CTkLabel(card, text="Текущая версия", font=("Arial", 14, "bold")).pack(anchor="w", padx=18, pady=(18, 4))
-        ctk.CTkLabel(card, text="Beta 0.0.2h", text_color="#70b7ff", font=("Arial", 20, "bold")).pack(anchor="w", padx=18)
+        ctk.CTkLabel(card, text="Beta 0.0.2i", text_color="#70b7ff", font=("Arial", 20, "bold")).pack(anchor="w", padx=18)
         ctk.CTkLabel(card, text=f"Репозиторий: {app_cfg.get('github_repo', 'Merzo4/my-app-updates')}", text_color="#aeb8c4").pack(anchor="w", padx=18, pady=(6, 18))
 
         self.check_button = ctk.CTkButton(self, text="Проверить обновления — будет включено позже", state="disabled", height=44)

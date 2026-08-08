@@ -5,7 +5,7 @@ class AboutPage(ctk.CTkFrame):
     def __init__(self, parent, context):
         super().__init__(parent, fg_color="transparent")
         ctk.CTkLabel(self, text="MerzoStream Suite", font=("Arial", 30, "bold")).pack(pady=(70, 6))
-        ctk.CTkLabel(self, text="Beta 0.0.2h", font=("Arial", 16, "bold"), text_color="#70b7ff").pack()
+        ctk.CTkLabel(self, text="Beta 0.0.2i", font=("Arial", 16, "bold"), text_color="#70b7ff").pack()
         ctk.CTkLabel(
             self,
             text=(

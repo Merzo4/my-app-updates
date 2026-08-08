@@ -30,7 +30,7 @@ from .pages.help import HelpPage
 from .pages.developer import DeveloperPage
 from .pages.about import AboutPage
 from .runtime import get_runtime
-from .help_system import enhance_help, page_description
+from .help_system import enhance_help, page_description, show_page_help
 
 
 class SkinRoot(QWidget):
@@ -242,10 +242,15 @@ class MainWindow(QMainWindow):
         left.addWidget(self.header_subtitle)
         left_w = QWidget()
         left_w.setLayout(left)
-        badge = QLabel("PYSIDE6 • DASHBOARD PRO")
+        self.help_button = QPushButton("⚙ Справка")
+        self.help_button.setObjectName("helpButton")
+        self.help_button.setToolTip("Подробная инструкция по текущей вкладке: назначение, шаги, адреса и важные замечания.")
+        self.help_button.clicked.connect(self.open_current_help)
+        badge = QLabel("PYSIDE6 • HELP CENTER")
         badge.setObjectName("badge")
         hl.addWidget(left_w)
         hl.addStretch(1)
+        hl.addWidget(self.help_button)
         hl.addWidget(badge)
         center_l.addWidget(header)
 
@@ -270,7 +275,7 @@ class MainWindow(QMainWindow):
         self.monitor.setFixedWidth(int(self.theme["layout"].get("monitor_width", 310)))
         body.addWidget(self.monitor)
 
-        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Dashboard Pro • URL Music • UX Help")
+        status = QLabel(f"  MerzoStream Suite • {self.app_info.get('version')} • {self.theme.get('title')} • Help Center • Selectable Text • Music Repeat")
         status.setObjectName("statusBar")
         status.setFixedHeight(28)
         outer.addWidget(status)
@@ -287,7 +292,7 @@ class MainWindow(QMainWindow):
         if page_id == "player":
             return MediaPlayerPage(self.theme)
         if page_id == "background_music":
-            return BackgroundMusicPage(self.theme)
+            return BackgroundMusicPage(self.theme, open_help=lambda: self.open_help_for("background_music"))
         if page_id == "chat":
             return ChatCenterPage(self.theme)
         if page_id == "ai":
@@ -327,6 +332,25 @@ class MainWindow(QMainWindow):
         page = getattr(self, "pages_by_id", {}).get("auth")
         if page is not None and hasattr(page, "reload_from_settings"):
             page.reload_from_settings()
+
+    def open_help_for(self, page_id: str):
+        page = getattr(self, "pages_by_id", {}).get(page_id)
+        extra = {}
+        if page is not None and hasattr(page, "help_context"):
+            try:
+                value = page.help_context()
+                if isinstance(value, dict):
+                    extra = {str(k): str(v) for k, v in value.items()}
+            except Exception:
+                extra = {}
+        show_page_help(self, page_id, extra)
+
+    def open_current_help(self):
+        row = self.nav.currentRow()
+        if row < 0:
+            return
+        item = self.nav.item(row)
+        self.open_help_for(str(item.data(Qt.UserRole) or "home"))
 
     def change_page(self, row: int):
         if row < 0:

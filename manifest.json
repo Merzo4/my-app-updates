@@ -13,6 +13,209 @@
   ],
   "files": [
     {
+      "path": "app/merzostream/__init__.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/__init__.py",
+      "sha256": "a802880b980cb64f7b518d8d26d992da57337003422a4af945e118725dfc7c13",
+      "size": 28,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/core/content.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/core/content.py",
+      "sha256": "879744de15fed7182cc8576e52acd4ad440bfc46c8fecf1422e54a4bd82d5f02",
+      "size": 3026,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/core/settings_manager.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/core/settings_manager.py",
+      "sha256": "1b8a55c3c1fdbcf318bed183f6189160c62ada1febb3f2946b373f37d374cd7a",
+      "size": 9780,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/core/update_manager.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/core/update_manager.py",
+      "sha256": "3822483780ebff1e9ff5afe0cd8e347a9d241ef42979f623cd0b66bfe8c5e9a9",
+      "size": 16073,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/player/background_music.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/player/background_music.py",
+      "sha256": "c5acb4b9a5bd872bf00ccad1b5b97da95d8bb08f672f966f9afae28780d9d83a",
+      "size": 17963,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui/pages/about.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui/pages/about.py",
+      "sha256": "6d26cda79dc988ba92e31bc0ed49009869d8d21a2a7fd91595016835cc792388",
+      "size": 957,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui/pages/updates.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui/pages/updates.py",
+      "sha256": "4732fe68de08f31f8f1e6c5597822c1260b7de08382fecae2c9e73dbe493508d",
+      "size": 7196,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui/tabs/about_tab.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui/tabs/about_tab.py",
+      "sha256": "8720e7b4157fcd5ea273d4c78ebe98abe13f5b6c24fc955f443856109ae0b33b",
+      "size": 947,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui/tabs/updates_tab.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui/tabs/updates_tab.py",
+      "sha256": "d85664968941e47332784160acb9a1eebe0e4e95c4512a585cc4cfff0fd25393",
+      "size": 1377,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui/welcome.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui/welcome.py",
+      "sha256": "b306374c4bde557218c670db139f975b8b584a3cc468685160a04d3ab62bcb21",
+      "size": 1172,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/help_system.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/help_system.py",
+      "sha256": "88ccdd8a6339c868d03d67cf676bc57814e348d11e6d73dc30ba4be81b0da77e",
+      "size": 9781,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/main_window.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/main_window.py",
+      "sha256": "c151e3e9b96c791eb64f378156914d94cf2e3cae9057d8b363641788ab39c5cf",
+      "size": 21398,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/__init__.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/__init__.py",
+      "sha256": "75254cbdee8e5d72efefa212c2467d27a34cef7b63cb9f28b97f0ec873ccd8da",
+      "size": 513,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/about.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/about.py",
+      "sha256": "af702510b2780255660aaf9331074332caadf776d66cfedc234e02a35499e603",
+      "size": 906,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/ai_producer.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/ai_producer.py",
+      "sha256": "45baeaf0c667b35007c7d6ac61d168a5a090d4333e2d55a7d0ba0f141c2a8c42",
+      "size": 2302,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/authorization.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/authorization.py",
+      "sha256": "bdf1f498b8401bce460adde928721cd0f793b6507304fc3e135813e8b39cb2a8",
+      "size": 15571,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/background_music.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/background_music.py",
+      "sha256": "d6497bd1cd6b115d890f32eba83eb0adc281d61985edcfbc38899831a6bb5463",
+      "size": 15336,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/chat_center.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/chat_center.py",
+      "sha256": "9362dfecf14d01ae3e92f675a187f5e0ec4dabd0b713984c580da6db0c580b4b",
+      "size": 3065,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/designer.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/designer.py",
+      "sha256": "221996cea5b6df43dc733e2fb72ee722bb8a15789275bf741a0605888ebf52f2",
+      "size": 2318,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/developer.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/developer.py",
+      "sha256": "242f019fa6fb0ceaa63dab286d1d463db9672fb59528584d6a3b6cff2ffd143c",
+      "size": 1541,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/help.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/help.py",
+      "sha256": "1cea637dddad8d8ca983f288958a4cea6111f76711d7a9445b4ccdf02649698a",
+      "size": 3707,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/home.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/home.py",
+      "sha256": "468eb04361b71a31162d890789bb37a58f5a50f228c225db78bc910a7ab78e43",
+      "size": 6648,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/logs.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/logs.py",
+      "sha256": "c0d9a59523ca998df028cf5c5dffb205ab20d50a7d136509683af2748fcfe6ae",
+      "size": 1287,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/media_player.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/media_player.py",
+      "sha256": "e16b9b44391f7e67d6e7c6eeaedfd1326a7d42abcfc2fd7fcea246689791f288",
+      "size": 8765,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/settings.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/settings.py",
+      "sha256": "bb358bfe6a0047199f03cf3c84b1515051061eef55949ca3a14f886d9aebed7f",
+      "size": 2758,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/stream_control.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/stream_control.py",
+      "sha256": "8715f9d4a9dd88bc5b3bc08aa8e97bf5caf5b2fc7fe04cd52fe326acf33bcead",
+      "size": 10397,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/pages/updates.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/pages/updates.py",
+      "sha256": "d408fa1c2abe33c9f3dbf0dd3edc244e7b83201845e50e897b987a9b619f0406",
+      "size": 6283,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/runtime.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/runtime.py",
+      "sha256": "00a0faae735150bc050bbdfc9724ace6136acde35ddf011299b37c5a12e6639d",
+      "size": 1849,
+      "restart_required": true
+    },
+    {
+      "path": "app/merzostream/ui_qt/system_monitor.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/system_monitor.py",
+      "sha256": "242028035c287600f9f8165c4052bc6bcd9a7deb19a870de45e3d799a7ccc82d",
+      "size": 19517,
+      "restart_required": true
+    },
+    {
       "path": "content/app_info.json",
       "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/content/app_info.json",
       "sha256": "086c5f67e20d07a2f8db692046ac3689d6468ef8cf8cd5198fa111f8e53aa7f7",
@@ -283,209 +486,6 @@
       "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/graphics/ui_themes/cyber_frame_pro/preview.png",
       "sha256": "3bae46789c2b9b6b9d5eb6a39d688e7edd267afbb9982fb6c5675e04c8551916",
       "size": 77204,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/__init__.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/__init__.py",
-      "sha256": "a802880b980cb64f7b518d8d26d992da57337003422a4af945e118725dfc7c13",
-      "size": 28,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/core/content.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/core/content.py",
-      "sha256": "879744de15fed7182cc8576e52acd4ad440bfc46c8fecf1422e54a4bd82d5f02",
-      "size": 3026,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/core/settings_manager.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/core/settings_manager.py",
-      "sha256": "1b8a55c3c1fdbcf318bed183f6189160c62ada1febb3f2946b373f37d374cd7a",
-      "size": 9780,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/core/update_manager.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/core/update_manager.py",
-      "sha256": "3822483780ebff1e9ff5afe0cd8e347a9d241ef42979f623cd0b66bfe8c5e9a9",
-      "size": 16073,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/player/background_music.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/player/background_music.py",
-      "sha256": "c5acb4b9a5bd872bf00ccad1b5b97da95d8bb08f672f966f9afae28780d9d83a",
-      "size": 17963,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui/pages/about.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui/pages/about.py",
-      "sha256": "6d26cda79dc988ba92e31bc0ed49009869d8d21a2a7fd91595016835cc792388",
-      "size": 957,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui/pages/updates.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui/pages/updates.py",
-      "sha256": "4732fe68de08f31f8f1e6c5597822c1260b7de08382fecae2c9e73dbe493508d",
-      "size": 7196,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui/tabs/about_tab.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui/tabs/about_tab.py",
-      "sha256": "8720e7b4157fcd5ea273d4c78ebe98abe13f5b6c24fc955f443856109ae0b33b",
-      "size": 947,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui/tabs/updates_tab.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui/tabs/updates_tab.py",
-      "sha256": "d85664968941e47332784160acb9a1eebe0e4e95c4512a585cc4cfff0fd25393",
-      "size": 1377,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui/welcome.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui/welcome.py",
-      "sha256": "b306374c4bde557218c670db139f975b8b584a3cc468685160a04d3ab62bcb21",
-      "size": 1172,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/help_system.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/help_system.py",
-      "sha256": "88ccdd8a6339c868d03d67cf676bc57814e348d11e6d73dc30ba4be81b0da77e",
-      "size": 9781,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/main_window.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/main_window.py",
-      "sha256": "c151e3e9b96c791eb64f378156914d94cf2e3cae9057d8b363641788ab39c5cf",
-      "size": 21398,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/__init__.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/__init__.py",
-      "sha256": "75254cbdee8e5d72efefa212c2467d27a34cef7b63cb9f28b97f0ec873ccd8da",
-      "size": 513,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/about.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/about.py",
-      "sha256": "af702510b2780255660aaf9331074332caadf776d66cfedc234e02a35499e603",
-      "size": 906,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/ai_producer.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/ai_producer.py",
-      "sha256": "45baeaf0c667b35007c7d6ac61d168a5a090d4333e2d55a7d0ba0f141c2a8c42",
-      "size": 2302,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/authorization.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/authorization.py",
-      "sha256": "bdf1f498b8401bce460adde928721cd0f793b6507304fc3e135813e8b39cb2a8",
-      "size": 15571,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/background_music.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/background_music.py",
-      "sha256": "d6497bd1cd6b115d890f32eba83eb0adc281d61985edcfbc38899831a6bb5463",
-      "size": 15336,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/chat_center.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/chat_center.py",
-      "sha256": "9362dfecf14d01ae3e92f675a187f5e0ec4dabd0b713984c580da6db0c580b4b",
-      "size": 3065,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/designer.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/designer.py",
-      "sha256": "221996cea5b6df43dc733e2fb72ee722bb8a15789275bf741a0605888ebf52f2",
-      "size": 2318,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/developer.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/developer.py",
-      "sha256": "242f019fa6fb0ceaa63dab286d1d463db9672fb59528584d6a3b6cff2ffd143c",
-      "size": 1541,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/help.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/help.py",
-      "sha256": "1cea637dddad8d8ca983f288958a4cea6111f76711d7a9445b4ccdf02649698a",
-      "size": 3707,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/home.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/home.py",
-      "sha256": "468eb04361b71a31162d890789bb37a58f5a50f228c225db78bc910a7ab78e43",
-      "size": 6648,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/logs.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/logs.py",
-      "sha256": "c0d9a59523ca998df028cf5c5dffb205ab20d50a7d136509683af2748fcfe6ae",
-      "size": 1287,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/media_player.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/media_player.py",
-      "sha256": "e16b9b44391f7e67d6e7c6eeaedfd1326a7d42abcfc2fd7fcea246689791f288",
-      "size": 8765,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/settings.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/settings.py",
-      "sha256": "bb358bfe6a0047199f03cf3c84b1515051061eef55949ca3a14f886d9aebed7f",
-      "size": 2758,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/stream_control.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/stream_control.py",
-      "sha256": "8715f9d4a9dd88bc5b3bc08aa8e97bf5caf5b2fc7fe04cd52fe326acf33bcead",
-      "size": 10397,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/pages/updates.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/pages/updates.py",
-      "sha256": "d408fa1c2abe33c9f3dbf0dd3edc244e7b83201845e50e897b987a9b619f0406",
-      "size": 6283,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/runtime.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/runtime.py",
-      "sha256": "00a0faae735150bc050bbdfc9724ace6136acde35ddf011299b37c5a12e6639d",
-      "size": 1849,
-      "restart_required": true
-    },
-    {
-      "path": "src/merzostream/ui_qt/system_monitor.py",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/src/merzostream/ui_qt/system_monitor.py",
-      "sha256": "242028035c287600f9f8165c4052bc6bcd9a7deb19a870de45e3d799a7ccc82d",
-      "size": 19517,
       "restart_required": true
     }
   ]
