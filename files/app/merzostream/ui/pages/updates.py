@@ -27,9 +27,18 @@ class UpdatesPage(ctk.CTkFrame):
         card = ctk.CTkFrame(self, fg_color="#24282f", corner_radius=14)
         card.pack(fill="x", padx=24, pady=10)
         ctk.CTkLabel(card, text="Текущая версия", font=("Arial", 14, "bold")).pack(anchor="w", padx=18, pady=(18, 4))
-        ctk.CTkLabel(card, text=f'{self.app_info.get("channel", "Beta")} {self.app_info.get("version", "0.0.1")}', text_color="#70b7ff", font=("Arial", 20, "bold")).pack(anchor="w", padx=18)
+        ctk.CTkLabel(
+            card,
+            text=f'{self.app_info.get("channel", "Beta")} {self.app_info.get("version", "0.0.1")}',
+            text_color="#70b7ff",
+            font=("Arial", 20, "bold"),
+        ).pack(anchor="w", padx=18)
         cfg = self.manager.load_config()
-        ctk.CTkLabel(card, text=f'Репозиторий: {cfg.get("repository", "Merzo4/my-app-updates")}', text_color="#aeb8c4").pack(anchor="w", padx=18, pady=(6, 18))
+        ctk.CTkLabel(
+            card,
+            text=f'Reпозиторий: {cfg.get("repository", "Merzo4/my-app-updates")}',
+            text_color="#aeb8c4",
+        ).pack(anchor="w", padx=18, pady=(6, 18))
 
         self.status = ctk.CTkLabel(self, text="Нажми «Проверить обновления».", anchor="w")
         self.status.pack(fill="x", padx=24, pady=(8, 4))
@@ -41,14 +50,19 @@ class UpdatesPage(ctk.CTkFrame):
         buttons.pack(fill="x", padx=24, pady=10)
         self.check_button = ctk.CTkButton(buttons, text="Проверить обновления", height=42, command=self.check_updates)
         self.check_button.pack(side="left", fill="x", expand=True, padx=(0, 6))
-        self.install_button = ctk.CTkButton(buttons, text="Установить и перезапустить", height=42, state="disabled", command=self.install_update)
+        self.install_button = ctk.CTkButton(
+            buttons,
+            text="Установить и перезапустить",
+            height=42,
+            state="disabled",
+            command=self.install_update,
+        )
         self.install_button.pack(side="left", fill="x", expand=True, padx=(6, 0))
 
         ctk.CTkLabel(self, text="Что изменится", font=("Arial", 16, "bold")).pack(anchor="w", padx=24, pady=(16, 6))
         self.details = ctk.CTkTextbox(self, height=220)
         self.details.pack(fill="both", expand=True, padx=24, pady=(0, 20))
-        self.details.insert("1.0", "История обновлений появится здесь после первой проверки.")
-        self.details.configure(state="disabled")
+        self._write_details("История обновлений появится здесь после первой проверки.")
 
     def _set_busy(self, value: bool):
         self._busy = value
@@ -59,7 +73,7 @@ class UpdatesPage(ctk.CTkFrame):
     def _write_details(self, text: str):
         self.details.configure(state="normal")
         self.details.delete("1.0", "end")
-        self.details.insert("1.0", text)
+        self.details.insert("1.0", text or "Неизвестная ошибка")
         self.details.configure(state="disabled")
 
     def check_updates(self):
@@ -72,9 +86,10 @@ class UpdatesPage(ctk.CTkFrame):
         def worker():
             try:
                 result = self.manager.check(str(self.app_info.get("version", "0.0.1")))
-                self.after(0, lambda: self._show_check_result(result))
+                self.after(0, lambda result=result: self._show_check_result(result))
             except Exception as exc:
-                self.after(0, lambda: self._show_error(str(exc)))
+                error_text = str(exc) or repr(exc)
+                self.after(0, lambda text=error_text: self._show_error("Проверка обновления", text))
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -89,7 +104,12 @@ class UpdatesPage(ctk.CTkFrame):
             return
 
         total_size = sum(item.size for item in result.files)
-        lines = [f"Версия: {result.current_version} → {result.remote_version}", f"Изменено файлов: {len(result.files)}", f"Размер: {total_size / 1024 / 1024:.2f} МБ", ""]
+        lines = [
+            f"Версия: {result.current_version} → {result.remote_version}",
+            f"Изменено файлов: {len(result.files)}",
+            f"Размер: {total_size / 1024 / 1024:.2f} МБ",
+            "",
+        ]
         if result.release_notes:
             lines.append("Что нового:")
             lines.extend(f"• {note}" for note in result.release_notes)
@@ -97,39 +117,47 @@ class UpdatesPage(ctk.CTkFrame):
         if result.files:
             lines.append("Файлы:")
             lines.extend(f"• {item.path}" for item in result.files)
+
         self.status.configure(text=f"🔔 Доступно обновление {result.remote_version}")
         self.progress.set(0.35)
         self.install_button.configure(state="normal")
         self._write_details("\n".join(lines))
 
-    def _show_error(self, text: str):
+    def _show_error(self, stage: str, text: str):
         self._set_busy(False)
         self.progress.set(0)
-        self.status.configure(text="❌ Не удалось проверить обновления")
+        self.status.configure(text=f"❌ Ошибка: {stage}")
         self._write_details(text)
 
     def install_update(self):
         if self._busy or not self._last_check:
             return
-        if not messagebox.askyesno("MerzoStream Suite", "Скачать изменённые файлы и перезапустить программу?"):
+        if not messagebox.askyesno(
+            "MerzoStream Suite",
+            "Будет создана резервная копия, затем заменятся только изменённые файлы. Продолжить?",
+        ):
             return
+
         self._set_busy(True)
-        self.status.configure(text="Устанавливаю обновление…")
+        self.status.configure(text="Подготовка обновления…")
+        self.progress.set(0.02)
 
         def progress(done, total, message):
-            self.after(0, lambda: self.status.configure(text=message))
-            self.after(0, lambda: self.progress.set(done / total if total else 0))
+            ratio = done / total if total else 0
+            self.after(0, lambda text=message: self.status.configure(text=text))
+            self.after(0, lambda value=ratio: self.progress.set(max(0, min(1, value))))
 
         def worker():
             try:
                 updated = self.manager.apply(self._last_check, progress)
-                self.after(0, lambda: self._finish_install(updated))
+                self.after(0, lambda files=updated: self._finish_install(files))
             except Exception as exc:
-                self.after(0, lambda: self._show_error(str(exc)))
+                error_text = str(exc) or repr(exc)
+                self.after(0, lambda text=error_text: self._show_error("Установка обновления", text))
 
         threading.Thread(target=worker, daemon=True).start()
 
     def _finish_install(self, updated):
         self.progress.set(1)
         self.status.configure(text=f"✅ Обновлено файлов: {len(updated)}. Перезапуск…")
-        self.after(700, self.app.restart_application)
+        self.after(900, self.app.restart_application)

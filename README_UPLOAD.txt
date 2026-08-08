@@ -1,4 +1,5 @@
-MerzoStream Suite 0.0.2d — Real UI Skin Foundation
+MerzoStream Suite 0.0.2d FIXED
 
-Залить в корень GitHub: manifest.json и папку files.
-Это небольшой патч поверх уже установленной версии 0.0.2c.
+Исправлен manifest: удалены __pycache__/*.pyc.
+Скопируй manifest.json и files поверх текущего репозитория, Commit, Push origin.
+После этого снова нажми «Проверить обновления» и «Установить и перезапустить».

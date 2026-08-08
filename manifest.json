@@ -7,21 +7,16 @@
     "Переделаны темы Aurora Glass PRO и Cyber Frame PRO: рабочий фон + настоящие панели, карточки и навигация.",
     "Улучшен новый интерфейс PySide6: аккуратнее header, sidebar, рабочая область и правая панель мониторинга.",
     "Главная страница стала нагляднее и выглядит как собранный интерфейс, а не как пустая заглушка.",
-    "Это база для следующего шага: уже после неё можно будет делать конструктор дизайна и собственные скины."
+    "Это база для следующего шага: уже после неё можно будет делать конструктор дизайна и собственные скины.",
+    "FIX: manifest больше не содержит __pycache__ и *.pyc, которые GitHub обычно игнорирует.",
+    "FIX: страница обновлений теперь показывает реальную ошибку установки вместо общего «не удалось проверить обновления»."
   ],
   "files": [
     {
-      "path": "app/merzostream/ui_qt/__pycache__/main_window.cpython-313.pyc",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/__pycache__/main_window.cpython-313.pyc",
-      "sha256": "2f11d52dde5642e7bd3462c1e39a32a0b1576008dc79e528daafc5fca10c9e4d",
-      "size": 25012,
-      "restart_required": true
-    },
-    {
-      "path": "app/merzostream/ui_qt/__pycache__/system_monitor.cpython-313.pyc",
-      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui_qt/__pycache__/system_monitor.cpython-313.pyc",
-      "sha256": "26db1af2a09421e5ad48999bd0680d085bd9f5b1c090e5a6ff9303a38385cc07",
-      "size": 8490,
+      "path": "app/merzostream/ui/pages/updates.py",
+      "url": "https://raw.githubusercontent.com/Merzo4/my-app-updates/main/files/app/merzostream/ui/pages/updates.py",
+      "sha256": "4732fe68de08f31f8f1e6c5597822c1260b7de08382fecae2c9e73dbe493508d",
+      "size": 7196,
       "restart_required": true
     },
     {
