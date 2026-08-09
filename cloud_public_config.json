@@ -1,5 +1,5 @@
 {
-  "github_client_id": "",
-  "oauth_scopes": "gist read:user",
-  "purpose": "MerzoStream Suite user login and encrypted cloud sync. Client ID is public; never put a client secret here."
+  "github_client_id": "Ov23liEfOCX0L7dDNPYD",
+  "auth_mode": "oauth_device_flow",
+  "enabled": true
 }
