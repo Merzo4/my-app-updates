@@ -93,18 +93,36 @@ begin
   end;
 end;
 
+function IsValidReleaseChar(const C: Char): Boolean;
+begin
+  Result :=
+    ((C >= '0') and (C <= '9')) or
+    ((C >= 'a') and (C <= 'z')) or
+    ((C >= 'A') and (C <= 'Z')) or
+    (C = '.');
+end;
+
 function ValidReleaseVersion(const Value: String): Boolean;
 var
   I: Integer;
 begin
-  Result := (Value <> '') and (Pos('..', Value) = 0) and (Pos('/', Value) = 0) and (Pos('\\', Value) = 0);
+  Result :=
+    (Value <> '') and
+    (Pos('..', Value) = 0) and
+    (Pos('/', Value) = 0) and
+    (Pos('\', Value) = 0);
+
   if Result then
+  begin
     for I := 1 to Length(Value) do
-      if not (Value[I] in ['0'..'9', 'a'..'z', 'A'..'Z', '.']) then
+    begin
+      if not IsValidReleaseChar(Value[I]) then
       begin
         Result := False;
         Break;
       end;
+    end;
+  end;
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
@@ -158,7 +176,7 @@ begin
       PythonInstallerPath := ExpandConstant('{tmp}\python-3.12.10-amd64.exe');
 
       { 3. Extract immutable version directory }
-      TargetVersionDir := AddBackslash(WizardDirValue) + 'versions\\' + ReleaseVersion;
+      TargetVersionDir := AddBackslash(WizardDirValue) + 'versions\' + ReleaseVersion;
       if DirExists(TargetVersionDir) then
         DelTree(TargetVersionDir, True, True, True);
       ForceDirectories(TargetVersionDir);
