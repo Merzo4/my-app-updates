@@ -1,10 +1,9 @@
 #define MyAppName "MerzoStream Suite"
 #define MyAppPublisher "Merzo4"
 #define MyAppURL "https://github.com/Merzo4/my-app-updates"
-#define MyAppId "{B56A0D35-75CF-4EF4-8F4A-6A13CB8EC1B5}"
 
 [Setup]
-AppId={#MyAppId}
+AppId={{B56A0D35-75CF-4EF4-8F4A-6A13CB8EC1B5}
 AppName={#MyAppName}
 AppVersion=1.0
 AppVerName={#MyAppName}
