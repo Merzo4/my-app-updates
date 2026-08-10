@@ -77,20 +77,259 @@ begin
   Result := True;
 end;
 
-function Python312Available: Boolean;
+function PythonExeWorks(const ExePath: String): Boolean;
 var
   ResultCode: Integer;
-  PyLauncher: String;
 begin
   Result := False;
-  PyLauncher := ExpandConstant('{sys}\py.exe');
-  if FileExists(PyLauncher) then
+  if (ExePath = '') or (not FileExists(ExePath)) then
+    Exit;
+
+  if Exec(
+    ExePath,
+    '-c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) else 1)"',
+    '',
+    SW_SHOWNORMAL,
+    ewWaitUntilTerminated,
+    ResultCode) then
   begin
-    if Exec(PyLauncher,
-      '-3.12 -c "import sys; raise SystemExit(0 if sys.version_info[:2] == (3,12) else 1)"',
-      '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-      Result := ResultCode = 0;
+    Result := ResultCode = 0;
   end;
+end;
+
+function PythonFromRegistry(const RootKey: HKEY): String;
+var
+  InstallPath: String;
+  ExePath: String;
+begin
+  Result := '';
+
+  if RegQueryStringValue(
+    RootKey,
+    'Software\Python\PythonCore\3.12\InstallPath',
+    'ExecutablePath',
+    ExePath) then
+  begin
+    if PythonExeWorks(ExePath) then
+    begin
+      Result := ExePath;
+      Exit;
+    end;
+  end;
+
+  InstallPath := '';
+  if RegQueryStringValue(
+    RootKey,
+    'Software\Python\PythonCore\3.12\InstallPath',
+    '',
+    InstallPath) then
+  begin
+    ExePath := AddBackslash(InstallPath) + 'python.exe';
+    if PythonExeWorks(ExePath) then
+    begin
+      Result := ExePath;
+      Exit;
+    end;
+  end;
+end;
+
+function PythonFromLauncher: String;
+var
+  PyLauncher: String;
+  ResultCode: Integer;
+  Output: TExecOutput;
+  Candidate: String;
+begin
+  Result := '';
+  PyLauncher := ExpandConstant('{win}\py.exe');
+
+  if not FileExists(PyLauncher) then
+    Exit;
+
+  try
+    if ExecAndCaptureOutput(
+      PyLauncher,
+      '-3.12 -c "import sys; print(sys.executable)"',
+      '',
+      SW_SHOWNORMAL,
+      ewWaitUntilTerminated,
+      ResultCode,
+      Output) then
+    begin
+      if (ResultCode = 0) and (Length(Output.StdOut) > 0) then
+      begin
+        Candidate := Trim(Output.StdOut[0]);
+        if PythonExeWorks(Candidate) then
+        begin
+          Result := Candidate;
+          Exit;
+        end;
+      end;
+    end;
+  except
+    Log('Python launcher detection failed: ' + GetExceptionMessage);
+  end;
+end;
+
+function FindPython312Exe: String;
+var
+  Candidate: String;
+begin
+  Result := '';
+
+  Candidate := PythonFromRegistry(HKEY_CURRENT_USER);
+  if Candidate <> '' then
+  begin
+    Result := Candidate;
+    Exit;
+  end;
+
+  Candidate := PythonFromRegistry(HKEY_LOCAL_MACHINE);
+  if Candidate <> '' then
+  begin
+    Result := Candidate;
+    Exit;
+  end;
+
+  Candidate := ExpandConstant('{autopf}\Python312\python.exe');
+  if PythonExeWorks(Candidate) then
+  begin
+    Result := Candidate;
+    Exit;
+  end;
+
+  Candidate := ExpandConstant('{localappdata}\Programs\Python\Python312\python.exe');
+  if PythonExeWorks(Candidate) then
+  begin
+    Result := Candidate;
+    Exit;
+  end;
+
+  Candidate := PythonFromLauncher;
+  if Candidate <> '' then
+  begin
+    Result := Candidate;
+    Exit;
+  end;
+end;
+
+function Python312Available: Boolean;
+begin
+  Result := FindPython312Exe <> '';
+end;
+
+procedure ExecChecked(
+  const ExePath: String;
+  const Params: String;
+  const WorkingDir: String;
+  const ErrorText: String);
+var
+  ResultCode: Integer;
+begin
+  if not Exec(
+    ExePath,
+    Params,
+    WorkingDir,
+    SW_SHOWNORMAL,
+    ewWaitUntilTerminated,
+    ResultCode) then
+  begin
+    RaiseException(
+      ErrorText + #13#10 +
+      'Windows: ' + SysErrorMessage(ResultCode));
+  end;
+
+  if ResultCode <> 0 then
+  begin
+    RaiseException(
+      ErrorText + #13#10 +
+      'Код завершения: ' + IntToStr(ResultCode));
+  end;
+end;
+
+procedure PreparePythonRuntime;
+var
+  PythonExe: String;
+  RuntimeRoot: String;
+  RuntimeParent: String;
+  VenvPython: String;
+  RequirementsPath: String;
+  RequirementsHash: String;
+  MarkerPath: String;
+  MarkerText: AnsiString;
+  NeedRequirements: Boolean;
+begin
+  PythonExe := FindPython312Exe;
+  if PythonExe = '' then
+    RaiseException('Python 3.12 не найден после установки.');
+
+  Log('Python 3.12 detected: ' + PythonExe);
+
+  RuntimeRoot :=
+    ExpandConstant('{localappdata}\MerzoStreamSuite\runtime\py312');
+  RuntimeParent := ExtractFileDir(RuntimeRoot);
+  VenvPython := AddBackslash(RuntimeRoot) + 'Scripts\python.exe';
+  RequirementsPath :=
+    AddBackslash(WizardDirValue) +
+    'versions\' + ReleaseVersion + '\requirements.txt';
+  MarkerPath := AddBackslash(RuntimeRoot) + '.requirements.sha256';
+
+  if not FileExists(RequirementsPath) then
+    RaiseException('В установленной версии отсутствует requirements.txt.');
+
+  ForceDirectories(RuntimeParent);
+
+  WizardForm.StatusLabel.Caption :=
+    'Подготовка изолированного Python окружения MerzoStream Suite...';
+
+  if not FileExists(VenvPython) then
+  begin
+    if DirExists(RuntimeRoot) then
+      DelTree(RuntimeRoot, True, True, True);
+
+    ExecChecked(
+      PythonExe,
+      '-m venv "' + RuntimeRoot + '"',
+      '',
+      'Не удалось создать Python-окружение MerzoStream Suite.');
+  end;
+
+  if not FileExists(VenvPython) then
+    RaiseException('Python-окружение создано некорректно.');
+
+  RequirementsHash := Lowercase(GetSHA256OfFile(RequirementsPath));
+  NeedRequirements := True;
+
+  MarkerText := '';
+  if FileExists(MarkerPath) then
+  begin
+    if LoadStringFromFile(MarkerPath, MarkerText) then
+      NeedRequirements :=
+        Lowercase(Trim(String(MarkerText))) <> RequirementsHash;
+  end;
+
+  if NeedRequirements then
+  begin
+    WizardForm.StatusLabel.Caption :=
+      'Установка компонентов MerzoStream Suite...';
+
+    ExecChecked(
+      VenvPython,
+      '-m pip install --disable-pip-version-check ' +
+      '--no-warn-script-location -r "' + RequirementsPath + '"',
+      ExtractFileDir(RequirementsPath),
+      'Не удалось установить Python-компоненты MerzoStream Suite.');
+
+    if not SaveStringToFile(
+      MarkerPath,
+      AnsiString(RequirementsHash),
+      False) then
+    begin
+      RaiseException('Не удалось сохранить состояние Python-компонентов.');
+    end;
+  end;
+
+  Log('MerzoStream Python runtime is ready: ' + VenvPython);
 end;
 
 function IsValidReleaseChar(const C: Char): Boolean;
@@ -204,23 +443,58 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   ResultCode: Integer;
   Params: String;
+  PythonExe: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    if NeedPython and (not Python312Available) then
-    begin
-      WizardForm.StatusLabel.Caption := 'Установка Python 3.12 для MerzoStream Suite...';
-      Params := '/quiet InstallAllUsers=1 PrependPath=0 AppendPath=0 Include_launcher=1 ' +
-        'InstallLauncherAllUsers=1 Include_test=0 Include_doc=0 Shortcuts=0';
+    PythonExe := FindPython312Exe;
 
-      if not Exec(PythonInstallerPath, Params, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-        RaiseException('Не удалось запустить установщик Python 3.12.');
+    if PythonExe = '' then
+    begin
+      WizardForm.StatusLabel.Caption :=
+        'Установка Python 3.12 для MerzoStream Suite...';
+
+      Params :=
+        '/quiet InstallAllUsers=1 ' +
+        'PrependPath=0 AppendPath=0 ' +
+        'Include_exe=1 Include_lib=1 Include_pip=1 Include_dev=1 ' +
+        'Include_launcher=1 InstallLauncherAllUsers=1 ' +
+        'Include_test=0 Include_doc=0 Shortcuts=0';
+
+      if not Exec(
+        PythonInstallerPath,
+        Params,
+        '',
+        SW_SHOWNORMAL,
+        ewWaitUntilTerminated,
+        ResultCode) then
+      begin
+        RaiseException(
+          'Не удалось запустить установщик Python 3.12.' + #13#10 +
+          SysErrorMessage(ResultCode));
+      end;
+
       if ResultCode <> 0 then
-        RaiseException(Format('Установщик Python завершился с кодом %d.', [ResultCode]));
-      if not Python312Available then
-        RaiseException('Python 3.12 не обнаружен после установки.');
+      begin
+        RaiseException(
+          'Установщик Python завершился с кодом ' +
+          IntToStr(ResultCode) + '.');
+      end;
+
+      PythonExe := FindPython312Exe;
+      if PythonExe = '' then
+      begin
+        RaiseException(
+          'Python 3.12 установлен, но не удалось определить путь к python.exe.' +
+          #13#10 +
+          'Setup проверил реестр PythonCore, C:\Windows\py.exe и стандартные пути.');
+      end;
     end;
 
-    WizardForm.StatusLabel.Caption := 'MerzoStream Suite установлен.';
+    PreparePythonRuntime;
+
+    WizardForm.StatusLabel.Caption :=
+      'MerzoStream Suite установлен и готов к запуску.';
   end;
 end;
+
