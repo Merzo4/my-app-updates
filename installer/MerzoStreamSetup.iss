@@ -142,59 +142,59 @@ begin
       @OnDownloadProgress);
     DownloadPage.ShowBaseNameInsteadOfUrl := True;
 
+    { 1. Download tiny install channel descriptor }
+    DownloadPage.Clear;
+    DownloadPage.Add(ChannelUrl, 'MerzoStreamSuite-latest.ini', '');
+    DownloadPage.Show;
     try
-      { 1. Download tiny install channel descriptor }
-      DownloadPage.Clear;
-      DownloadPage.Add(ChannelUrl, 'MerzoStreamSuite-latest.ini', '');
-      DownloadPage.Show;
       DownloadPage.Download;
-      DownloadPage.Hide;
-
-      ChannelPath := ExpandConstant('{tmp}\MerzoStreamSuite-latest.ini');
-      ReleaseVersion := Trim(GetIniString('Release', 'Version', '', ChannelPath));
-      ReleaseSHA256 := Lowercase(Trim(GetIniString('Release', 'SHA256', '', ChannelPath)));
-      ReleaseZipURL := Trim(GetIniString('Release', 'URL', '', ChannelPath));
-
-      if not ValidReleaseVersion(ReleaseVersion) then
-        RaiseException('Некорректная версия в канале установки.');
-      if Length(ReleaseSHA256) <> 64 then
-        RaiseException('В канале установки отсутствует корректный SHA-256.');
-      if ReleaseZipURL = '' then
-        RaiseException('В канале установки отсутствует URL пакета.');
-
-      { 2. Download application package and Python when necessary }
-      DownloadPage.Clear;
-      DownloadPage.Add(ReleaseZipURL, 'MerzoStreamSuite-latest.zip', ReleaseSHA256);
-      if NeedPython then
-        DownloadPage.Add(PythonUrl, 'python-3.12.10-amd64.exe', PythonSHA256);
-
-      DownloadPage.Show;
-      DownloadPage.Download;
-      DownloadPage.Hide;
-
-      ReleaseZipPath := ExpandConstant('{tmp}\MerzoStreamSuite-latest.zip');
-      PythonInstallerPath := ExpandConstant('{tmp}\python-3.12.10-amd64.exe');
-
-      { 3. Extract immutable version directory }
-      TargetVersionDir := AddBackslash(WizardDirValue) + 'versions\' + ReleaseVersion;
-      if DirExists(TargetVersionDir) then
-        DelTree(TargetVersionDir, True, True, True);
-      ForceDirectories(TargetVersionDir);
-      ExtractArchive(ReleaseZipPath, TargetVersionDir, '', True, nil);
-
-      { 4. Sanity check the package identity }
-      ManifestPath := AddBackslash(TargetVersionDir) + 'release_manifest.json';
-      if not FileExists(ManifestPath) then
-        RaiseException('Пакет не содержит release_manifest.json.');
-      if not LoadStringFromFile(ManifestPath, ManifestText) then
-        RaiseException('Не удалось прочитать release_manifest.json.');
-      if Pos('"version": "' + ReleaseVersion + '"', String(ManifestText)) = 0 then
-        RaiseException('Версия внутри пакета не совпадает с каналом установки.');
-
     finally
-      if DownloadPage.Visible then
-        DownloadPage.Hide;
+      DownloadPage.Hide;
     end;
+
+    ChannelPath := ExpandConstant('{tmp}\MerzoStreamSuite-latest.ini');
+    ReleaseVersion := Trim(GetIniString('Release', 'Version', '', ChannelPath));
+    ReleaseSHA256 := Lowercase(Trim(GetIniString('Release', 'SHA256', '', ChannelPath)));
+    ReleaseZipURL := Trim(GetIniString('Release', 'URL', '', ChannelPath));
+
+    if not ValidReleaseVersion(ReleaseVersion) then
+      RaiseException('Некорректная версия в канале установки.');
+    if Length(ReleaseSHA256) <> 64 then
+      RaiseException('В канале установки отсутствует корректный SHA-256.');
+    if ReleaseZipURL = '' then
+      RaiseException('В канале установки отсутствует URL пакета.');
+
+    { 2. Download application package and Python when necessary }
+    DownloadPage.Clear;
+    DownloadPage.Add(ReleaseZipURL, 'MerzoStreamSuite-latest.zip', ReleaseSHA256);
+    if NeedPython then
+      DownloadPage.Add(PythonUrl, 'python-3.12.10-amd64.exe', PythonSHA256);
+
+    DownloadPage.Show;
+    try
+      DownloadPage.Download;
+    finally
+      DownloadPage.Hide;
+    end;
+
+    ReleaseZipPath := ExpandConstant('{tmp}\MerzoStreamSuite-latest.zip');
+    PythonInstallerPath := ExpandConstant('{tmp}\python-3.12.10-amd64.exe');
+
+    { 3. Extract immutable version directory }
+    TargetVersionDir := AddBackslash(WizardDirValue) + 'versions\' + ReleaseVersion;
+    if DirExists(TargetVersionDir) then
+      DelTree(TargetVersionDir, True, True, True);
+    ForceDirectories(TargetVersionDir);
+    ExtractArchive(ReleaseZipPath, TargetVersionDir, '', True, nil);
+
+    { 4. Sanity check the package identity }
+    ManifestPath := AddBackslash(TargetVersionDir) + 'release_manifest.json';
+    if not FileExists(ManifestPath) then
+      RaiseException('Пакет не содержит release_manifest.json.');
+    if not LoadStringFromFile(ManifestPath, ManifestText) then
+      RaiseException('Не удалось прочитать release_manifest.json.');
+    if Pos('"version": "' + ReleaseVersion + '"', String(ManifestText)) = 0 then
+      RaiseException('Версия внутри пакета не совпадает с каналом установки.');
   except
     Result := GetExceptionMessage;
   end;
