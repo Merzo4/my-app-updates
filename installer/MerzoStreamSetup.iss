@@ -485,8 +485,7 @@ begin
       if PythonExe = '' then
       begin
         RaiseException(
-          'Python 3.12 установлен, но не удалось определить путь к python.exe.' +
-          #13#10 +
+          'Python 3.12 установлен, но не удалось определить путь к python.exe.' + #13#10 +
           'Setup проверил реестр PythonCore, C:\Windows\py.exe и стандартные пути.');
       end;
     end;
