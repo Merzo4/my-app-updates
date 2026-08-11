@@ -47,7 +47,8 @@ Name: "{app}\shared"
 Source: "assets\MerzoStreamSuite.cmd"; DestDir: "{app}"; Flags: ignoreversion
 Source: "assets\launcher\BackgroundCheck.ps1"; DestDir: "{app}\launcher"; Flags: ignoreversion
 Source: "assets\launcher\MerzoStreamLauncher.ps1"; DestDir: "{app}\launcher"; Flags: ignoreversion
-Source: "assets\launcher\Updater5.ps1"; DestDir: "{app}\launcher"; Flags: ignoreversion
+Source: "assets\launcher\launcher6.py"; DestDir: "{app}\launcher"; Flags: ignoreversion
+Source: "assets\launcher\update_engine6.py"; DestDir: "{app}\launcher"; Flags: ignoreversion
 Source: "assets\launcher\config.json"; DestDir: "{app}\launcher"; Flags: ignoreversion
 
 [Icons]
@@ -55,7 +56,7 @@ Name: "{autoprograms}\MerzoStream Suite"; Filename: "{sys}\WindowsPowerShell\v1.
 Name: "{autodesktop}\MerzoStream Suite"; Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\launcher\MerzoStreamLauncher.ps1"""; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\launcher\MerzoStreamLauncher.ps1"" -NoUpdate"; WorkingDir: "{app}"; Description: "Запустить MerzoStream Suite"; Flags: postinstall nowait skipifsilent runasoriginaluser
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""{app}\launcher\MerzoStreamLauncher.ps1"" -NoUpdate -ActivateVersion {code:GetReleaseVersion}"; WorkingDir: "{app}"; Description: "Запустить MerzoStream Suite"; Flags: postinstall nowait skipifsilent runasoriginaluser
 
 [Code]
 const
@@ -437,6 +438,11 @@ begin
   except
     Result := GetExceptionMessage;
   end;
+end;
+
+function GetReleaseVersion(Param: String): String;
+begin
+  Result := ReleaseVersion;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
