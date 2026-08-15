@@ -31,12 +31,20 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $parts = Get-ChildItem 'optimizer/source/MerzoWindowsOptimizer_R21_Source.tar.xz.b64.part*' | Sort-Object Name
           if ($parts.Count -eq 0) { throw 'R21 source parts were not found' }
-          $b64 = ''
-          foreach ($p in $parts) { $b64 += (Get-Content $p.FullName -Raw) }
-          $bytes = [Convert]::FromBase64String($b64)
-          [IO.File]::WriteAllBytes((Join-Path $PWD 'optimizer-r21.tar.xz'), $bytes)
+          $archive = Join-Path $PWD 'optimizer-r21.tar.xz'
+          if (Test-Path $archive) { Remove-Item $archive -Force }
+          $out = [IO.File]::Open($archive, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+          try {
+            foreach ($p in $parts) {
+              $chunkText = (Get-Content $p.FullName -Raw).Trim()
+              $chunkBytes = [Convert]::FromBase64String($chunkText)
+              $out.Write($chunkBytes, 0, $chunkBytes.Length)
+              Write-Host "Decoded $($p.Name): $($chunkBytes.Length) bytes"
+            }
+          }
+          finally { $out.Dispose() }
           New-Item -ItemType Directory -Force -Path 'optimizer-r21-src' | Out-Null
-          tar -xf 'optimizer-r21.tar.xz' -C 'optimizer-r21-src'
+          tar -xf $archive -C 'optimizer-r21-src'
           if ($LASTEXITCODE -ne 0) { throw 'Unable to extract R21 source archive' }
           $sln = Get-ChildItem 'optimizer-r21-src' -Recurse -Filter '*.sln' | Select-Object -First 1
           if (-not $sln) { throw 'Solution file was not found after extraction' }
