@@ -2,6 +2,7 @@ from pathlib import Path
 import os,re
 root=Path(os.environ['SOURCE_ROOT'])
 
+# Keep multi-product GitHub release filtering correct.
 update=root/'src'/'MerzoOptimizer.Windows'/'Updates'/'GitHubUpdateService.cs'
 u=update.read_text(encoding='utf-8-sig')
 u=u.replace('var tag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;', 'var candidateTag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;')
@@ -13,13 +14,16 @@ vm=root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs'
 s=vm.read_text(encoding='utf-8-sig')
 if 'using System.Diagnostics;' not in s:
     s=s.replace('using System.ComponentModel;', 'using System.ComponentModel;\nusing System.Diagnostics;')
-s=s.replace('private bool _initialized;', 'private bool _initialized;\n    private bool _isUpdateBusy;')
+if 'private bool _isUpdateBusy;' not in s:
+    s=s.replace('private bool _initialized;', 'private bool _initialized;\n    private bool _isUpdateBusy;')
 s=s.replace('CheckUpdatesCommand = new AsyncRelayCommand(CheckUpdatesAsync, () => !IsStage2Busy);', 'CheckUpdatesCommand = new AsyncRelayCommand(CheckUpdatesAsync, () => !IsUpdateBusy);')
 s=s.replace('DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, () => !IsStage2Busy && _lastUpdateCheck is { UpdateAvailable: true, Success: true });', 'DownloadUpdateCommand = new AsyncRelayCommand(DownloadUpdateAsync, () => !IsUpdateBusy && _lastUpdateCheck is { UpdateAvailable: true, Success: true });')
 s=s.replace('if (_updateService.Settings.AutoCheck) await CheckUpdatesAsync(silent: true);', 'if (_updateService.Settings.AutoCheck) _ = CheckUpdatesAsync(silent: true);')
 s=s.replace('UpdatePolicyText = $"Автопроверка: {(_updateService.Settings.AutoCheck ? "Вкл" : "Выкл")} · автоскачивание: {(_updateService.Settings.AutoDownload ? "Вкл" : "Выкл")} · автоустановка: gated";', 'UpdatePolicyText = $"Автопроверка: {(_updateService.Settings.AutoCheck ? "Вкл" : "Выкл")} · SHA-256: обязательно · установка: по подтверждению";')
 
-prop='''    public bool IsUpdateBusy
+if 'public bool IsUpdateBusy' not in s:
+    marker='    public string TweakSearchText\n'
+    prop='''    public bool IsUpdateBusy
     {
         get => _isUpdateBusy;
         private set
@@ -31,8 +35,6 @@ prop='''    public bool IsUpdateBusy
     }
 
 '''
-if 'public bool IsUpdateBusy' not in s:
-    marker='    public string TweakSearchText\n'
     if marker not in s: raise SystemExit('TweakSearchText marker missing')
     s=s.replace(marker,prop+marker,1)
 
@@ -53,13 +55,9 @@ methods=r'''    private Task CheckUpdatesAsync() => CheckUpdatesAsync(silent: fa
             UpdateLatestText = _lastUpdateCheck.UpdateAvailable ? _lastUpdateCheck.LatestVersion : (_lastUpdateCheck.Configured ? "Актуально" : "Feed не настроен");
             DownloadUpdateCommand.RaiseCanExecuteChanged();
             if (!silent && _lastUpdateCheck is { Success: true, UpdateAvailable: true } available)
-            {
                 MessageBox.Show($"Доступно обновление {available.LatestVersion}.\n\n{available.ReleaseName}\n\nНажмите «Скачать и установить». Merzo скачает installer, проверит SHA-256 и только потом предложит установку.", "Merzo Windows Optimizer — обновление найдено", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
             else if (!silent && !_lastUpdateCheck.Success)
-            {
                 MessageBox.Show(_lastUpdateCheck.Message, "Update Center", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
         }
         catch (Exception ex)
         {
@@ -143,12 +141,10 @@ vm.write_text(s,encoding='utf-8')
 
 xaml=root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
 x=xaml.read_text(encoding='utf-8-sig')
-x=x.replace('Content="Проверить" Margin="0,0,6,0"', 'Content="Проверить обновления" Margin="0,0,6,0"')
-x=x.replace('Content="Скачать проверенное"', 'Content="Скачать и установить"')
+# Change button labels by command binding, independent of existing attribute text/order.
+x=re.sub(r'(<Button\b(?=[^>]*Command="\{Binding CheckUpdatesCommand\}")[^>]*\bContent=")[^"]*(")', r'\1Проверить обновления\2', x)
+x=re.sub(r'(<Button\b(?=[^>]*Command="\{Binding DownloadUpdateCommand\}")[^>]*\bContent=")[^"]*(")', r'\1Скачать и установить\2', x)
 x=x.replace('Автопроверка релизов · SHA-256 verification · безопасное staged-download', 'GitHub Releases · обязательная SHA-256 проверка · установка только после подтверждения')
-x=x.replace('Механизм подготовлен по стадиям: Check → Download → Verify → Stage. В DEV-сборке самоперезапись специально заблокирована.', 'Проверка → загрузка installer → SHA-256 → UAC → установка поверх текущей версии → автоматический перезапуск.')
-x=x.replace('Когда появится штатный publish/installer и release-feed, добавим отдельный updater helper: он закроет приложение, установит только проверенный файл и запустит новую версию с rollback при неудаче.', 'Update Center не запускает файл, пока SHA-256 из GitHub Release не совпадёт с локально рассчитанным. Portable/DEV автоматически не перезаписываются.')
-x=x.replace('Сейчас: автопроверка готова; auto-install = gated.', 'ONLINE UPDATE READY · установка только по подтверждению')
 x=x.replace('Title="Merzo Windows Optimizer — R20 · Scan First &amp; Lite Build"', 'Title="Merzo Windows Optimizer — Production 0.1.24"')
 x=x.replace('·  On-demand UAC + Scan First R20', '·  Production R24 · Online Update Ready')
 xaml.write_text(x,encoding='utf-8')
@@ -161,6 +157,7 @@ cs.write_text(c,encoding='utf-8')
 final=vm.read_text(encoding='utf-8')
 for token in ['IsUpdateBusy','LaunchVerifiedInstallerAndRestart','Verb = "runas"']:
     if token not in final: raise SystemExit(f'Updater patch missing token: {token}')
-if 'Скачать и установить' not in xaml.read_text(encoding='utf-8'): raise SystemExit('Updater XAML patch missing')
+xfinal=xaml.read_text(encoding='utf-8')
+if 'Проверить обновления' not in xfinal or 'Скачать и установить' not in xfinal: raise SystemExit('Updater XAML patch missing')
 if 'DragMove();' in cs.read_text(encoding='utf-8'): raise SystemExit('R23 drag hotfix regressed')
 print('R24 updater patch contract: OK')
