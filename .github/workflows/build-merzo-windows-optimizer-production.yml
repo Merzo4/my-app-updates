@@ -1,0 +1,190 @@
+name: Merzo Windows Optimizer Production R21
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - merzo-windows-optimizer
+    paths:
+      - '.github/workflows/build-merzo-windows-optimizer-production.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  production:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify and extract clean source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parts = Get-ChildItem 'optimizer/source-min/R21.part*' | Sort-Object Name
+          if ($parts.Count -ne 29) { throw "Expected 29 source parts, found $($parts.Count)." }
+          $builder = [System.Text.StringBuilder]::new()
+          foreach ($p in $parts) { [void]$builder.Append(((Get-Content $p.FullName -Raw) -replace '\s', '')) }
+          $b64 = $builder.ToString()
+          if ($b64.Length -ne 106428) { throw "Unexpected Base64 length $($b64.Length)." }
+          $archiveBytes = [Convert]::FromBase64String($b64)
+          [IO.File]::WriteAllBytes('r21.tar.xz', $archiveBytes)
+          $hash = (Get-FileHash 'r21.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne 'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d') { throw "Source SHA mismatch: $hash" }
+          New-Item -ItemType Directory -Force 'r21' | Out-Null
+          tar -xf 'r21.tar.xz' -C 'r21'
+          if ($LASTEXITCODE -ne 0) { throw 'Source extraction failed.' }
+          $sln = Get-ChildItem 'r21' -Recurse -Filter 'MerzoWindowsOptimizer.sln' | Select-Object -First 1
+          if (-not $sln) { throw 'Solution missing.' }
+          "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
+          Write-Host "SOURCE_SHA256=$hash"
+
+      - name: Apply production code contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # C# scoping fix in multi-product release enumeration.
+          $updateFile = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Windows\Updates\GitHubUpdateService.cs'
+          $u = Get-Content $updateFile -Raw
+          $u = $u.Replace('var tag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;', 'var candidateTag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;')
+          $u = $u.Replace('if (!tag.StartsWith(Settings.ReleaseTagPrefix, StringComparison.OrdinalIgnoreCase))', 'if (!candidateTag.StartsWith(Settings.ReleaseTagPrefix, StringComparison.OrdinalIgnoreCase))')
+          $u = $u.Replace('var version = ParseTaggedVersion(tag, Settings.ReleaseTagPrefix);', 'var version = ParseTaggedVersion(candidateTag, Settings.ReleaseTagPrefix);')
+          Set-Content $updateFile $u -Encoding UTF8
+
+          # Convert DEV updater assertions into strict production assertions.
+          $selfFile = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs'
+          $s = Get-Content $selfFile -Raw
+          $s = $s.Replace('SCAN FIRST + LITE BUILD SelfTest R20', 'PRODUCTION R21 SelfTest')
+          $s = $s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"', '"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old = 'if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new = @'
+          var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null;
+          var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null;
+          var autoDownloadEnabled = root.TryGetProperty("auto_download", out var autoDownload) && autoDownload.GetBoolean();
+          var autoInstallEnabled = root.TryGetProperty("auto_install", out var autoInstall) && autoInstall.GetBoolean();
+          if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates.");
+          if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v.");
+          if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");
+          if (!autoDownloadEnabled) failures.Add("Production updater must enable auto_download.");
+          if (!autoInstallEnabled) failures.Add("Production updater must enable auto_install for verified installed layout.");
+          '@
+          if (-not $s.Contains($old)) { throw 'Old DEV feed assertion was not found.' }
+          $s = $s.Replace($old, $new.Trim())
+          $s = $s.Replace('Auto-install    : gated until publish/installer layout is defined', 'Auto-install    : enabled for SHA-256 verified installer in installed layout')
+          $s = $s.Replace('R20 validation passed:', 'R21 production validation passed:')
+          Set-Content $selfFile $s -Encoding UTF8
+
+          if ((Get-Content $updateFile -Raw) -notmatch 'candidateTag') { throw 'Updater patch failed.' }
+          $selfText = Get-Content $selfFile -Raw
+          foreach ($token in @('Merzo4','my-app-updates','mwo-v','MerzoWindowsOptimizerSetup-win-x64.exe','auto_install')) {
+            if (-not $selfText.Contains($token)) { throw "Production SelfTest patch missing: $token" }
+          }
+
+      - name: Generate branded icon
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          if ($LASTEXITCODE -ne 0) { throw 'Pillow install failed.' }
+          $py = @'
+          from PIL import Image, ImageDraw
+          from pathlib import Path
+          root=Path(r"ROOT_PLACEHOLDER")
+          out=root/'assets'/'MerzoWindowsOptimizer.ico'
+          out.parent.mkdir(parents=True,exist_ok=True)
+          im=Image.new('RGBA',(256,256),(10,16,22,255)); d=ImageDraw.Draw(im)
+          teal=(83,216,197,255); white=(238,247,247,255); panel=(19,30,40,255)
+          d.rounded_rectangle((12,12,244,244),radius=52,fill=panel,outline=teal,width=10)
+          d.ellipse((42,42,214,214),outline=(47,94,98,255),width=5)
+          d.line((62,176,62,91,104,142,128,105,152,142,194,91,194,176),fill=white,width=16,joint='curve')
+          d.polygon([(143,45),(117,104),(143,104),(126,154),(188,84),(156,84),(176,45)],fill=teal)
+          im.save(out,format='ICO',sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          print(out)
+          '@
+          $py = $py.Replace('ROOT_PLACEHOLDER',$env:SOURCE_ROOT.Replace('\','\\'))
+          $py | Set-Content 'make_icon.py' -Encoding UTF8
+          python make_icon.py
+          if ($LASTEXITCODE -ne 0) { throw 'Icon generation failed.' }
+
+      - name: Build, SelfTest, publish and obfuscate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Push-Location $env:SOURCE_ROOT
+          try {
+            & .\build\Build-Production.ps1 -Version '0.1.21'
+            if ($LASTEXITCODE -ne 0) { throw 'Production build failed.' }
+          } finally { Pop-Location }
+          if (-not (Test-Path (Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe'))) { throw 'Production EXE missing.' }
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup install failed.' }
+          $iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { throw 'ISCC.exe not found.' }
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+
+      - name: Build installer and SHA-256 files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location $env:SOURCE_ROOT
+          try {
+            & $env:ISCC '/DMyAppVersion=0.1.21' '.\installer\MerzoWindowsOptimizer.iss'
+            if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
+            $setup='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe'
+            $portable='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+            if (-not (Test-Path $setup)) { throw 'Installer asset missing.' }
+            if (-not (Test-Path $portable)) { throw 'Portable asset missing.' }
+            $sh=(Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+            $ph=(Get-FileHash $portable -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$sh  MerzoWindowsOptimizerSetup-win-x64.exe" | Set-Content "$setup.sha256" -Encoding ascii
+            "$ph  MerzoWindowsOptimizer-portable-win-x64.zip" | Set-Content "$portable.sha256" -Encoding ascii
+            Write-Host "INSTALLER_SHA256=$sh"
+            Write-Host "PORTABLE_SHA256=$ph"
+          } finally { Pop-Location }
+
+      - name: Upload verified CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.21-R21
+          path: |
+            r21/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r21/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r21/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r21/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          if-no-files-found: error
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $tag='mwo-v0.1.21'
+          $dist=Join-Path $env:SOURCE_ROOT 'dist'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.21 (R21)' --notes 'Production R21: scan-first optimization, LIGHT/STANDARD/MAXIMUM/LITE BUILD profiles, 100-rule detection database, Snapshot/Undo, Startup, Cleanup, Services/Tasks, Power, on-demand UAC helper, GitHub Update Center, self-contained x64 installer and portable build.'
+            if ($LASTEXITCODE -ne 0) { throw 'Release creation failed.' }
+          }
+          gh release upload $tag `
+            (Join-Path $dist 'MerzoWindowsOptimizerSetup-win-x64.exe') `
+            (Join-Path $dist 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256') `
+            (Join-Path $dist 'MerzoWindowsOptimizer-portable-win-x64.zip') `
+            (Join-Path $dist 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256') `
+            --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release asset upload failed.' }
