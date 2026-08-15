@@ -31,18 +31,24 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $parts = Get-ChildItem 'optimizer/source/MerzoWindowsOptimizer_R21_Source.tar.xz.b64.part*' | Sort-Object Name
           if ($parts.Count -eq 0) { throw 'R21 source parts were not found' }
-          $archive = Join-Path $PWD 'optimizer-r21.tar.xz'
-          if (Test-Path $archive) { Remove-Item $archive -Force }
-          $out = [IO.File]::Open($archive, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
-          try {
-            foreach ($p in $parts) {
-              $chunkText = (Get-Content $p.FullName -Raw).Trim()
-              $chunkBytes = [Convert]::FromBase64String($chunkText)
-              $out.Write($chunkBytes, 0, $chunkBytes.Length)
-              Write-Host "Decoded $($p.Name): $($chunkBytes.Length) bytes"
-            }
+          $b64 = ''
+          foreach ($p in $parts) {
+            $text = Get-Content $p.FullName -Raw
+            $text = $text -replace '[^A-Za-z0-9+/=]', ''
+            $b64 += $text
+            Write-Host "Added $($p.Name): $($text.Length) base64 chars"
           }
-          finally { $out.Dispose() }
+          $b64 = $b64.Replace('=', '')
+          switch ($b64.Length % 4) {
+            0 { }
+            2 { $b64 += '==' }
+            3 { $b64 += '=' }
+            default { throw "Invalid normalized Base64 length: $($b64.Length)" }
+          }
+          $bytes = [Convert]::FromBase64String($b64)
+          $archive = Join-Path $PWD 'optimizer-r21.tar.xz'
+          [IO.File]::WriteAllBytes($archive, $bytes)
+          Write-Host "Archive reconstructed: $($bytes.Length) bytes"
           New-Item -ItemType Directory -Force -Path 'optimizer-r21-src' | Out-Null
           tar -xf $archive -C 'optimizer-r21-src'
           if ($LASTEXITCODE -ne 0) { throw 'Unable to extract R21 source archive' }
