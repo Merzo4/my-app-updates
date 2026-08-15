@@ -58,6 +58,18 @@ jobs:
           "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
           Write-Host "Verified source root: $($sln.Directory.FullName)"
 
+      - name: Apply R21 production source fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $file = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Windows\Updates\GitHubUpdateService.cs'
+          $text = Get-Content $file -Raw
+          $text = $text.Replace('var tag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;', 'var candidateTag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;')
+          $text = $text.Replace('if (!tag.StartsWith(Settings.ReleaseTagPrefix, StringComparison.OrdinalIgnoreCase))', 'if (!candidateTag.StartsWith(Settings.ReleaseTagPrefix, StringComparison.OrdinalIgnoreCase))')
+          $text = $text.Replace('var version = ParseTaggedVersion(tag, Settings.ReleaseTagPrefix);', 'var version = ParseTaggedVersion(candidateTag, Settings.ReleaseTagPrefix);')
+          Set-Content $file $text -Encoding UTF8
+          if ((Get-Content $file -Raw) -notmatch 'candidateTag') { throw 'Updater source patch was not applied.' }
+
       - name: Generate production application icon
         shell: pwsh
         run: |
@@ -75,12 +87,9 @@ jobs:
           teal=(79,216,195,255); dark=(20,31,41,255); white=(235,245,245,255)
           d.rounded_rectangle((14,14,242,242), radius=50, fill=dark, outline=teal, width=10)
           d.ellipse((45,45,211,211), outline=(47,103,103,255), width=5)
-          # stylized M
           d.line((65,174,65,92,105,142,128,105,151,142,191,92,191,174), fill=white, width=16, joint="curve")
-          # performance bolt
           d.polygon([(142,48),(118,104),(143,104),(126,151),(185,86),(154,86),(174,48)], fill=teal)
           im.save(out, format="ICO", sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])
-          print(out)
           '@
           $script = $script.Replace('SOURCE_ROOT_PLACEHOLDER', $env:SOURCE_ROOT.Replace('\','\\'))
           $script | Set-Content 'make_icon.py' -Encoding UTF8
