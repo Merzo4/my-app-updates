@@ -1,4 +1,4 @@
-name: Merzo Windows Optimizer Production R21
+name: Merzo Windows Optimizer Production R22
 
 on:
   workflow_dispatch:
@@ -39,13 +39,13 @@ jobs:
           $b64 = $builder.ToString()
           if ($b64.Length -ne 106428) { throw "Unexpected Base64 length $($b64.Length)." }
           $archiveBytes = [Convert]::FromBase64String($b64)
-          [IO.File]::WriteAllBytes('r21.tar.xz', $archiveBytes)
-          $hash = (Get-FileHash 'r21.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllBytes('r22-source.tar.xz', $archiveBytes)
+          $hash = (Get-FileHash 'r22-source.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($hash -ne 'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d') { throw "Source SHA mismatch: $hash" }
-          New-Item -ItemType Directory -Force 'r21' | Out-Null
-          tar -xf 'r21.tar.xz' -C 'r21'
+          New-Item -ItemType Directory -Force 'r22' | Out-Null
+          tar -xf 'r22-source.tar.xz' -C 'r22'
           if ($LASTEXITCODE -ne 0) { throw 'Source extraction failed.' }
-          $sln = Get-ChildItem 'r21' -Recurse -Filter 'MerzoWindowsOptimizer.sln' | Select-Object -First 1
+          $sln = Get-ChildItem 'r22' -Recurse -Filter 'MerzoWindowsOptimizer.sln' | Select-Object -First 1
           if (-not $sln) { throw 'Solution missing.' }
           "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
           Write-Host "SOURCE_SHA256=$hash"
@@ -66,7 +66,7 @@ jobs:
           # Convert DEV updater assertions into strict production assertions.
           $selfFile = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs'
           $s = Get-Content $selfFile -Raw
-          $s = $s.Replace('SCAN FIRST + LITE BUILD SelfTest R20', 'PRODUCTION R21 SelfTest')
+          $s = $s.Replace('SCAN FIRST + LITE BUILD SelfTest R20', 'PRODUCTION R22 SelfTest')
           $s = $s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"', '"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
           $old = 'if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
           $new = @'
@@ -83,7 +83,7 @@ jobs:
           if (-not $s.Contains($old)) { throw 'Old DEV feed assertion was not found.' }
           $s = $s.Replace($old, $new.Trim())
           $s = $s.Replace('Auto-install    : gated until publish/installer layout is defined', 'Auto-install    : enabled for SHA-256 verified installer in installed layout')
-          $s = $s.Replace('R20 validation passed:', 'R21 production validation passed:')
+          $s = $s.Replace('R20 validation passed:', 'R22 production validation passed:')
           Set-Content $selfFile $s -Encoding UTF8
 
           if ((Get-Content $updateFile -Raw) -notmatch 'candidateTag') { throw 'Updater patch failed.' }
@@ -117,16 +117,76 @@ jobs:
           python make_icon.py
           if ($LASTEXITCODE -ne 0) { throw 'Icon generation failed.' }
 
-      - name: Build, SelfTest, publish and obfuscate
+      - name: Build, SelfTest and publish
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           Push-Location $env:SOURCE_ROOT
           try {
-            & .\build\Build-Production.ps1 -Version '0.1.21'
+            & .\build\Build-Production.ps1 -Version '0.1.22'
             if ($LASTEXITCODE -ne 0) { throw 'Production build failed.' }
           } finally { Pop-Location }
           if (-not (Test-Path (Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe'))) { throw 'Production EXE missing.' }
+
+      - name: Replace incompatible obfuscated assemblies with verified clean .NET 10 assemblies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = Join-Path $env:SOURCE_ROOT 'dist\app'
+          $core = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Core\bin\Release\net10.0\MerzoOptimizer.Core.dll'
+          $windows = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Windows\bin\Release\net10.0-windows\MerzoOptimizer.Windows.dll'
+          $helper = Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.ElevatedHelper\bin\Release\net10.0-windows\win-x64\MerzoOptimizer.ElevatedHelper.dll'
+          foreach ($f in @($core,$windows,$helper)) { if (-not (Test-Path $f)) { throw "Clean runtime assembly missing: $f" } }
+          Copy-Item $core (Join-Path $app 'MerzoOptimizer.Core.dll') -Force
+          Copy-Item $windows (Join-Path $app 'MerzoOptimizer.Windows.dll') -Force
+          Copy-Item $helper (Join-Path $app 'MerzoOptimizer.ElevatedHelper.dll') -Force
+          $helperDir = Join-Path $env:SOURCE_ROOT 'dist\helper'
+          if (Test-Path $helperDir) { Copy-Item $helper (Join-Path $helperDir 'MerzoOptimizer.ElevatedHelper.dll') -Force }
+          Write-Host '[OK] Shipping clean .NET 10 runtime assemblies; Obfuscar output is not shipped in R22.'
+
+      - name: Validate runtime assembly metadata
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $smokeDir = Join-Path $env:RUNNER_TEMP 'mwo-metadata-smoke'
+          New-Item -ItemType Directory -Force $smokeDir | Out-Null
+          @'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net10.0-windows</TargetFramework>
+              <ImplicitUsings>enable</ImplicitUsings>
+              <Nullable>enable</Nullable>
+            </PropertyGroup>
+          </Project>
+          '@ | Set-Content (Join-Path $smokeDir 'Smoke.csproj') -Encoding UTF8
+          @'
+          using System.Reflection;
+          if (args.Length == 0) return 2;
+          foreach (var path in args)
+          {
+              var asm = Assembly.LoadFrom(Path.GetFullPath(path));
+              var types = asm.GetTypes();
+              Console.WriteLine($"OK {Path.GetFileName(path)} types={types.Length}");
+          }
+          return 0;
+          '@ | Set-Content (Join-Path $smokeDir 'Program.cs') -Encoding UTF8
+          $app = Join-Path $env:SOURCE_ROOT 'dist\app'
+          dotnet run --project (Join-Path $smokeDir 'Smoke.csproj') -c Release -- `
+            (Join-Path $app 'MerzoOptimizer.Core.dll') `
+            (Join-Path $app 'MerzoOptimizer.Windows.dll') `
+            (Join-Path $app 'MerzoOptimizer.ElevatedHelper.dll')
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime metadata smoke test failed.' }
+
+      - name: Rebuild portable ZIP from runtime-safe payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = Join-Path $env:SOURCE_ROOT 'dist\app'
+          $portable = Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+          if (Test-Path $portable) { Remove-Item $portable -Force }
+          Compress-Archive -Path (Join-Path $app '*') -DestinationPath $portable -CompressionLevel Optimal
+          if (-not (Test-Path $portable)) { throw 'Portable ZIP rebuild failed.' }
 
       - name: Install Inno Setup
         shell: pwsh
@@ -143,7 +203,7 @@ jobs:
           $ErrorActionPreference='Stop'
           Push-Location $env:SOURCE_ROOT
           try {
-            & $env:ISCC '/DMyAppVersion=0.1.21' '.\installer\MerzoWindowsOptimizer.iss'
+            & $env:ISCC '/DMyAppVersion=0.1.22' '.\installer\MerzoWindowsOptimizer.iss'
             if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
             $setup='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe'
             $portable='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip'
@@ -160,12 +220,12 @@ jobs:
       - name: Upload verified CI artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: MerzoWindowsOptimizer-0.1.21-R21
+          name: MerzoWindowsOptimizer-0.1.22-R22
           path: |
-            r21/dist/MerzoWindowsOptimizerSetup-win-x64.exe
-            r21/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
-            r21/dist/MerzoWindowsOptimizer-portable-win-x64.zip
-            r21/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+            r22/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r22/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r22/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r22/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
           if-no-files-found: error
 
       - name: Create or update GitHub Release
@@ -174,11 +234,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
-          $tag='mwo-v0.1.21'
+          $tag='mwo-v0.1.22'
           $dist=Join-Path $env:SOURCE_ROOT 'dist'
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.21 (R21)' --notes 'Production R21: scan-first optimization, LIGHT/STANDARD/MAXIMUM/LITE BUILD profiles, 100-rule detection database, Snapshot/Undo, Startup, Cleanup, Services/Tasks, Power, on-demand UAC helper, GitHub Update Center, self-contained x64 installer and portable build.'
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.22 (R22)' --notes 'R22 startup hotfix: replaces incompatible Obfuscar-generated .NET 10 assemblies with verified clean runtime assemblies, adds a metadata type-load gate before packaging, rebuilds portable payload after validation, and keeps the R21 production feature set unchanged.'
             if ($LASTEXITCODE -ne 0) { throw 'Release creation failed.' }
           }
           gh release upload $tag `
