@@ -1,0 +1,196 @@
+name: Build Merzo Windows Optimizer R21
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - merzo-windows-optimizer
+    paths:
+      - 'optimizer/**'
+      - '.github/workflows/build-merzo-windows-optimizer.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout optimizer branch
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Reconstruct R21 source archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parts = Get-ChildItem 'optimizer/source/MerzoWindowsOptimizer_R21_Source.tar.xz.b64.part*' | Sort-Object Name
+          if ($parts.Count -eq 0) { throw 'R21 source parts were not found' }
+          $b64 = ''
+          foreach ($p in $parts) { $b64 += (Get-Content $p.FullName -Raw) }
+          $bytes = [Convert]::FromBase64String($b64)
+          [IO.File]::WriteAllBytes((Join-Path $PWD 'optimizer-r21.tar.xz'), $bytes)
+          New-Item -ItemType Directory -Force -Path 'optimizer-r21-src' | Out-Null
+          tar -xf 'optimizer-r21.tar.xz' -C 'optimizer-r21-src'
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to extract R21 source archive' }
+          $sln = Get-ChildItem 'optimizer-r21-src' -Recurse -Filter '*.sln' | Select-Object -First 1
+          if (-not $sln) { throw 'Solution file was not found after extraction' }
+          "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
+          "SOLUTION=$($sln.FullName)" >> $env:GITHUB_ENV
+          Write-Host "Source root: $($sln.Directory.FullName)"
+          Get-ChildItem $sln.Directory.FullName | Select-Object Name
+
+      - name: Restore and build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet restore "$env:SOLUTION"
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet restore failed' }
+          dotnet build "$env:SOLUTION" -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed' }
+
+      - name: Run SelfTest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $selftest = Get-ChildItem $env:SOURCE_ROOT -Recurse -Filter 'MerzoOptimizer.SelfTest.csproj' | Select-Object -First 1
+          if (-not $selftest) { throw 'SelfTest project was not found' }
+          dotnet run --project $selftest.FullName -c Release --no-build
+          if ($LASTEXITCODE -ne 0) { throw 'SelfTest failed' }
+
+      - name: Publish self-contained win-x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $app = Get-ChildItem $env:SOURCE_ROOT -Recurse -Filter 'MerzoOptimizer.App.csproj' | Select-Object -First 1
+          $helper = Get-ChildItem $env:SOURCE_ROOT -Recurse -Filter 'MerzoOptimizer.ElevatedHelper.csproj' | Select-Object -First 1
+          if (-not $app) { throw 'App project was not found' }
+          if (-not $helper) { throw 'ElevatedHelper project was not found' }
+          New-Item -ItemType Directory -Force -Path 'dist/app','dist/helper' | Out-Null
+          dotnet publish $app.FullName -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false -o 'dist/app'
+          if ($LASTEXITCODE -ne 0) { throw 'App publish failed' }
+          dotnet publish $helper.FullName -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -p:DebugType=None -p:DebugSymbols=false -o 'dist/helper'
+          if ($LASTEXITCODE -ne 0) { throw 'ElevatedHelper publish failed' }
+          Copy-Item 'dist/helper/*' 'dist/app/' -Recurse -Force
+          $exe = Get-ChildItem 'dist/app' -Filter 'MerzoWindowsOptimizer.exe' | Select-Object -First 1
+          if (-not $exe) { throw 'MerzoWindowsOptimizer.exe was not produced' }
+
+      - name: Create portable ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Compress-Archive -Path 'dist/app/*' -DestinationPath 'dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip' -Force
+          (Get-FileHash 'dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip' -Algorithm SHA256).Hash.ToLowerInvariant() + '  MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip' | Set-Content 'dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip.sha256' -Encoding ascii
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
+          $iscc = @(
+            'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
+            'C:\Program Files\Inno Setup 6\ISCC.exe'
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            $found = Get-ChildItem 'C:\Program Files*' -Recurse -Filter ISCC.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($found) { $iscc = $found.FullName }
+          }
+          if (-not $iscc) { throw 'ISCC.exe was not found' }
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+
+      - name: Build full installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $icon = Get-ChildItem $env:SOURCE_ROOT -Recurse -Filter '*.ico' | Select-Object -First 1
+          $iconLine = ''
+          if ($icon) { $iconLine = "SetupIconFile=$($icon.FullName)" }
+          $iss = @"
+          [Setup]
+          AppId={{7F90D754-973E-47AC-95F3-MERZOWINOPT21}
+          AppName=Merzo Windows Optimizer
+          AppVersion=0.1.21
+          AppPublisher=Merzo4
+          DefaultDirName={autopf}\Merzo Windows Optimizer
+          DefaultGroupName=Merzo Windows Optimizer
+          UninstallDisplayName=Merzo Windows Optimizer
+          OutputDir=dist
+          OutputBaseFilename=MerzoWindowsOptimizerSetup_0.1.21_win-x64
+          Compression=lzma2/ultra64
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          PrivilegesRequired=admin
+          WizardStyle=modern
+          DisableProgramGroupPage=yes
+          $iconLine
+
+          [Languages]
+          Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+
+          [Tasks]
+          Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Дополнительные ярлыки:"; Flags: unchecked
+
+          [Files]
+          Source: "dist\app\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\Merzo Windows Optimizer"; Filename: "{app}\MerzoWindowsOptimizer.exe"
+          Name: "{autodesktop}\Merzo Windows Optimizer"; Filename: "{app}\MerzoWindowsOptimizer.exe"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\MerzoWindowsOptimizer.exe"; Description: "Запустить Merzo Windows Optimizer"; Flags: nowait postinstall skipifsilent
+
+          [Code]
+          procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+          begin
+            if CurUninstallStep = usPostUninstall then
+            begin
+              if MsgBox('Удалить также snapshots, logs и backups Merzo Windows Optimizer из профиля пользователя?', mbConfirmation, MB_YESNO) = IDYES then
+                DelTree(ExpandConstant('{localappdata}\MerzoWindowsOptimizer'), True, True, True);
+            end;
+          end;
+          "@
+          $iss | Set-Content 'MerzoWindowsOptimizer.iss' -Encoding UTF8
+          & "$env:ISCC" 'MerzoWindowsOptimizer.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup build failed' }
+          $setup = 'dist/MerzoWindowsOptimizerSetup_0.1.21_win-x64.exe'
+          if (-not (Test-Path $setup)) { throw 'Installer was not created' }
+          (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant() + '  MerzoWindowsOptimizerSetup_0.1.21_win-x64.exe' | Set-Content "$setup.sha256" -Encoding ascii
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.21
+          path: |
+            dist/MerzoWindowsOptimizerSetup_0.1.21_win-x64.exe
+            dist/MerzoWindowsOptimizerSetup_0.1.21_win-x64.exe.sha256
+            dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip
+            dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = 'mwo-v0.1.21'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.21 (R21)' --notes 'Первый production-релиз Merzo Windows Optimizer: self-contained Windows x64, installer, uninstall, shortcuts, portable build, Snapshot/Undo и UAC по запросу.'
+            if ($LASTEXITCODE -ne 0) { throw 'Unable to create GitHub Release' }
+          }
+          gh release upload $tag `
+            'dist/MerzoWindowsOptimizerSetup_0.1.21_win-x64.exe' `
+            'dist/MerzoWindowsOptimizerSetup_0.1.21_win-x64.exe.sha256' `
+            'dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip' `
+            'dist/MerzoWindowsOptimizer_0.1.21_portable_win-x64.zip.sha256' `
+            --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to upload release assets' }
