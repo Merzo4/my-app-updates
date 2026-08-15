@@ -1,3 +1,4 @@
+# R24 updater workflow refresh after robust XAML patch
 name: Merzo Windows Optimizer Production R24
 
 on:
@@ -72,7 +73,6 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $env:SOURCE_ROOT = $env:SOURCE_ROOT
           python optimizer/patches/r24_update_center.py
           if ($LASTEXITCODE -ne 0) { throw 'R24 updater patch failed.' }
 
