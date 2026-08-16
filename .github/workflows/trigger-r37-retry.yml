@@ -17,4 +17,4 @@ jobs:
         env:
           GH_TOKEN: '${{ github.token }}'
         run: gh workflow run build-mwo-r37-operation-network.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
-      - run: echo "R37 retry 3 - sidebar compatibility template"
+      - run: echo "R37 retry 4 - Power tab anchor disambiguated"
