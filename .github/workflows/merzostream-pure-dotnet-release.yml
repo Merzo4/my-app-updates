@@ -2,21 +2,13 @@ name: MerzoStream Pure .NET 0.1.0a Release
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'merzostream/ci/r17-zip/**'
-      - '.github/workflows/merzostream-pure-dotnet-release.yml'
 
 permissions:
   contents: write
 
-concurrency:
-  group: merzostream-pure-dotnet-release
-  cancel-in-progress: false
-
 env:
   VERSION: 0.1.0a
+  SOURCE_SHA256: d79b349825d817680477a1af849c4508efd3f1e6baf818c774239f1db11ef42e
 
 jobs:
   build-release:
@@ -25,49 +17,33 @@ jobs:
       - name: Checkout source chunks
         uses: actions/checkout@v4
 
-      - name: Reconstruct R17 source payload
+      - name: Reconstruct and verify R17 source payload
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $chunkDir = Join-Path $env:GITHUB_WORKSPACE 'merzostream\ci\r17-zip'
-          $parts = 0..15 | ForEach-Object { Join-Path $chunkDir ('part{0:D2}.b64' -f $_) }
+          $parts = 0..17 | ForEach-Object { Join-Path $chunkDir ('part{0:D2}.b64' -f $_) }
           foreach ($part in $parts) {
             if (-not (Test-Path $part)) { throw "Missing source chunk: $part" }
           }
           $b64 = ($parts | ForEach-Object { (Get-Content -LiteralPath $_ -Raw).Trim() }) -join ''
-          $zip = Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_R17_SOURCE.partial.zip'
+          $zip = Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_R17_SOURCE.zip'
           [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b64))
-          Write-Host "Reconstructed payload bytes: $((Get-Item $zip).Length)"
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "Source bytes: $((Get-Item $zip).Length)"
+          Write-Host "Source SHA256: $actual"
+          if ($actual -ne $env:SOURCE_SHA256) { throw "R17 source SHA mismatch: $actual" }
 
           $src = Join-Path $env:RUNNER_TEMP 'merzostream-source'
           if (Test-Path $src) { Remove-Item $src -Recurse -Force }
-          New-Item -ItemType Directory -Force $src | Out-Null
-
-          $seven = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
-          if (-not $seven) { $seven = 'C:\Program Files\7-Zip\7z.exe' }
-          if (-not (Test-Path $seven)) { throw '7-Zip not found on runner' }
-
-          # The source file data is complete in chunks 00..15; only the ZIP directory tail
-          # follows them. 7-Zip can recover entries from local headers, so extraction errors
-          # caused solely by the missing directory tail are ignored and the payload itself is
-          # validated below by mandatory files + static selftest.
-          & $seven x $zip "-o$src" -y | Out-Host
-          $extractCode = $LASTEXITCODE
-          Write-Host "7-Zip recovery exit code: $extractCode"
-
+          Expand-Archive -LiteralPath $zip -DestinationPath $src -Force
           $builder = Get-ChildItem $src -Recurse -Filter '06_BUILD_RUNTIME_RELEASE.ps1' -File | Select-Object -First 1
-          if (-not $builder) { throw 'Builder missing after R17 source recovery' }
+          if (-not $builder) { throw 'Builder missing after R17 source extraction' }
           $root = $builder.Directory.FullName
-          foreach ($required in @(
-            'SELFTEST_PURE_DOTNET_STATIC.ps1',
-            'MerzoStream.NetHost.sln',
-            'src\MerzoStream.Host\MerzoStream.Host.csproj',
-            'RELEASE_NOTES_0.1.0a.md'
-          )) {
+          foreach ($required in @('SELFTEST_PURE_DOTNET_STATIC.ps1','MerzoStream.NetHost.sln','src\MerzoStream.Host\MerzoStream.Host.csproj','RELEASE_NOTES_0.1.0a.md')) {
             if (-not (Test-Path (Join-Path $root $required))) { throw "Recovered source missing: $required" }
           }
           "MERZO_SRC=$root" >> $env:GITHUB_ENV
-          Write-Host "Recovered source root: $root"
 
       - name: Setup .NET 10 SDK
         uses: actions/setup-dotnet@v4
@@ -77,14 +53,12 @@ jobs:
       - name: Pure .NET static selftest
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           & "$env:MERZO_SRC\SELFTEST_PURE_DOTNET_STATIC.ps1" -Root $env:MERZO_SRC
           if ($LASTEXITCODE -ne 0) { throw 'Static selftest failed' }
 
       - name: Build self-contained runtime
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           & "$env:MERZO_SRC\06_BUILD_RUNTIME_RELEASE.ps1" -Version $env:VERSION -Runtime 'win-x64'
           if ($LASTEXITCODE -ne 0) { throw 'Runtime build failed' }
           $zip = "$env:MERZO_SRC\artifacts\runtime-release\MerzoStreamSuite-runtime-win-x64-$env:VERSION.zip"
@@ -113,13 +87,6 @@ jobs:
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
             gh release create $tag --repo $env:GITHUB_REPOSITORY --title "MerzoStream Suite $env:VERSION - PURE .NET cumulative" --notes-file $notes
-            if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
-          } else {
-            gh release edit $tag --repo $env:GITHUB_REPOSITORY --latest --title "MerzoStream Suite $env:VERSION - PURE .NET cumulative" --notes-file $notes
-            if ($LASTEXITCODE -ne 0) { throw 'Release edit failed' }
           }
           gh release upload $tag "$env:RUNTIME_ZIP" "$env:RUNTIME_SHA" --repo $env:GITHUB_REPOSITORY --clobber
-          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
           gh release edit $tag --repo $env:GITHUB_REPOSITORY --latest
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to mark release latest' }
-          Write-Host "MerzoStream $tag published."
