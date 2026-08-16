@@ -1,0 +1,19 @@
+name: Trigger R35 latest source
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/trigger-r35-latest.yml']
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch R35 production workflow on latest branch head
+        env:
+          GH_TOKEN: '${{ github.token }}'
+        run: gh workflow run build-mwo-r35-readability-ui.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
