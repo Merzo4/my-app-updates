@@ -10,7 +10,7 @@ jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch R31 production workflow
+      - name: Dispatch final R31 production workflow
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run build-mwo-r31-audit-memory.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
