@@ -16,4 +16,6 @@ jobs:
       - name: Dispatch R28 production workflow on latest branch
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run build-mwo-r28-big-ux.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
+        run: |
+          echo "Dispatching R28 after UX compatibility pass 2"
+          gh workflow run build-mwo-r28-big-ux.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
