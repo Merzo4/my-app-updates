@@ -1,0 +1,199 @@
+name: Merzo Windows Optimizer R32 PERFORMANCE ENGINE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/build-mwo-r32-performance.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          if($parts.Count-ne 29){throw 'Source parts missing'}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('r32.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r32.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force r32|Out-Null
+          tar -xf r32.tar.xz -C r32
+          $sln=Get-ChildItem r32 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          "SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
+
+      - name: Apply cumulative R24-R32 patches
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py')){
+            python (Join-Path 'optimizer/patches' $p)
+            if($LASTEXITCODE-ne 0){throw "Patch failed: $p"}
+          }
+          $self=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$ss=Get-Content $self -Raw
+          $ss=[regex]::Replace($ss,'Merzo Windows Optimizer — PRODUCTION R\d+[^"\r\n]*SelfTest','Merzo Windows Optimizer — PRODUCTION R32 PERFORMANCE SelfTest')
+          $ss=$ss.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R32 PERFORMANCE SelfTest')
+          Set-Content $self $ss -Encoding UTF8
+
+      - name: Branded icon
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          @'
+          from PIL import Image,ImageDraw
+          from pathlib import Path
+          import os
+          o=Path(os.environ['SOURCE_ROOT'])/'assets'/'MerzoWindowsOptimizer.ico';o.parent.mkdir(parents=True,exist_ok=True)
+          im=Image.new('RGBA',(256,256),(10,16,22,255));d=ImageDraw.Draw(im);t=(83,216,197,255);w=(238,247,247,255);p=(19,30,40,255)
+          d.rounded_rectangle((12,12,244,244),radius=52,fill=p,outline=t,width=10);d.ellipse((42,42,214,214),outline=(47,94,98,255),width=5)
+          d.line((62,176,62,91,104,142,128,105,152,142,194,91,194,176),fill=w,width=16)
+          d.polygon([(143,45),(117,104),(143,104),(126,154),(188,84),(156,84),(176,45)],fill=t)
+          im.save(o,format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          '@|Set-Content icon.py -Encoding UTF8
+          python icon.py
+
+      - name: Build 0.1.32 and SelfTest
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT
+          try { & .\build\Build-Production.ps1 -Version '0.1.32'; if($LASTEXITCODE-ne 0){throw 'Build failed'} }
+          finally { Pop-Location }
+
+      - name: Verify R32 product gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$root=$env:SOURCE_ROOT;$app=Join-Path $root 'dist\app'
+          $exe=Join-Path $app 'MerzoWindowsOptimizer.exe';$dll=Join-Path $app 'MerzoWindowsOptimizer.dll';$deps=Join-Path $app 'MerzoWindowsOptimizer.deps.json'
+          $fv=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe);$an=[Reflection.AssemblyName]::GetAssemblyName($dll);$dep=Get-Content $deps -Raw
+          Write-Host "EXE=$($fv.FileVersion) Product=$($fv.ProductVersion) DLL=$($an.Version)"
+          if(-not$fv.FileVersion.StartsWith('0.1.32')){throw 'EXE version gate failed'}
+          if($an.Version.ToString()-ne'0.1.32.0'){throw 'Main DLL version gate failed'}
+          if(-not$dep.Contains('MerzoWindowsOptimizer/0.1.32')-or$dep.Contains('MerzoWindowsOptimizer/0.1.21')){throw 'deps gate failed'}
+          foreach($name in @('MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
+            $p=Join-Path $app $name;if(-not(Test-Path $p)){throw "Missing $name"}
+            $v=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString();Write-Host "$name=$v";if($v-ne'0.1.32.0'){throw "$name version gate failed: $v"}
+          }
+
+          $x=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
+          foreach($t in @('Production R32','v0.1.32','IsStartupUpdateNoticeVisible','PerformanceProcessSummaryText','OpenUpdatesFromNotice_Click','ДОСТУПНО ОБНОВЛЕНИЕ')){if(-not$x.Contains($t)){throw "R32 UI gate failed: $t"}}
+          $xcs=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml.cs') -Raw
+          if(-not$xcs.Contains('OpenUpdatesFromNotice_Click')){throw 'Update toast click handler missing'}
+          $vm=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') -Raw
+          foreach($t in @('IsStartupUpdateNoticeVisible','StartupUpdateNoticeText','StartupUpdateNoticeDetailText','DismissStartupUpdateNoticeCommand','PerformanceDeltaText','PerformanceProcessSummaryText','r32_new','UpdateProgressInfo','PowerRefreshTimerOnTick')){if(-not$vm.Contains($t)){throw "R32 VM gate failed: $t"}}
+          $model=Get-Content (Join-Path $root 'src\MerzoOptimizer.Core\Models\SystemAuditSnapshot.cs') -Raw
+          foreach($t in @('PerformanceAdvisor','WorkingSetHuman','PerformanceAdvice','IsLikelyBackgroundCandidate','PerformanceClass')){if(-not$model.Contains($t)){throw "Process advisor gate failed: $t"}}
+          $scanner=Get-Content (Join-Path $root 'src\MerzoOptimizer.Windows\SystemInfo\ProcessScanner.cs') -Raw
+          if(-not$scanner.Contains('topCount = 30')){throw 'TOP-30 process scan gate failed'}
+
+          $tw=Get-Content (Join-Path $root 'data\tweaks.json') -Raw|ConvertFrom-Json
+          $sv=Get-Content (Join-Path $root 'data\service_rules.json') -Raw|ConvertFrom-Json
+          $tr=Get-Content (Join-Path $root 'data\task_rules.json') -Raw|ConvertFrom-Json
+          if($tw.Count-lt180){throw "Expected >=180 tweaks, got $($tw.Count)"};if($sv.Count-lt29){throw "Expected >=29 service rules, got $($sv.Count)"};if($tr.Count-lt18){throw "Expected >=18 task rules, got $($tr.Count)"}
+          $ids=@('performance.disable_startup_delay','performance.disable_power_throttling','background.force_deny_windows_apps','background.disable_cross_device_experiences','background.disable_setting_sync','explorer.disable_search_box_suggestions','edge.disable_new_tab_prerender','browser.chrome.disable_background_mode','interface.disable_transparency')
+          foreach($id in $ids){$r=$tw|?{$_.id-eq$id};if(-not$r){throw "Missing R32 tweak: $id"};if(-not($r.profile_tags -contains 'r32_new')){throw "Missing r32_new tag: $id"}}
+          $sep=$tw|?{$_.id-eq'explorer.separate_process'};if(-not$sep){throw 'explorer.separate_process missing'}
+          if(($sep.profile_tags -contains 'maximum')-or($sep.profile_tags -contains 'lite_build')){throw 'Explorer separate-process regression: must not be in MAXIMUM/LITE'}
+          foreach($n in @('WSearch','SysMain','BthAvctpSvc','WwanSvc','TapiSrv','RasAuto','RemoteAccess','PrintNotify')){if(-not($sv|?{$_.service_name-eq$n})){throw "Missing R32 service advisor: $n"}}
+          foreach($pat in @('UpdateOrchestrator','Windows Defender','SettingSync','PushToInstall')){if(-not(($tr|ConvertTo-Json -Depth 8).Contains($pat))){throw "Missing R32 task advisor marker: $pat"}}
+
+          $settings=Get-Content (Join-Path $root 'data\update_settings.json') -Raw|ConvertFrom-Json
+          if(-not$settings.auto_check -or $settings.auto_download -or $settings.auto_install){throw 'Update confirmation policy regressed'}
+          if(-not$settings.installer_silent_args.StartsWith('/SILENT ')){throw 'Visible installer policy regressed'}
+          $appcs=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\App.xaml.cs') -Raw
+          foreach($t in @('StartupSplashWindow','await _viewModel.InitializeAsync()','MerzoWindowsOptimizer.SingleInstance')){if(-not$appcs.Contains($t)){throw "Startup protection regressed: $t"}}
+          if(-not(Test-Path (Join-Path $root 'src\MerzoOptimizer.App\Operations\MerzoOperationGuard.cs'))){throw 'Operation Guard regressed'}
+          $notes=Get-Content (Join-Path $root 'data\release_notes.json') -Raw|ConvertFrom-Json
+          if($notes.version-ne'0.1.32'){throw 'Release notes version gate failed'}
+          $self=Get-Content (Join-Path $root 'src\MerzoOptimizer.SelfTest\Program.cs') -Raw
+          if(-not$self.Contains('PRODUCTION R32 PERFORMANCE SelfTest')){throw 'SelfTest branding gate failed'}
+          if(-not$self.Contains('Auto-install    : live OTA installer')){throw 'SelfTest OTA status gate failed'}
+
+      - name: App startup smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe'
+          $p=Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru
+          Start-Sleep -Seconds 12
+          if($p.HasExited){throw "Application exited during startup smoke. ExitCode=$($p.ExitCode)"}
+          Stop-Process -Id $p.Id -Force
+          Write-Host 'Application remained alive through R32 startup smoke.'
+
+      - name: Rebuild portable
+        shell: pwsh
+        run: |
+          $a=Join-Path $env:SOURCE_ROOT 'dist\app';$z=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+          if(Test-Path $z){Remove-Item $z -Force};Compress-Archive -Path (Join-Path $a '*') -DestinationPath $z -CompressionLevel Optimal
+
+      - name: Build installer and hashes
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y;if($LASTEXITCODE-ne 0){throw 'Inno install failed'}
+          $iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe')|?{Test-Path $_}|select -First 1;if(-not$iscc){throw 'ISCC missing'}
+          Push-Location $env:SOURCE_ROOT
+          try {
+            &$iscc '/DMyAppVersion=0.1.32' '.\installer\MerzoWindowsOptimizer.iss';if($LASTEXITCODE-ne 0){throw 'Installer failed'}
+            $e='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe';$z='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+            $eh=(Get-FileHash $e -Algorithm SHA256).Hash.ToLowerInvariant();$zh=(Get-FileHash $z -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$eh  MerzoWindowsOptimizerSetup-win-x64.exe"|Set-Content "$e.sha256" -Encoding ascii
+            "$zh  MerzoWindowsOptimizer-portable-win-x64.zip"|Set-Content "$z.sha256" -Encoding ascii
+            Write-Host "R32_INSTALLER_SHA256=$eh"
+          } finally { Pop-Location }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.32-R32-PERFORMANCE-ENGINE
+          path: |
+            r32/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r32/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r32/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r32/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+
+      - name: Publish mwo-v0.1.32
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          $tag='mwo-v0.1.32';$d=Join-Path $env:SOURCE_ROOT dist
+          $notes=@'
+          ДОБАВЛЕНО
+          • Performance Engine: аудит TOP-30 процессов с человеческой оценкой нагрузки и рекомендацией, что именно является системным, пользовательским или кандидатом на разгрузку.
+          • Кнопка «Подготовить разгрузку» формирует безопасный Background-профиль вместо слепого завершения процессов.
+          • Performance Baseline: после повторного аудита показывается разница по числу процессов и использованию RAM — было → стало.
+          • Постоянное уведомление об обновлении после запуска: когда фоновая проверка находит новую версию, в правом верхнем углу остаётся карточка «ДОСТУПНО ОБНОВЛЕНИЕ» с версией, описанием, кнопкой перехода в Update Center и ручным закрытием.
+          • Новые настройки фоновых приложений, Cross-device, Setting Sync, Windows Search suggestions, Edge new-tab prerender, Chrome background mode и визуальных эффектов.
+          • Каталог расширен до 180 твиков; Services Advisor — до 29 правил; Scheduled Tasks Advisor — до 18 правил.
+          • Добавлены защитные scan-only правила против вредных «твиков»: не отключать Defender, Windows Update, IPv6, pagefile, HPET/timers и не применять сомнительные TCP gaming hacks автоматически.
+
+          ИЗМЕНЕНО
+          • MAXIMUM и LITE BUILD теперь сильнее ориентированы на снижение реальной фоновой нагрузки, а не на количество галочек.
+          • explorer.separate_process убран из MAXIMUM/LITE BUILD: отдельный процесс Проводника повышает число процессов и расход памяти, поэтому оставлен ручным выбором.
+          • Edge Startup Boost и background mode включены в Performance/Background-профили.
+          • System Search и SysMain не выключаются вслепую — сохранены как условные/защитные рекомендации.
+          • Все новые оптимизации остаются обратимыми через существующий Snapshot/Undo там, где правило применяемое.
+
+          ИСПРАВЛЕНО
+          • Пользователь теперь видит причину фоновой нагрузки и источник, который лучше отключить, вместо бессмысленного «убить процесс».
+          • Уведомление о найденном обновлении больше не должно исчезать незаметно: оно остаётся в интерфейсе до перехода в Update Center или ручного закрытия.
+          • Сохранены Persistent Audit R31, Smart Re-Audit, Update Center 4.0, Startup Splash, live Power Center, Operation Guard, single-instance и многозадачность.
+          '@
+          if(gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null){gh release delete $tag --repo $env:GITHUB_REPOSITORY -y --cleanup-tag}
+          gh release create $tag (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe') (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256') (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip') (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256') --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.32 (R32 PERFORMANCE ENGINE)' --notes $notes
+          if($LASTEXITCODE-ne 0){throw 'Release publish failed'}
