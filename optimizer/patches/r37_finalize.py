@@ -5,12 +5,26 @@ root=Path(os.environ['SOURCE_ROOT'])
 def read(p): return p.read_text(encoding='utf-8-sig')
 def write(p,s): p.write_text(s,encoding='utf-8')
 
+# Complete the System.Windows.MessageBox compatibility surface used by the
+# existing application.  Some older call sites pass an owner Window and others
+# pass a default result; both must stay source-compatible after redirecting to
+# the themed MerzoDialog.
+dialog=root/'src'/'MerzoOptimizer.App'/'MerzoDialog.cs'
+if dialog.exists():
+    ds=read(dialog)
+    anchor='    public static MessageBoxResult Show(string message, string caption, MessageBoxButton buttons, MessageBoxImage icon)\n    {'
+    if anchor not in ds:
+        raise SystemExit('R37 finalize: MerzoDialog 4-arg anchor missing')
+    if 'Show(Window owner, string message' not in ds:
+        overloads='''    public static MessageBoxResult Show(Window owner, string message, string caption, MessageBoxButton buttons, MessageBoxImage icon) =>\n        Show(message, caption, buttons, icon);\n\n    public static MessageBoxResult Show(string message, string caption, MessageBoxButton buttons, MessageBoxImage icon, MessageBoxResult defaultResult) =>\n        Show(message, caption, buttons, icon);\n\n    public static MessageBoxResult Show(Window owner, string message, string caption, MessageBoxButton buttons, MessageBoxImage icon, MessageBoxResult defaultResult) =>\n        Show(message, caption, buttons, icon);\n\n'''
+        ds=ds.replace(anchor,overloads+anchor,1)
+        write(dialog,ds)
+
 # Version labels and all assemblies.
 for p in [root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml', root/'src'/'MerzoOptimizer.App'/'App.xaml.cs', root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs']:
     s=read(p)
     s=s.replace('Production R36','Production R37').replace('v0.1.36','v0.1.37').replace('0.1.36 / Production R36','0.1.37 / Production R37')
     s=s.replace('MerzoDiagnostics-R36-','MerzoDiagnostics-R37-').replace('[Crash][R36]','[Crash][R37]').replace('[Merzo R36]','[Merzo R37]')
-    # Splash fallback literal.
     s=s.replace('"0.1.36" : pendingVersion','"0.1.37" : pendingVersion')
     write(p,s)
 
