@@ -1,0 +1,225 @@
+name: Merzo Windows Optimizer R37 OPERATION NETWORK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/build-mwo-r37-operation-network.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          if($parts.Count-ne29){throw 'Source parts missing'}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('r37.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r37.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force r37|Out-Null;tar -xf r37.tar.xz -C r37
+          $sln=Get-ChildItem r37 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          "SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
+
+      - name: Apply cumulative R24-R37 patches
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py')){
+            python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed: $p"}
+          }
+          $self=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$ss=Get-Content $self -Raw
+          $ss=[regex]::Replace($ss,'Merzo Windows Optimizer — PRODUCTION R\d+[^"\r\n]*SelfTest','Merzo Windows Optimizer — PRODUCTION R37 OPERATION NETWORK SelfTest')
+          $ss=$ss.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R37 OPERATION NETWORK SelfTest')
+          Set-Content $self $ss -Encoding UTF8
+
+      - name: Branded icon
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          @'
+          from PIL import Image,ImageDraw
+          from pathlib import Path
+          import os
+          o=Path(os.environ['SOURCE_ROOT'])/'assets'/'MerzoWindowsOptimizer.ico';o.parent.mkdir(parents=True,exist_ok=True)
+          im=Image.new('RGBA',(256,256),(10,16,22,255));d=ImageDraw.Draw(im);t=(62,155,145,255);w=(238,247,247,255);p=(19,30,40,255)
+          d.rounded_rectangle((12,12,244,244),radius=52,fill=p,outline=t,width=10);d.ellipse((42,42,214,214),outline=(47,94,98,255),width=5)
+          d.line((62,176,62,91,104,142,128,105,152,142,194,91,194,176),fill=w,width=16)
+          d.polygon([(143,45),(117,104),(143,104),(126,154),(188,84),(156,84),(176,45)],fill=t)
+          im.save(o,format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          '@|Set-Content icon.py -Encoding UTF8
+          python icon.py
+
+      - name: Build 0.1.37 without obfuscation
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT
+          try { & .\build\Build-Production.ps1 -Version '0.1.37' -SkipObfuscation; if($LASTEXITCODE-ne0){throw 'Build failed'} }
+          finally { Pop-Location }
+
+      - name: Verify R37 operation network and regression gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$root=$env:SOURCE_ROOT;$dist=Join-Path $root 'dist\app'
+          foreach($name in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
+            $p=Join-Path $dist $name;if(-not(Test-Path $p)){throw "Missing $name"}
+            $v=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString();Write-Host "$name=$v";if($v-ne'0.1.37.0'){throw "$name version gate failed: $v"}
+          }
+          $exe=Join-Path $dist 'MerzoWindowsOptimizer.exe';$fv=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+          if(-not$fv.FileVersion.StartsWith('0.1.37')){throw "EXE version gate failed: $($fv.FileVersion)"}
+
+          $app=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\App.xaml') -Raw
+          foreach($t in @('#3E9B91','#1E504C','Value="13"','UseLayoutRounding','SnapsToDevicePixels')){if(-not$app.Contains($t)){throw "R37 style regression: $t"}}
+          $x=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
+          foreach($t in @('Production R37','v0.1.37','Центр выполнения','Snapshot → Apply → Verify → Log → Undo','Repair / Network','NetworkStatusText','Восстановить сеть Windows','NetworkOperationSteps','Gaming / Developer — готовые наборы','ДОСТУПНО ОБНОВЛЕНИЕ')){if(-not$x.Contains($t)){throw "R37 UI gate failed: $t"}}
+
+          $dialog=Join-Path $root 'src\MerzoOptimizer.App\MerzoDialog.cs';if(-not(Test-Path $dialog)){throw 'MerzoDialog missing'}
+          $d=Get-Content $dialog -Raw;foreach($t in @('#0E151C','#1E504C','ПОДТВЕРЖДЕНИЕ','Понятно')){if(-not$d.Contains($t)){throw "MerzoDialog gate: $t"}}
+          $native=Get-ChildItem (Join-Path $root 'src\MerzoOptimizer.App') -Recurse -Filter *.cs|?{$_.Name-ne'MerzoDialog.cs'}|Select-String -Pattern 'MessageBox.Show\('
+          if($native){$native|%{Write-Host $_};throw 'Native white MessageBox.Show survived in App source'}
+
+          $vm=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') -Raw
+          foreach($t in @('SelectedOptimizationTabIndex = 3','DiagnoseNetworkCommand','RepairNetworkCommand','NetworkRepairResult','MerzoDiagnostics-R37','process_safe','process_aggressive','process_lite')){if(-not$vm.Contains($t)){throw "R37 VM/regression gate: $t"}}
+          $elev=Get-Content (Join-Path $root 'src\MerzoOptimizer.Core\Elevation\ElevationModels.cs') -Raw
+          foreach($t in @('NetworkRepair','NetworkAction')){if(-not$elev.Contains($t)){throw "R37 elevation gate: $t"}}
+          $helper=Get-Content (Join-Path $root 'src\MerzoOptimizer.ElevatedHelper\Program.cs') -Raw
+          foreach($t in @('flush_dns','renew_dhcp','reset_winsock','reset_tcpip','Network repair action is not allow-listed')){if(-not$helper.Contains($t)){throw "R37 helper allowlist gate: $t"}}
+          foreach($bad in @('ms_tcpip6','autotuninglevel=disabled','set global rss=disabled','delete profile name=','bcdedit /set useplatformclock')){if(($x+$vm+$helper).ToLowerInvariant().Contains($bad)){throw "Forbidden network folklore/destructive token: $bad"}}
+
+          $tweaks=(Get-Content (Join-Path $root 'data\tweaks.json') -Raw|ConvertFrom-Json);if($tweaks.Count-ne187){throw "Tweak catalog regression: $($tweaks.Count)"}
+          $services=(Get-Content (Join-Path $root 'data\service_rules.json') -Raw|ConvertFrom-Json);if($services.Count-ne39){throw "Service rules regression: $($services.Count)"}
+          $tasks=(Get-Content (Join-Path $root 'data\task_rules.json') -Raw|ConvertFrom-Json);if($tasks.Count-ne24){throw "Task rules regression: $($tasks.Count)"}
+          $settings=Get-Content (Join-Path $root 'data\update_settings.json') -Raw|ConvertFrom-Json
+          if(-not$settings.auto_check -or $settings.auto_download -or $settings.auto_install){throw 'Update confirmation policy regressed'}
+          $notes=Get-Content (Join-Path $root 'data\release_notes.json') -Raw|ConvertFrom-Json;if($notes.version-ne'0.1.37'){throw 'Release notes version gate failed'}
+          if(-not(Test-Path (Join-Path $root 'R37_OPERATION_NETWORK.marker'))){throw 'R37 marker missing'}
+          Write-Host 'R37 operation/network/regression gates: PASS'
+
+      - name: Dispatcher runtime smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$smoke=Join-Path $env:RUNNER_TEMP 'merzo-r37-dispatcher-smoke'
+          if(Test-Path $smoke){Remove-Item $smoke -Recurse -Force};New-Item -ItemType Directory $smoke|Out-Null
+          $core=Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Core.dll';$coreXml=[Security.SecurityElement]::Escape($core)
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><Reference Include="MerzoOptimizer.Core"><HintPath>$coreXml</HintPath><Private>true</Private></Reference></ItemGroup></Project>
+          "@|Set-Content (Join-Path $smoke 'Smoke.csproj') -Encoding UTF8
+          @'
+          using MerzoOptimizer.Core.Dispatching;
+          using var dispatcher = new AsyncOperationDispatcher(2);
+          var value = await dispatcher.RunAsync("generic-smoke", _ => Task.FromResult(37));
+          if(value != 37) throw new Exception("Generic dispatcher failed");
+          await dispatcher.RunAsync("void-smoke", _ => Task.CompletedTask);
+          Console.WriteLine("R37_DISPATCHER_SMOKE: PASS");
+          '@|Set-Content (Join-Path $smoke 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $smoke 'Smoke.csproj') -c Release
+          if($LASTEXITCODE-ne0){throw 'Dispatcher runtime smoke failed'}
+
+      - name: Network diagnostics runtime smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$smoke=Join-Path $env:RUNNER_TEMP 'merzo-r37-network-smoke'
+          if(Test-Path $smoke){Remove-Item $smoke -Recurse -Force};New-Item -ItemType Directory $smoke|Out-Null
+          $core=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Core.dll'))
+          $win=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Windows.dll'))
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><Reference Include="MerzoOptimizer.Core"><HintPath>$core</HintPath><Private>true</Private></Reference><Reference Include="MerzoOptimizer.Windows"><HintPath>$win</HintPath><Private>true</Private></Reference></ItemGroup></Project>
+          "@|Set-Content (Join-Path $smoke 'Smoke.csproj') -Encoding UTF8
+          @'
+          using MerzoOptimizer.Windows.Elevation;
+          using MerzoOptimizer.Windows.Network;
+          var temp=Path.Combine(Path.GetTempPath(),"merzo-r37-net-smoke");Directory.CreateDirectory(temp);
+          await using var broker=new ElevatedOperationBroker(temp,temp,temp);
+          var svc=new WindowsNetworkRepairService(broker);
+          var snap=await svc.DiagnoseAsync();
+          Console.WriteLine($"R37_NETWORK_SMOKE: PASS available={snap.NetworkAvailable} adapter={snap.AdapterName}");
+          '@|Set-Content (Join-Path $smoke 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $smoke 'Smoke.csproj') -c Release
+          if($LASTEXITCODE-ne0){throw 'Network diagnostics runtime smoke failed'}
+
+      - name: App startup smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$exe=Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe'
+          $p=Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru;Start-Sleep -Seconds 14
+          if($p.HasExited){throw "Application exited during startup smoke. ExitCode=$($p.ExitCode)"}
+          Stop-Process -Id $p.Id -Force;Write-Host 'Application remained alive through R37 startup smoke.'
+
+      - name: Rebuild portable
+        shell: pwsh
+        run: |
+          $a=Join-Path $env:SOURCE_ROOT 'dist\app';$z=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+          if(Test-Path $z){Remove-Item $z -Force};Compress-Archive -Path (Join-Path $a '*') -DestinationPath $z -CompressionLevel Optimal
+
+      - name: Build installer and hashes
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y;if($LASTEXITCODE-ne0){throw 'Inno install failed'}
+          $iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe')|?{Test-Path $_}|select -First 1;if(-not$iscc){throw 'ISCC missing'}
+          Push-Location $env:SOURCE_ROOT
+          try {
+            &$iscc '/DMyAppVersion=0.1.37' '.\installer\MerzoWindowsOptimizer.iss';if($LASTEXITCODE-ne0){throw 'Installer failed'}
+            $e='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe';$z='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+            $eh=(Get-FileHash $e -Algorithm SHA256).Hash.ToLowerInvariant();$zh=(Get-FileHash $z -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$eh  MerzoWindowsOptimizerSetup-win-x64.exe"|Set-Content "$e.sha256" -Encoding ascii
+            "$zh  MerzoWindowsOptimizer-portable-win-x64.zip"|Set-Content "$z.sha256" -Encoding ascii
+            Write-Host "R37_INSTALLER_SHA256=$eh";Write-Host "R37_PORTABLE_SHA256=$zh"
+          } finally { Pop-Location }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.37-R37-OPERATION-NETWORK
+          path: |
+            r37/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r37/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r37/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r37/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+
+      - name: Publish mwo-v0.1.37
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          $tag='mwo-v0.1.37';$d=Join-Path $env:SOURCE_ROOT dist
+          $notes=@'
+          ДОБАВЛЕНО
+          • Unified Merzo Dialogs: тёмные фирменные подтверждения, результаты, предупреждения и ошибки вместо белых системных окон Windows.
+          • Operation Center: крупный живой прогресс, текущая стадия, список фактических шагов и цепочка Snapshot → Apply → Verify → Log → Undo.
+          • Repair / Network: активный адаптер, IPv4, шлюз, DNS, DHCP, скорость, тест шлюза и DNS lookup.
+          • Безопасные repair-действия через allow-listed UAC-helper: Flush DNS, Renew DHCP, Winsock reset, TCP/IP reset и комплексное восстановление.
+
+          ИЗМЕНЕНО
+          • После применения выбранного набора Merzo сразу открывает «Ход работы» — операция больше не проходит визуально в пустоте.
+          • Итоги профилей, очистки, Undo/Restore, питания, обновлений и crash reporter приведены к единому стилю приложения.
+          • Заглушка Repair / Network в левом меню заменена полноценной рабочей страницей.
+
+          БЕЗОПАСНОСТЬ
+          • Сетевой центр не отключает IPv6, не трогает MTU/TCP autotuning, не использует HPET/ping-мифы и не удаляет Wi-Fi/VPN профили или пароли.
+          • Сетевые изменения выполняются только после действия пользователя; Winsock/TCP-IP reset предупреждает о рекомендуемой перезагрузке.
+          • Сохранены R36/R34 функции: 187 твиков, Process Reduction SAFE/AGGRESSIVE/LITE-LIKE, Feedback/Crash, Persistent Audit, Smart Re-Audit, Update Center 4.0, Power LIVE и Snapshot/Undo.
+          • Production всё ещё без Obfuscar; generic async dispatcher проверяется отдельным runtime-smoke.
+          '@
+          gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes 2>$null
+          git push origin ":refs/tags/$tag" 2>$null
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.37 (R37 OPERATION CENTER & NETWORK REPAIR)' --notes $notes `
+            (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe') `
+            (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256') `
+            (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip') `
+            (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256')
