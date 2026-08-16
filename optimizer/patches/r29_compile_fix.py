@@ -58,7 +58,17 @@ if marker not in s:
     s = s.replace(insert_anchor, direct + insert_anchor, 1)
     path.write_text(s, encoding='utf-8')
 
+# MerzoOperationGuard uses explicit file-system APIs. The WPF app project does not
+# import System.IO implicitly in generated temporary builds, so make it explicit.
+guard = root / 'src' / 'MerzoOptimizer.App' / 'Operations' / 'MerzoOperationGuard.cs'
+g = guard.read_text(encoding='utf-8-sig')
+if 'using System.IO;' not in g:
+    g = 'using System.IO;\n' + g
+guard.write_text(g, encoding='utf-8')
+
 final = path.read_text(encoding='utf-8')
 if marker not in final:
     raise SystemExit('R29 CleanWithoutBackupAsync definition still missing')
-print('R29 optional-backup compile fix: OK')
+if 'using System.IO;' not in guard.read_text(encoding='utf-8'):
+    raise SystemExit('R29 operation guard System.IO import missing')
+print('R29 compile fixes: OK')
