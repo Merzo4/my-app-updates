@@ -1,0 +1,58 @@
+name: Merzo Windows Optimizer R26 Installed Upgrade Acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/test-mwo-r26-installed-upgrade.yml']
+
+permissions: { contents: read }
+
+jobs:
+  upgrade-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download R25 and R26 installers
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          New-Item -ItemType Directory -Force installers|Out-Null
+          gh release download mwo-v0.1.25 --repo $env:GITHUB_REPOSITORY --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe' --dir installers/r25
+          gh release download mwo-v0.1.26 --repo $env:GITHUB_REPOSITORY --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe' --dir installers/r26
+          if(-not(Test-Path 'installers/r25/MerzoWindowsOptimizerSetup-win-x64.exe')){throw 'R25 installer missing'}
+          if(-not(Test-Path 'installers/r26/MerzoWindowsOptimizerSetup-win-x64.exe')){throw 'R26 installer missing'}
+
+      - name: Install R25 baseline and confirm legacy app identity
+        shell: pwsh
+        run: |
+          $p=Start-Process 'installers/r25/MerzoWindowsOptimizerSetup-win-x64.exe' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -PassThru -Wait
+          if($p.ExitCode-ne 0){throw "R25 installer exit $($p.ExitCode)"}
+          $exe=Get-ChildItem $env:ProgramFiles -Directory -Filter 'Merzo*' -ErrorAction SilentlyContinue | ForEach-Object {Get-ChildItem $_.FullName -Recurse -Filter 'MerzoWindowsOptimizer.exe' -ErrorAction SilentlyContinue} | Select-Object -First 1
+          if(-not$exe){throw 'Installed R25 executable not found'}
+          $v=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName).FileVersion
+          Write-Host "R25 package installed executable: $($exe.FullName) FileVersion=$v"
+          if(-not$v.StartsWith('0.1.21')){throw "Expected reproduction of legacy 0.1.21 identity, got $v"}
+          "INSTALLED_EXE=$($exe.FullName)">>$env:GITHUB_ENV
+
+      - name: Upgrade in place to R26 and require automatic relaunch
+        shell: pwsh
+        run: |
+          $p=Start-Process 'installers/r26/MerzoWindowsOptimizerSetup-win-x64.exe' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-' -PassThru -Wait
+          if($p.ExitCode-ne 0){throw "R26 installer exit $($p.ExitCode)"}
+          Start-Sleep -Seconds 5
+          if(-not(Test-Path $env:INSTALLED_EXE)){throw 'Installed executable disappeared after upgrade'}
+          $v=[Diagnostics.FileVersionInfo]::GetVersionInfo($env:INSTALLED_EXE).FileVersion
+          Write-Host "R26 upgraded executable FileVersion=$v"
+          if(-not$v.StartsWith('0.1.26')){throw "Upgrade did not replace app: $v"}
+          $proc=Get-Process -Name 'MerzoWindowsOptimizer' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not$proc){throw 'R26 installer completed but application was not relaunched'}
+          Write-Host "AUTO-RELAUNCH PASS pid=$($proc.Id)"
+          Stop-Process -Id $proc.Id -Force
+
+      - name: Acceptance result
+        shell: pwsh
+        run: |
+          Write-Host 'R26 INSTALLED UPGRADE ACCEPTANCE: PASS'
+          Write-Host 'R25 package (internal 0.1.21) -> R26 0.1.26 in-place replacement -> automatic app relaunch confirmed.'
