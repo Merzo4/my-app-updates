@@ -25,26 +25,16 @@ jobs:
           $env:SOURCE_ROOT=$sln.Directory.FullName
           "SOURCE_ROOT=$env:SOURCE_ROOT">>$env:GITHUB_ENV
           foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py')){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne 0){throw "Patch failed $p"}}
-      - name: Print R34 anchors
+      - name: Print exact anchors
         shell: pwsh
         run: |
           [Console]::OutputEncoding=[Text.Encoding]::UTF8
           $root=$env:SOURCE_ROOT
+          function Around($file,$pattern,$before=25,$after=120){$a=Get-Content $file;$m=Select-String -Path $file -Pattern $pattern|Select-Object -First 1;if($m){$s=[Math]::Max(0,$m.LineNumber-1-$before);$e=[Math]::Min($a.Count-1,$m.LineNumber-1+$after);Write-Host "===== $file :: $pattern lines $($s+1)-$($e+1) =====";for($i=$s;$i-le$e;$i++){Write-Host (("{0:D5}: " -f ($i+1))+$a[$i])}}}
           $vm=Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs'
-          $x=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'
-          function Around($file,$pattern,$before=20,$after=90){$a=Get-Content $file;$m=Select-String -Path $file -Pattern $pattern|Select-Object -First 1;if($m){$s=[Math]::Max(0,$m.LineNumber-1-$before);$e=[Math]::Min($a.Count-1,$m.LineNumber-1+$after);Write-Host "===== $pattern lines $($s+1)-$($e+1) =====";for($i=$s;$i-le$e;$i++){Write-Host (("{0:D5}: " -f ($i+1))+$a[$i])}}}
-          Around $vm 'SelectBackgroundProfileCommand' 30 120
-          Around $vm 'ApplyProfileAsync' 30 130
-          Around $vm 'ApplySnapshot' 20 120
-          Around $vm 'PerformanceProcessSummaryText =' 20 80
-          Around $x 'LIGHT' 25 180
-          @'
-          import json,os,pathlib,sys
-          sys.stdout.reconfigure(encoding='utf-8')
-          r=pathlib.Path(os.environ['SOURCE_ROOT'])
-          for f in ['data/tweaks.json','data/service_rules.json','data/task_rules.json']:
-              o=json.loads((r/f).read_text(encoding='utf-8-sig'))
-              print('===== SCHEMA',f,'COUNT',len(o),'=====')
-              for item in o[-2:]: print(json.dumps(item,ensure_ascii=False,indent=2))
-          '@ | Set-Content inspect_schema.py -Encoding UTF8
-          $env:PYTHONIOENCODING='utf-8'; python inspect_schema.py
+          Around $vm 'private async Task SelectProfileAsync' 20 140
+          Around $vm 'private void ApplySnapshot' 20 140
+          $app=Join-Path $root 'src\MerzoOptimizer.App\App.xaml.cs'
+          Write-Host '===== APP.XAML.CS =====';Get-Content $app|%{Write-Host $_}
+          $code=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml.cs'
+          Around $code 'OpenOptimization_Click' 20 80
