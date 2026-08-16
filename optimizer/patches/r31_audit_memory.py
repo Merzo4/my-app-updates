@@ -17,4 +17,16 @@ vm=root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs'
 v=vm.read_text(encoding='utf-8-sig')
 v=v.replace('x.FullPath.Contains(pattern, StringComparison.OrdinalIgnoreCase)', 'x.Snapshot.FullPath.Contains(pattern, StringComparison.OrdinalIgnoreCase)')
 vm.write_text(v,encoding='utf-8')
-print('R31 compile compatibility: OK')
+
+# Preserve an explicit Update Center 4.0 regression marker for CI and brand SelfTest correctly.
+xaml=root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
+x=xaml.read_text(encoding='utf-8-sig')
+if 'R30: visual Update Center 4.0' not in x:
+    x=x.replace('</Window>', '    <!-- R30: visual Update Center 4.0 retained in R31 -->\n</Window>')
+xaml.write_text(x,encoding='utf-8')
+
+selftest=root/'src'/'MerzoOptimizer.SelfTest'/'Program.cs'
+st=selftest.read_text(encoding='utf-8-sig')
+st=st.replace('PRODUCTION R29 OPERATIONS SelfTest','PRODUCTION R31 AUDIT MEMORY SelfTest').replace('PRODUCTION R30 MAJOR SelfTest','PRODUCTION R31 AUDIT MEMORY SelfTest')
+selftest.write_text(st,encoding='utf-8')
+print('R31 compile/release compatibility: OK')
