@@ -34,21 +34,25 @@ jobs:
           [Console]::OutputEncoding=[Text.Encoding]::UTF8
           Write-Host '=== MESSAGEBOX REFERENCES ==='
           Get-ChildItem $env:SOURCE_ROOT\src -Recurse -Include *.cs | Select-String -Pattern 'MessageBox.Show|MessageBoxResult|MessageBoxButton|MessageBoxImage' | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
+          Write-Host '=== MAINWINDOW CODE BEHIND NAV / DIALOGS ==='
+          $mw=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml.cs';$mwa=Get-Content $mw
+          foreach($pattern in @('GamingDev_Click','Power_Click','Updates_Click','Restore_Click','Logs_Click','Cleanup_Click','MessageBox.Show','MainTabs.SelectedIndex')){
+            $hits=Select-String -Path $mw -Pattern $pattern -SimpleMatch|Select-Object -First 20
+            foreach($hit in $hits){Write-Host "===== MW $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-16);$e=[Math]::Min($mwa.Count-1,$hit.LineNumber+40);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$mwa[$i])}}
+          }
           Write-Host '=== OPERATION/PROFILE METHODS ==='
           $vm=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs';$a=Get-Content $vm
-          foreach($pattern in @('ApplySelected','ApplyProfile','RunProfile','Stage2Progress','Stage2StatusText','OperationStep','Show','MessageBox')){
+          foreach($pattern in @('ApplySelectedAsync','Stage2Steps','UpdateOperationSteps','UndoLastAsync','MessageBox.Show')){
             $hits=Select-String -Path $vm -Pattern $pattern -SimpleMatch|Select-Object -First 20
-            foreach($hit in $hits){Write-Host "===== $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-18);$e=[Math]::Min($a.Count-1,$hit.LineNumber+35);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$a[$i])}}
+            foreach($hit in $hits){Write-Host "===== VM $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-24);$e=[Math]::Min($a.Count-1,$hit.LineNumber+75);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$a[$i])}}
           }
-          Write-Host '=== MAINWINDOW NETWORK/GAMING/UPDATE TAB ANCHORS ==='
+          Write-Host '=== MAINWINDOW XAML HOD RABOTY / SIDEBAR / TABS ==='
           $x=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml';$xa=Get-Content $x
-          foreach($pattern in @('Repair / Network','Gaming / Developer','Обновления','TabItem','SelectedIndex')){
+          foreach($pattern in @('Repair / Network','Ход работы','Stage2ProgressPercent','Stage2Steps','Gaming / Developer','TabItem Header="Power"','TabItem Header="Updates"')){
             $hits=Select-String -Path $x -Pattern $pattern -SimpleMatch|Select-Object -First 20
-            foreach($hit in $hits){Write-Host "===== XAML $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-15);$e=[Math]::Min($xa.Count-1,$hit.LineNumber+45);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$xa[$i])}}
+            foreach($hit in $hits){Write-Host "===== XAML $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-22);$e=[Math]::Min($xa.Count-1,$hit.LineNumber+85);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$xa[$i])}}
           }
-          Write-Host '=== APP STARTUP / SERVICES ==='
-          $app=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\App.xaml.cs';$aa=Get-Content $app
-          foreach($pattern in @('MainWindowViewModel','new MainWindow','InitializeAsync','IUpdateService')){
-            $hits=Select-String -Path $app -Pattern $pattern -SimpleMatch|Select-Object -First 12
-            foreach($hit in $hits){Write-Host "===== APP $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-20);$e=[Math]::Min($aa.Count-1,$hit.LineNumber+35);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$aa[$i])}}
-          }
+          Write-Host '=== ELEVATED HELPER ==='
+          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.ElevatedHelper') -Recurse -Include *.cs | ForEach-Object { Write-Host "===== HELPER $($_.FullName) ====="; Get-Content $_.FullName | Select-Object -First 350 }
+          Write-Host '=== CORE/WINDOWS ELEVATION REFERENCES ==='
+          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src') -Recurse -Include *.cs | Select-String -Pattern 'ElevatedHelper|runas|ProcessStartInfo|helper.exe' | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
