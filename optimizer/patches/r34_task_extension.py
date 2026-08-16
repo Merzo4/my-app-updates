@@ -29,5 +29,9 @@ if xaml.exists():
     if placeholder in s and marker not in s:
         template='<!-- R37_NETWORK_NAV_TEMPLATE <RadioButton x:Name="GamingDevNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="GamingDev_Click" Content="Gaming / Developer"/> -->\n                    '
         s=s.replace(placeholder,template+placeholder,1)
-        xaml.write_text(s,encoding='utf-8')
+    # r37_network_center searches for the first exact Text="Питание" and uses
+    # it to locate the Power TabItem. The sidebar label appears earlier, so keep
+    # its visible text identical while making its XAML literal unambiguous.
+    s=s.replace('Text="Питание"','Text="Питание "',1)
+    xaml.write_text(s,encoding='utf-8')
 print('R34 task extension OK tasks=',len(tasks))
