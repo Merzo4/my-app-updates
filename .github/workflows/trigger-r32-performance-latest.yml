@@ -1,0 +1,16 @@
+name: Trigger R32 performance latest
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/trigger-r32-performance-latest.yml']
+permissions:
+  contents: read
+  actions: write
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch R32 production workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build-mwo-r32-performance.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
