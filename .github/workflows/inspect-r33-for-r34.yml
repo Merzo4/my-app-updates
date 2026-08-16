@@ -28,24 +28,23 @@ jobs:
       - name: Print R34 anchors
         shell: pwsh
         run: |
+          [Console]::OutputEncoding=[Text.Encoding]::UTF8
           $root=$env:SOURCE_ROOT
           $vm=Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs'
           $x=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'
-          $model=Join-Path $root 'src\MerzoOptimizer.Core\Models\SystemAuditSnapshot.cs'
-          $scan=Join-Path $root 'src\MerzoOptimizer.Windows\SystemInfo\ProcessScanner.cs'
-          function Around($file,$pattern,$before=18,$after=45){$a=Get-Content $file;$m=Select-String -Path $file -Pattern $pattern|Select-Object -First 1;if($m){$s=[Math]::Max(0,$m.LineNumber-1-$before);$e=[Math]::Min($a.Count-1,$m.LineNumber-1+$after);Write-Host "===== $file :: $pattern lines $($s+1)-$($e+1) =====";for($i=$s;$i-le$e;$i++){Write-Host (("{0:D5}: " -f ($i+1))+$a[$i])}}}
-          Around $vm 'PerformanceProcessSummaryText' 30 90
-          Around $vm 'PreparePerformance' 30 100
-          Around $vm 'InitializeAsync' 20 90
-          Around $x 'PerformanceProcessSummaryText' 45 120
-          Around $model 'PerformanceAdvisor' 30 80
-          Around $scan 'topCount = 30' 40 120
+          function Around($file,$pattern,$before=20,$after=90){$a=Get-Content $file;$m=Select-String -Path $file -Pattern $pattern|Select-Object -First 1;if($m){$s=[Math]::Max(0,$m.LineNumber-1-$before);$e=[Math]::Min($a.Count-1,$m.LineNumber-1+$after);Write-Host "===== $pattern lines $($s+1)-$($e+1) =====";for($i=$s;$i-le$e;$i++){Write-Host (("{0:D5}: " -f ($i+1))+$a[$i])}}}
+          Around $vm 'SelectBackgroundProfileCommand' 30 120
+          Around $vm 'ApplyProfileAsync' 30 130
+          Around $vm 'ApplySnapshot' 20 120
+          Around $vm 'PerformanceProcessSummaryText =' 20 80
+          Around $x 'LIGHT' 25 180
           @'
-          import json,os,pathlib
+          import json,os,pathlib,sys
+          sys.stdout.reconfigure(encoding='utf-8')
           r=pathlib.Path(os.environ['SOURCE_ROOT'])
           for f in ['data/tweaks.json','data/service_rules.json','data/task_rules.json']:
               o=json.loads((r/f).read_text(encoding='utf-8-sig'))
               print('===== SCHEMA',f,'COUNT',len(o),'=====')
-              for item in o[-3:]: print(json.dumps(item,ensure_ascii=False,indent=2))
+              for item in o[-2:]: print(json.dumps(item,ensure_ascii=False,indent=2))
           '@ | Set-Content inspect_schema.py -Encoding UTF8
-          python inspect_schema.py
+          $env:PYTHONIOENCODING='utf-8'; python inspect_schema.py
