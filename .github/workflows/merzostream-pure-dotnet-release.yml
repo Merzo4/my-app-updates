@@ -3,10 +3,9 @@ name: MerzoStream Pure .NET 0.1.0a Release
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
-      - 'merzostream/ci/MerzoStreamSuite_R17_SOURCE.zip'
+      - 'merzostream/ci/r17-source/**'
       - '.github/workflows/merzostream-pure-dotnet-release.yml'
 
 permissions:
@@ -18,26 +17,71 @@ concurrency:
 
 env:
   VERSION: 0.1.0a
-  SOURCE_ZIP: merzostream/ci/MerzoStreamSuite_R17_SOURCE.zip
 
 jobs:
   build-release:
     runs-on: windows-latest
-
     steps:
-      - name: Checkout update repository
+      - name: Checkout full source history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Expand MerzoStream source package
+      - name: Reconstruct R17 source package
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $src = Join-Path $env:RUNNER_TEMP 'merzostream-source'
-          if (Test-Path $src) { Remove-Item -Recurse -Force $src }
-          New-Item -ItemType Directory -Force -Path $src | Out-Null
-          Expand-Archive -LiteralPath $env:SOURCE_ZIP -DestinationPath $src -Force
-          "MERZO_SRC=$src" >> $env:GITHUB_ENV
-          Write-Host "Source: $src"
+          $chunkDir = Join-Path $env:GITHUB_WORKSPACE 'merzostream\ci\r17-source'
+          $oldCommit = '8543eb3db06b5b7ca26559d34c81cc74e293c149'
+          $oldPart0 = (& git show "$oldCommit`:merzostream/ci/r17-source/part00.b64") -join ''
+          if (-not $oldPart0.StartsWith('/Td6WFo')) { throw 'Historical R17 chunk 00 is invalid' }
+
+          $seven = (Get-Command 7z.exe -ErrorAction SilentlyContinue).Source
+          if (-not $seven) { $seven = 'C:\Program Files\7-Zip\7z.exe' }
+          if (-not (Test-Path $seven)) { throw '7-Zip not found on runner' }
+
+          $candidates = @(
+            @('part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06a.b64','part06b.b64'),
+            @('part01.b64','part02.b64','part03.b64','part04.b64','part05.b64','part06.b64')
+          )
+          $resolved = $null
+          $attempt = 0
+          foreach ($tail in $candidates) {
+            $attempt++
+            try {
+              $b64 = $oldPart0
+              foreach ($name in $tail) {
+                $path = Join-Path $chunkDir $name
+                if (-not (Test-Path $path)) { throw "Missing chunk $name" }
+                $b64 += (Get-Content -LiteralPath $path -Raw).Trim()
+              }
+              $packed = Join-Path $env:RUNNER_TEMP "r17-$attempt.xz"
+              [IO.File]::WriteAllBytes($packed, [Convert]::FromBase64String($b64))
+
+              $layer1 = Join-Path $env:RUNNER_TEMP "r17-layer1-$attempt"
+              $layer2 = Join-Path $env:RUNNER_TEMP "r17-layer2-$attempt"
+              New-Item -ItemType Directory -Force $layer1,$layer2 | Out-Null
+              & $seven x $packed "-o$layer1" -y | Out-Host
+              if ($LASTEXITCODE -ne 0) { throw 'XZ extraction failed' }
+              $payload = Get-ChildItem $layer1 -Recurse -File | Select-Object -First 1
+              if (-not $payload) { throw 'XZ payload missing' }
+              & $seven x $payload.FullName "-o$layer2" -y | Out-Host
+              if ($LASTEXITCODE -ne 0) { throw 'Inner archive extraction failed' }
+
+              $builder = Get-ChildItem $layer2 -Recurse -Filter '06_BUILD_RUNTIME_RELEASE.ps1' -File | Select-Object -First 1
+              if (-not $builder) { throw 'R17 builder not found after extraction' }
+              $root = $builder.Directory.FullName
+              if (-not (Test-Path (Join-Path $root 'SELFTEST_PURE_DOTNET_STATIC.ps1'))) { throw 'Static selftest missing' }
+              if (-not (Test-Path (Join-Path $root 'installer\MerzoStreamPureDotNet.iss'))) { throw 'Pure .NET installer missing' }
+              $resolved = $root
+              break
+            } catch {
+              Write-Warning "Candidate $attempt failed: $($_.Exception.Message)"
+            }
+          }
+          if (-not $resolved) { throw 'Unable to reconstruct R17 source from repository chunks' }
+          "MERZO_SRC=$resolved" >> $env:GITHUB_ENV
+          Write-Host "R17 source: $resolved"
 
       - name: Setup .NET 10 SDK
         uses: actions/setup-dotnet@v4
@@ -57,7 +101,6 @@ jobs:
           $ErrorActionPreference = 'Stop'
           & "$env:MERZO_SRC\06_BUILD_RUNTIME_RELEASE.ps1" -Version $env:VERSION -Runtime 'win-x64'
           if ($LASTEXITCODE -ne 0) { throw 'Runtime build failed' }
-
           $zip = "$env:MERZO_SRC\artifacts\runtime-release\MerzoStreamSuite-runtime-win-x64-$env:VERSION.zip"
           $sha = "$env:MERZO_SRC\artifacts\runtime-release\MerzoStreamSuite-runtime-win-x64-$env:VERSION.sha256"
           if (-not (Test-Path $zip)) { throw "Runtime ZIP missing: $zip" }
@@ -76,22 +119,21 @@ jobs:
           $p = Start-Process -FilePath $setup -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/PORTABLE=1',"/DIR=$dir") -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Inno Setup install failed: $($p.ExitCode)" }
           $iscc = Get-ChildItem $dir -Recurse -Filter ISCC.exe | Select-Object -First 1
-          if ($null -eq $iscc) { throw 'ISCC.exe not found' }
+          if (-not $iscc) { throw 'ISCC.exe not found' }
           "ISCC=$($iscc.FullName)" >> $env:GITHUB_ENV
 
-      - name: Build Windows installer
+      - name: Build Pure .NET Windows installer
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $iss = "$env:MERZO_SRC\installer\MerzoStreamSetup.iss"
-          & "$env:ISCC" "/DMyVersion=$env:VERSION" $iss
+          $iss = "$env:MERZO_SRC\installer\MerzoStreamPureDotNet.iss"
+          & "$env:ISCC" $iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup compile failed' }
-
           $exe = "$env:MERZO_SRC\installer\output\MerzoStreamSuite-Setup-$env:VERSION.exe"
           if (-not (Test-Path $exe)) { throw "Installer missing: $exe" }
           $shaFile = "$env:MERZO_SRC\installer\output\MerzoStreamSuite-Setup-$env:VERSION.sha256"
-          $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $(Split-Path -Leaf $exe)" | Set-Content -Encoding ASCII $shaFile
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  MerzoStreamSuite-Setup-$env:VERSION.exe" | Set-Content $shaFile -Encoding ascii
           "INSTALLER_EXE=$exe" >> $env:GITHUB_ENV
           "INSTALLER_SHA=$shaFile" >> $env:GITHUB_ENV
 
@@ -105,40 +147,19 @@ jobs:
             ${{ env.INSTALLER_EXE }}
             ${{ env.INSTALLER_SHA }}
 
-      - name: Publish versioned MerzoStream Release
+      - name: Publish v0.1.0a
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $tag = "v$env:VERSION"
-          $notes = "$env:MERZO_SRC\PURE_DOTNET_CUTOVER_R17_CHANGELOG.txt"
-
+          $notes = "$env:MERZO_SRC\RELEASE_NOTES_0.1.0a.md"
+          if (-not (Test-Path $notes)) { $notes = "$env:MERZO_SRC\PURE_DOTNET_CUTOVER_R17_CHANGELOG.txt" }
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -ne 0) {
-            gh release create $tag `
-              --repo $env:GITHUB_REPOSITORY `
-              --prerelease `
-              --title "MerzoStream Suite $env:VERSION - Pure .NET cumulative update" `
-              --notes-file $notes
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --title "MerzoStream Suite $env:VERSION — PURE .NET cumulative" --notes-file $notes
             if ($LASTEXITCODE -ne 0) { throw 'Release creation failed' }
-          } else {
-            gh release edit $tag `
-              --repo $env:GITHUB_REPOSITORY `
-              --prerelease `
-              --title "MerzoStream Suite $env:VERSION - Pure .NET cumulative update" `
-              --notes-file $notes
-            if ($LASTEXITCODE -ne 0) { throw 'Release edit failed' }
           }
-
-          gh release upload $tag `
-            "$env:RUNTIME_ZIP" `
-            "$env:RUNTIME_SHA" `
-            "$env:INSTALLER_EXE" `
-            "$env:INSTALLER_SHA" `
-            "$notes" `
-            --repo $env:GITHUB_REPOSITORY `
-            --clobber
+          gh release upload $tag "$env:RUNTIME_ZIP" "$env:RUNTIME_SHA" "$env:INSTALLER_EXE" "$env:INSTALLER_SHA" --repo $env:GITHUB_REPOSITORY --clobber
           if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
-
-          Write-Host "MerzoStream $tag published."
