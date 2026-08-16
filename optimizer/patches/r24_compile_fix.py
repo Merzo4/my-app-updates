@@ -1,6 +1,13 @@
 from pathlib import Path
-import os,re
+import os,re,runpy
 root=Path(os.environ['SOURCE_ROOT'])
+
+# Build-meta compatibility: when a newer cumulative patch ships a small
+# self-rewrite helper, run it before that patch is executed later in the same
+# workflow. This keeps older trusted-source compatibility scripts reusable.
+r28_meta=Path('optimizer/patches/r28_patch_compat.py')
+if r28_meta.exists():
+    runpy.run_path(str(r28_meta), run_name='__main__')
 
 # R23 uses native WindowChrome. Remove the stale XAML event hook as well as the old method.
 xaml=root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
