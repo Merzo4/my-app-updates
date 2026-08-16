@@ -1,0 +1,19 @@
+name: Trigger R28 BIG UX latest branch
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/trigger-r28-big-ux-latest.yml']
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch R28 production workflow on latest branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build-mwo-r28-big-ux.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
