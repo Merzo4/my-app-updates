@@ -26,6 +26,24 @@ def ensure_dword(tid, name, category, risk, admin, restart, description, effect,
     for item in tweaks:
         for action in item.get('registry_actions') or []:
             if action_key(action) == target:
+                # R34/R32 already knew several of these registry targets as
+                # legacy/custom-build markers. R38 promotes those legacy cards
+                # into real reversible settings instead of creating duplicate
+                # actions. This also corrects the old SystemResponsiveness=0
+                # marker to an effective experimental value of 10.
+                action['value_type'] = 'DWord'
+                action['integer_value'] = value
+                if str(item.get('id', '')).startswith('legacy.'):
+                    item['id'] = tid
+                    item['name'] = name
+                    item['category'] = category
+                    item['risk'] = risk
+                    item['requires_admin'] = admin
+                    item['requires_restart'] = restart
+                    item['scan_only'] = False
+                    item['description'] = description
+                    item['expected_effect'] = effect
+                    item.pop('registry_states', None)
                 add_tags(item, tags)
                 return item.get('id', tid), False
     item = {
@@ -82,17 +100,18 @@ for spec in [
     if was_added:
         added.append(tid)
 
-# Build nested Gaming presets from the already reviewed catalog. These only
-# select settings for review; the existing Snapshot -> Apply -> Verify -> Undo
-# pipeline remains responsible for mutations.
+# Build nested Gaming presets from the already reviewed catalog. SAFE only gets
+# Safe Gaming cards. Balanced Gaming entries start at PERFORMANCE or higher.
 for item in tweaks:
     if item.get('scan_only'):
         continue
     risk = str(item.get('risk', '')).lower()
     category = str(item.get('category', ''))
     tags = item.setdefault('profile_tags', [])
-    if category == 'Gaming':
+    if category == 'Gaming' and risk == 'safe':
         add_tags(item, ['gaming_safe', 'gaming_performance', 'gaming_extreme', 'gaming_lab'])
+    elif category == 'Gaming' and risk == 'balanced' and 'gaming_lab' not in tags and 'gaming_extreme' not in tags:
+        add_tags(item, ['gaming_performance', 'gaming_extreme', 'gaming_lab'])
     if 'performance' in tags and risk in {'safe', 'balanced'}:
         add_tags(item, ['gaming_performance', 'gaming_extreme', 'gaming_lab'])
     if 'process_safe' in tags:
@@ -102,9 +121,11 @@ for item in tweaks:
     if 'process_aggressive' in tags:
         add_tags(item, ['gaming_extreme', 'gaming_lab'])
 
-# Ensure strict nesting even if future catalog entries are added out of order.
+# Remove accidental SAFE tag from non-Safe entries, then ensure strict nesting.
 for item in tweaks:
     tags = item.setdefault('profile_tags', [])
+    if str(item.get('risk', '')).lower() != 'safe' and 'gaming_safe' in tags:
+        tags.remove('gaming_safe')
     if 'gaming_safe' in tags:
         add_tags(item, ['gaming_performance', 'gaming_extreme', 'gaming_lab'])
     if 'gaming_performance' in tags:
@@ -114,4 +135,5 @@ for item in tweaks:
 
 p.write_text(json.dumps(tweaks, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 counts = {tag: sum(1 for x in tweaks if not x.get('scan_only') and tag in (x.get('profile_tags') or [])) for tag in ['gaming_safe','gaming_performance','gaming_extreme','gaming_lab']}
-print('R38 gaming catalog: OK', 'added=', len(added), 'total=', len(tweaks), counts)
+ids = [x.get('id') for x in tweaks if str(x.get('id','')).startswith('r38.')]
+print('R38 gaming catalog: OK', 'added=', len(added), 'total=', len(tweaks), counts, 'r38_ids=', ids)
