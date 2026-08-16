@@ -28,31 +28,17 @@ jobs:
           $env:SOURCE_ROOT=$sln.Directory.FullName
           "SOURCE_ROOT=$env:SOURCE_ROOT">>$env:GITHUB_ENV
           foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py')){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
-      - name: Print R37 anchors
+      - name: Print helper and UI anchors only
         shell: pwsh
         run: |
           [Console]::OutputEncoding=[Text.Encoding]::UTF8
-          Write-Host '=== MESSAGEBOX REFERENCES ==='
-          Get-ChildItem $env:SOURCE_ROOT\src -Recurse -Include *.cs | Select-String -Pattern 'MessageBox.Show|MessageBoxResult|MessageBoxButton|MessageBoxImage' | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
-          Write-Host '=== MAINWINDOW CODE BEHIND NAV / DIALOGS ==='
-          $mw=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml.cs';$mwa=Get-Content $mw
-          foreach($pattern in @('GamingDev_Click','Power_Click','Updates_Click','Restore_Click','Logs_Click','Cleanup_Click','MessageBox.Show','MainTabs.SelectedIndex')){
-            $hits=Select-String -Path $mw -Pattern $pattern -SimpleMatch|Select-Object -First 20
-            foreach($hit in $hits){Write-Host "===== MW $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-16);$e=[Math]::Min($mwa.Count-1,$hit.LineNumber+40);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$mwa[$i])}}
-          }
-          Write-Host '=== OPERATION/PROFILE METHODS ==='
-          $vm=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs';$a=Get-Content $vm
-          foreach($pattern in @('ApplySelectedAsync','Stage2Steps','UpdateOperationSteps','UndoLastAsync','MessageBox.Show')){
-            $hits=Select-String -Path $vm -Pattern $pattern -SimpleMatch|Select-Object -First 20
-            foreach($hit in $hits){Write-Host "===== VM $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-24);$e=[Math]::Min($a.Count-1,$hit.LineNumber+75);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$a[$i])}}
-          }
-          Write-Host '=== MAINWINDOW XAML HOD RABOTY / SIDEBAR / TABS ==='
-          $x=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml';$xa=Get-Content $x
-          foreach($pattern in @('Repair / Network','Ход работы','Stage2ProgressPercent','Stage2Steps','Gaming / Developer','TabItem Header="Power"','TabItem Header="Updates"')){
-            $hits=Select-String -Path $x -Pattern $pattern -SimpleMatch|Select-Object -First 20
-            foreach($hit in $hits){Write-Host "===== XAML $pattern @ $($hit.LineNumber) =====";$s=[Math]::Max(0,$hit.LineNumber-22);$e=[Math]::Min($xa.Count-1,$hit.LineNumber+85);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$xa[$i])}}
-          }
-          Write-Host '=== ELEVATED HELPER ==='
-          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.ElevatedHelper') -Recurse -Include *.cs | ForEach-Object { Write-Host "===== HELPER $($_.FullName) ====="; Get-Content $_.FullName | Select-Object -First 350 }
-          Write-Host '=== CORE/WINDOWS ELEVATION REFERENCES ==='
-          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src') -Recurse -Include *.cs | Select-String -Pattern 'ElevatedHelper|runas|ProcessStartInfo|helper.exe' | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
+          Write-Host '=== HELPER FILES ==='
+          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.ElevatedHelper') -Recurse -Include *.cs | ForEach-Object { Write-Host "===== $($_.Name) ====="; Get-Content $_.FullName }
+          Write-Host '=== HELPER CLIENT REFERENCES ==='
+          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src') -Recurse -Include *.cs | Select-String -Pattern 'ElevatedHelper|ProcessStartInfo|Verb = "runas"|Verb="runas"' | Select-Object -First 80 | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f (Split-Path $_.Path -Leaf),$_.LineNumber,$_.Line.Trim()) }
+          Write-Host '=== MAINWINDOW NAV HANDLERS ==='
+          $mw=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml.cs';Select-String -Path $mw -Pattern 'MainTabs.SelectedIndex|private void .*_Click' | ForEach-Object {Write-Host ("{0}: {1}" -f $_.LineNumber,$_.Line.Trim())}
+          Write-Host '=== APPLY METHOD 680-880 ==='
+          $vm=Get-Content (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs');for($i=679;$i-lt[math]::Min(880,$vm.Count);$i++){Write-Host (("{0:D05}: " -f ($i+1))+$vm[$i])}
+          Write-Host '=== HOD RABOTY XAML ==='
+          $x=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml';$xa=Get-Content $x;$hit=Select-String -Path $x -Pattern 'Ход работы' -SimpleMatch|Select-Object -First 1;if($hit){$s=[Math]::Max(0,$hit.LineNumber-20);$e=[Math]::Min($xa.Count-1,$hit.LineNumber+150);for($i=$s;$i-le$e;$i++){Write-Host (("{0:D05}: " -f ($i+1))+$xa[$i])}}
