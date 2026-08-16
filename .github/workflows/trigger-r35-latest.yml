@@ -17,3 +17,4 @@ jobs:
         env:
           GH_TOKEN: '${{ github.token }}'
         run: gh workflow run build-mwo-r35-readability-ui.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
+      - run: echo "R35 readability patch retry 2"
