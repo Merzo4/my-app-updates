@@ -25,7 +25,8 @@ jobs:
           [IO.File]::WriteAllBytes('inspect.tar.xz',[Convert]::FromBase64String($b.ToString()))
           New-Item -ItemType Directory -Force inspect|Out-Null; tar -xf inspect.tar.xz -C inspect
           $sln=Get-ChildItem inspect -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
-          "SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
+          $env:SOURCE_ROOT=$sln.Directory.FullName
+          "SOURCE_ROOT=$env:SOURCE_ROOT">>$env:GITHUB_ENV
           foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py')){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
       - name: Print UI style anchors
         shell: pwsh
