@@ -53,11 +53,13 @@ vm.write_text(s,encoding='utf-8')
 # longer depends only on a PowerShell fallback script.
 iss=root/'installer'/'MerzoWindowsOptimizer.iss'
 i=iss.read_text(encoding='utf-8-sig')
-line='Filename: "{app}\\MerzoWindowsOptimizer.exe"; WorkingDir: "{app}"; Flags: nowait runasoriginaluser; Check: WizardSilent; StatusMsg: "Launching Merzo Windows Optimizer..."; \\ MERZO_R26_SILENT_RELAUNCH'
+marker='; MERZO_R26_SILENT_RELAUNCH'
+line='Filename: "{app}\\MerzoWindowsOptimizer.exe"; WorkingDir: "{app}"; Flags: nowait runasoriginaluser; Check: WizardSilent; StatusMsg: "Launching Merzo Windows Optimizer..."'
 if 'MERZO_R26_SILENT_RELAUNCH' not in i:
+    block=marker+'\n'+line
     m=re.search(r'(?mi)^\[Run\]\s*$',i)
-    if m: i=i[:m.end()]+'\n'+line+i[m.end():]
-    else: i=i.rstrip()+'\n\n[Run]\n'+line+'\n'
+    if m: i=i[:m.end()]+'\n'+block+i[m.end():]
+    else: i=i.rstrip()+'\n\n[Run]\n'+block+'\n'
 iss.write_text(i,encoding='utf-8')
 
 # Keep the production feed explicit.
