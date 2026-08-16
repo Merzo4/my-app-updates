@@ -13,4 +13,6 @@ jobs:
       - name: Dispatch R29 production workflow
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run build-mwo-r29-operation-center.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
+        run: |
+          echo "Dispatching R29 after cleanup progress/cancel placement fix"
+          gh workflow run build-mwo-r29-operation-center.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
