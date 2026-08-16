@@ -48,6 +48,7 @@ jobs:
           python optimizer/patches/r27_privacy_engine.py;if($LASTEXITCODE-ne 0){throw 'R27 failed'}
           python optimizer/patches/r28_profiles_updates_cleanup_ux.py;if($LASTEXITCODE-ne 0){throw 'R28 failed'}
           python optimizer/patches/r29_operation_center.py;if($LASTEXITCODE-ne 0){throw 'R29 failed'}
+          python optimizer/patches/r29_compile_fix.py;if($LASTEXITCODE-ne 0){throw 'R29 compile fix failed'}
 
       - name: Branded icon
         shell: pwsh
