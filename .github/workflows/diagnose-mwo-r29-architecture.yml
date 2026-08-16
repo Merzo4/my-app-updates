@@ -33,7 +33,6 @@ jobs:
           python optimizer/patches/r24_compile_fix.py;if($LASTEXITCODE-ne 0){throw 'R24 compile failed'}
           python optimizer/patches/r26_ota_repair.py;if($LASTEXITCODE-ne 0){throw 'R26 failed'}
           python optimizer/patches/r27_privacy_engine.py;if($LASTEXITCODE-ne 0){throw 'R27 failed'}
-          python optimizer/patches/r28_patch_compat.py;if($LASTEXITCODE-ne 0){throw 'R28 compat failed'}
           python optimizer/patches/r28_profiles_updates_cleanup_ux.py;if($LASTEXITCODE-ne 0){throw 'R28 failed'}
       - name: Print R29-relevant source snippets
         shell: pwsh
