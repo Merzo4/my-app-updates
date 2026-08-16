@@ -44,7 +44,7 @@ jobs:
           $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
           $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
           if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
-          foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py')){
+          foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py')){
             python (Join-Path 'optimizer/patches' $p)
             if($LASTEXITCODE-ne 0){throw "Patch failed: $p"}
           }
@@ -87,7 +87,6 @@ jobs:
           }
           $exe=Join-Path $app 'MerzoWindowsOptimizer.exe';$fv=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
           if(-not$fv.FileVersion.StartsWith('0.1.34')){throw "EXE version gate failed: $($fv.FileVersion)"}
-
           $x=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
           foreach($t in @('Production R34','v0.1.34','ProcessReductionStatusText','SelectProcessSafeCommand','SelectProcessAggressiveCommand','SelectProcessLiteCommand','Центр обратной связи','Диагностический ZIP','ДОСТУПНО ОБНОВЛЕНИЕ')){if(-not$x.Contains($t)){throw "R34 UI gate failed: $t"}}
           $vm=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') -Raw
@@ -99,7 +98,6 @@ jobs:
           if(-not$scanner.Contains('topCount = 50')){throw 'TOP-50 process audit gate failed'}
           $appcs=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\App.xaml.cs') -Raw
           foreach($t in @('ShowPendingCrashReport(window)','last-seen-crash.txt','startup-crash-*.log','%USERPROFILE%')){if(-not$appcs.Contains($t)){throw "Crash reporter gate failed: $t"}}
-
           $tw=Get-Content (Join-Path $root 'data\tweaks.json') -Raw|ConvertFrom-Json
           $sv=Get-Content (Join-Path $root 'data\service_rules.json') -Raw|ConvertFrom-Json
           $tr=Get-Content (Join-Path $root 'data\task_rules.json') -Raw|ConvertFrom-Json
@@ -191,7 +189,7 @@ jobs:
           • Feedback Center прямо в программе: описание ошибки или идеи, privacy-safe диагностический ZIP и заранее заполненный GitHub Issue. GitHub token в приложение не встроен.
           • Crash Reporter: если предыдущий запуск сохранил crash-log, следующий запуск один раз предлагает открыть подготовленный GitHub Issue.
           • Services Advisor расширен условными источниками фоновых процессов: Fax, Mobile Hotspot, Smart Card, Biometrics, Sensors, Maps, NFC/Payments, Diagnostics Hub, Remote Registry и Touch/Handwriting.
-          • Scheduled Tasks Advisor расширен Maps, Feedback/Siuf, Location, Family Safety, Mobile Broadband и Retail Demo.
+          • Scheduled Tasks Advisor расширен Maps, Feedback/Siuf, Location, Family Safety, Mobile Broadband, Retail Demo, Work Folders, Workplace Join и Bluetooth.
           • Новая волна обратимых настроек: Windows Widgets, consumer experiences, лимит фоновой Delivery Optimization, Edge Startup Boost/background mode и дополнительные consumer/UI правила, если они ещё не были покрыты каталогом.
 
           ИЗМЕНЕНО
