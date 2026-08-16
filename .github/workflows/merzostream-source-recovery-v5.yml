@@ -1,0 +1,84 @@
+name: MerzoStream R17 Source Recovery V5
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/merzostream-source-recovery-v5.yml'
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_SHA256: d79b349825d817680477a1af849c4508efd3f1e6baf818c774239f1db11ef42e
+  EXPECTED_B64: 359432
+
+jobs:
+  recover:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find exact historical R17 source ZIP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function HashBytes([byte[]]$b){([Security.Cryptography.SHA256]::Create().ComputeHash($b)|%{$_.ToString('x2')}) -join ''}
+          function TestB64([string]$txt,[string]$label){
+            $txt=($txt -replace '\s','')
+            if($txt.Length -ne [int]$env:EXPECTED_B64){return $null}
+            try{$bytes=[Convert]::FromBase64String($txt)}catch{return $null}
+            $h=HashBytes $bytes
+            if($h -eq $env:SOURCE_SHA256){Write-Host "FOUND exact source: $label bytes=$($bytes.Length)";return $bytes}
+            return $null
+          }
+          $commits=@(& git log --all --format=%H -- merzostream/ci/r17-zip | Select-Object -Unique)
+          Write-Host "Historical commits: $($commits.Count)"
+          $found=$null;$foundCommit=''
+          foreach($c in $commits){
+            $files=@(& git ls-tree -r --name-only $c -- merzostream/ci/r17-zip | ?{$_ -match 'part\d+\.b64$'} | Sort-Object { if($_ -match 'part(\d+)\.b64$'){[int]$Matches[1]}else{999} })
+            if(-not $files){continue}
+            $chunks=@();$ok=$true
+            foreach($f in $files){
+              $t=(& git show "$c`:$f" 2>$null) -join ''
+              if(-not $t){$ok=$false;break}
+              $chunks+=(($t -replace '\s',''))
+            }
+            if(-not $ok){continue}
+            $all=$chunks -join ''
+            Write-Host "commit=$($c.Substring(0,8)) files=$($files.Count) len=$($all.Length)"
+            $found=TestB64 $all "commit $c direct";if($found){$foundCommit=$c;break}
+            if($all.Length -gt [int]$env:EXPECTED_B64){
+              $found=TestB64 $all.Substring(0,[int]$env:EXPECTED_B64) "commit $c first";if($found){$foundCommit=$c;break}
+              $found=TestB64 $all.Substring($all.Length-[int]$env:EXPECTED_B64) "commit $c last";if($found){$foundCommit=$c;break}
+              $offset=0
+              foreach($chunk in $chunks){
+                if($offset+[int]$env:EXPECTED_B64 -le $all.Length){
+                  $found=TestB64 $all.Substring($offset,[int]$env:EXPECTED_B64) "commit $c boundary $offset";if($found){break}
+                }
+                $offset += $chunk.Length
+              }
+              if($found){$foundCommit=$c;break}
+            }
+          }
+          if(-not $found){throw 'Exact R17 source was not found in historical complete-directory states.'}
+          $out=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_R17_SOURCE.zip'
+          [IO.File]::WriteAllBytes($out,$found)
+          "FOUND_COMMIT=$foundCommit" >> $env:GITHUB_ENV
+          "SOURCE_ZIP=$out" >> $env:GITHUB_ENV
+          Write-Host "SOURCE RECOVERY PASS commit=$foundCommit sha=$env:SOURCE_SHA256"
+
+      - name: Validate ZIP structure
+        shell: pwsh
+        run: |
+          $dst=Join-Path $env:RUNNER_TEMP 'source-test'
+          Expand-Archive -LiteralPath $env:SOURCE_ZIP -DestinationPath $dst -Force
+          $builder=Get-ChildItem $dst -Recurse -Filter 06_BUILD_RUNTIME_RELEASE.ps1 -File|Select-Object -First 1
+          if(-not $builder){throw 'Builder missing'}
+          $root=$builder.Directory.FullName
+          foreach($r in @('MerzoStream.NetHost.sln','SELFTEST_PURE_DOTNET_STATIC.ps1','src\MerzoStream.Host\MerzoStream.Host.csproj','ui\web\app.js','ui\web\styles.css')){if(-not(Test-Path(Join-Path $root $r))){throw "Missing $r"}}
+          Write-Host "ZIP VALIDATION PASS root=$root"
