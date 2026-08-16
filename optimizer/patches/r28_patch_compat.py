@@ -15,7 +15,7 @@ if 'R28 UX missing:' not in q:
     q=q.replace(ui_anchor,ui_anchor+gate,1)'''
 
 new='''if 'R28 UX missing:' not in q:
-    gate=r''' + "'''    foreach (var token in new[] { \"Header=\\\"Ход очистки\\\"\", \"SelectedCleanupTabIndex\", \"CleanupOperationSteps\", \"UpdateReleaseNotesText\", \"Что нового\" }) if (!xaml.Contains(token, StringComparison.Ordinal)) failures.Add($\"R28 UX missing: {token}\");\n    if (xaml.Contains(\"Header=\\\"Телеметрия\\\"\", StringComparison.Ordinal)) failures.Add(\"Telemetry must be integrated into profiles, not shown as a separate R28 tab.\");\n    if (!File.Exists(Path.Combine(AppContext.BaseDirectory, \"data\", \"release_notes.json\"))) failures.Add(\"R28 release_notes.json missing from payload.\");\n'''" + '''
+    gate=r''' + "'''    foreach (var token in new[] { \"Header=\\\"Ход очистки\\\"\", \"SelectedCleanupTabIndex\", \"CleanupOperationSteps\", \"UpdateReleaseNotesText\", \"Что нового\" }) if (!xaml.Contains(token, StringComparison.Ordinal)) failures.Add($\"R28 UX missing: {token}\");\n    if (xaml.Contains(\"Header=\\\"Телеметрия\\\"\", StringComparison.Ordinal)) failures.Add(\"Telemetry must be integrated into profiles, not shown as a separate R28 tab.\");\n    if (!File.Exists(Path.Combine(repoRoot, \"data\", \"release_notes.json\"))) failures.Add(\"R28 release_notes.json missing from source data.\");\n'''" + '''
     anchor_pos=q.find('Technical tweak IDs must stay hidden from user cards.')
     if anchor_pos < 0: raise SystemExit('SelfTest UI anchor missing')
     line_end=q.find('\\n', anchor_pos)
@@ -31,6 +31,12 @@ if old not in s:
     s=s[:start]+new+s[end:]
 else:
     s=s.replace(old,new,1)
+
+# Make any already-rewritten variant use the source tree rather than the
+# SelfTest executable directory. Build-Production runs SelfTest before the
+# payload is copied, so AppContext.BaseDirectory/data is intentionally absent.
+s=s.replace('Path.Combine(AppContext.BaseDirectory, \\"data\\", \\"release_notes.json\\")', 'Path.Combine(repoRoot, \\"data\\", \\"release_notes.json\\")')
+s=s.replace('R28 release_notes.json missing from payload.', 'R28 release_notes.json missing from source data.')
 
 # Fold compile compatibility corrections into the patch before it generates C#.
 s=s.replace('OnPropertyChanged(nameof(CleanupProgressText));','RaisePropertyChanged(nameof(CleanupProgressText));')
