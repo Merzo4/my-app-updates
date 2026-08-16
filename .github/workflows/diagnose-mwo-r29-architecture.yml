@@ -21,19 +21,20 @@ jobs:
           [IO.File]::WriteAllBytes('r29diag.tar.xz',[Convert]::FromBase64String($b.ToString()))
           New-Item -ItemType Directory -Force r29diag|Out-Null;tar -xf r29diag.tar.xz -C r29diag
           $sln=Get-ChildItem r29diag -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
-          "SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
-          $f=Join-Path $sln.Directory.FullName 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          if(-not$sln){throw 'Solution missing'}
+          $env:SOURCE_ROOT=$sln.Directory.FullName
+          "SOURCE_ROOT=$env:SOURCE_ROOT">>$env:GITHUB_ENV
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
           $s=$s.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R29 DIAG SelfTest').Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
           $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
           $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
           if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
-          python optimizer/patches/r24_update_center.py
-          python optimizer/patches/r24_compile_fix.py
-          python optimizer/patches/r26_ota_repair.py
-          python optimizer/patches/r27_privacy_engine.py
-          $env:SOURCE_ROOT=$sln.Directory.FullName
-          python optimizer/patches/r28_patch_compat.py
-          python optimizer/patches/r28_profiles_updates_cleanup_ux.py
+          python optimizer/patches/r24_update_center.py;if($LASTEXITCODE-ne 0){throw 'R24 updater failed'}
+          python optimizer/patches/r24_compile_fix.py;if($LASTEXITCODE-ne 0){throw 'R24 compile failed'}
+          python optimizer/patches/r26_ota_repair.py;if($LASTEXITCODE-ne 0){throw 'R26 failed'}
+          python optimizer/patches/r27_privacy_engine.py;if($LASTEXITCODE-ne 0){throw 'R27 failed'}
+          python optimizer/patches/r28_patch_compat.py;if($LASTEXITCODE-ne 0){throw 'R28 compat failed'}
+          python optimizer/patches/r28_profiles_updates_cleanup_ux.py;if($LASTEXITCODE-ne 0){throw 'R28 failed'}
       - name: Print R29-relevant source snippets
         shell: pwsh
         run: |
