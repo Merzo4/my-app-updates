@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 patch=Path('optimizer/patches/r28_profiles_updates_cleanup_ux.py')
 s=patch.read_text(encoding='utf-8-sig')
@@ -22,7 +23,6 @@ new='''if 'R28 UX missing:' not in q:
     q=q[:line_end+1]+gate+q[line_end+1:]'''
 
 if old not in s:
-    # Fallback targeted rewrite for slight formatting changes.
     start=s.find("ui_anchor='''")
     end=s.find("q=q.replace(ui_anchor,ui_anchor+gate,1)", start)
     if start < 0 or end < 0:
@@ -35,6 +35,30 @@ else:
 # Fold compile compatibility corrections into the patch before it generates C#.
 s=s.replace('OnPropertyChanged(nameof(CleanupProgressText));','RaisePropertyChanged(nameof(CleanupProgressText));')
 s=s.replace('result.SnapshotId?.ToString("N")[..8]', '(result.SnapshotId is Guid cleanupSnapshotId ? cleanupSnapshotId.ToString("N")[..8] : "—")')
-
 patch.write_text(s,encoding='utf-8')
+
+# The R24 updater's exact MessageBox block can vary across trusted-source
+# revisions. Install a robust silent-start notification hook directly into the
+# generated source before R26/R27/R28 continue patching it.
+root=Path(os.environ['SOURCE_ROOT'])
+vm=root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs'
+v=vm.read_text(encoding='utf-8-sig')
+if 'ReleaseNotesWindow.ShowUpdateAvailable' not in v:
+    method=v.find('    private async Task CheckUpdatesAsync(bool silent)')
+    if method < 0:
+        raise SystemExit('R28 update-check method missing')
+    needle='            DownloadUpdateCommand.RaiseCanExecuteChanged();\n'
+    pos=v.find(needle,method)
+    if pos < 0:
+        raise SystemExit('R28 update notification insertion point missing')
+    pos += len(needle)
+    hook='''            if (silent && _lastUpdateCheck is { Success: true, UpdateAvailable: true } startupUpdate && !string.Equals(_lastNotifiedUpdateVersion, startupUpdate.LatestVersion, StringComparison.OrdinalIgnoreCase))
+            {
+                _lastNotifiedUpdateVersion = startupUpdate.LatestVersion;
+                global::MerzoOptimizer.App.ReleaseNotesWindow.ShowUpdateAvailable(Application.Current?.MainWindow, startupUpdate);
+            }
+'''
+    v=v[:pos]+hook+v[pos:]
+    vm.write_text(v,encoding='utf-8')
+
 print('R28 patch compatibility rewrite: OK')
