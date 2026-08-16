@@ -28,15 +28,9 @@ jobs:
           $env:SOURCE_ROOT=$sln.Directory.FullName
           "SOURCE_ROOT=$env:SOURCE_ROOT">>$env:GITHUB_ENV
           foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py')){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
-      - name: Print exact contracts
+      - name: Print exact sidebar
         shell: pwsh
         run: |
           [Console]::OutputEncoding=[Text.Encoding]::UTF8
-          Write-Host '=== CORE ELEVATION ==='
-          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Core\Elevation') -Recurse -Include *.cs | ForEach-Object { Write-Host "===== $($_.Name) ====="; Get-Content $_.FullName }
-          Write-Host '=== BROKER ==='
-          $broker=Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Windows') -Recurse -Filter ElevatedOperationBroker.cs|Select-Object -First 1;if($broker){Get-Content $broker.FullName}
-          Write-Host '=== VIEWMODEL TOP/CTOR 1-360 ==='
-          $vm=Get-Content (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs');for($i=0;$i-lt[math]::Min(360,$vm.Count);$i++){Write-Host (("{0:D05}: " -f ($i+1))+$vm[$i])}
-          Write-Host '=== APP MAINWINDOW CREATION 80-210 ==='
-          $app=Get-Content (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\App.xaml.cs');for($i=79;$i-lt[math]::Min(210,$app.Count);$i++){Write-Host (("{0:D05}: " -f ($i+1))+$app[$i])}
+          $x=Get-Content (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml')
+          for($i=0;$i-lt[math]::Min(230,$x.Count);$i++){Write-Host (("{0:D04}: " -f ($i+1))+$x[$i])}
