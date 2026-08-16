@@ -17,5 +17,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Dispatching R28 after UX compatibility pass 2"
+          echo "Dispatching R28 after UX compatibility pass 3"
           gh workflow run build-mwo-r28-big-ux.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer
