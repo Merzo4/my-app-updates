@@ -14,4 +14,20 @@ for pattern,risk,recommendation in extra:
         tasks.append({'pattern':pattern,'risk':risk,'recommendation':recommendation})
         existing.add(pattern.lower())
 p.write_text(json.dumps(tasks,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+# Cumulative-build navigation compatibility. R37 promotes the old
+# "Repair / Network" placeholder to a real navigation item. Keep an invisible
+# self-closing copy of the approved NavRadioButton contract so the later R37
+# patch can clone style/GroupName without changing the visible R34-R36 UI.
+xaml=root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
+if xaml.exists():
+    s=xaml.read_text(encoding='utf-8-sig')
+    placeholder='<TextBlock Text="Repair / Network" Foreground="{StaticResource TextMuted}" FontSize="10" Margin="7,4"/>'
+    if placeholder not in s:
+        placeholder='<TextBlock Text="Repair / Network" Foreground="{StaticResource TextMuted}" FontSize="11.2" Margin="7,4"/>'
+    marker='R37_NETWORK_NAV_TEMPLATE'
+    if placeholder in s and marker not in s:
+        template='<!-- R37_NETWORK_NAV_TEMPLATE <RadioButton x:Name="GamingDevNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="GamingDev_Click" Content="Gaming / Developer"/> -->\n                    '
+        s=s.replace(placeholder,template+placeholder,1)
+        xaml.write_text(s,encoding='utf-8')
 print('R34 task extension OK tasks=',len(tasks))
