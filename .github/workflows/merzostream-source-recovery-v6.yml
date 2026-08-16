@@ -1,0 +1,79 @@
+name: MerzoStream R17 Source Recovery V6
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/merzostream-source-recovery-v6.yml'
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_SHA256: d79b349825d817680477a1af849c4508efd3f1e6baf818c774239f1db11ef42e
+  SNAPSHOT_COMMIT: 65895b85afaae8f06252190c29a3f9e848e4b41c
+
+jobs:
+  recover:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct R17 from deterministic 20k slices + tail search
+        shell: pwsh
+        run: |
+          $py=@'
+          import base64, hashlib, subprocess, os, pathlib, sys
+          commit=os.environ['SNAPSHOT_COMMIT']; target=os.environ['SOURCE_SHA256']
+          def gitshow(path):
+              return subprocess.check_output(['git','show',f'{commit}:{path}'],text=True).replace('\n','').replace('\r','').strip()
+          def cur(path):
+              return pathlib.Path(path).read_text(encoding='utf-8').replace('\n','').replace('\r','').strip()
+          parts={i:gitshow(f'merzostream/ci/r17-zip/part{i:02d}.b64') for i in range(16)}
+          # Known good exact 10k slices captured independently during recovery.
+          c16=cur('merzostream/ci/r17-exact/chunk16.txt'); c17=cur('merzostream/ci/r17-exact/chunk17.txt')
+          c24=cur('merzostream/ci/r17-exact/chunk24.txt'); c25=cur('merzostream/ci/r17-exact/chunk25.txt')
+          assert len(c16)==len(c17)==len(c24)==len(c25)==10000, (len(c16),len(c17),len(c24),len(c25))
+          prefix=[]
+          for i in range(15):
+              if i==8: x=c16+c17
+              elif i==12: x=c24+c25
+              else: x=parts[i][:20000]
+              if len(x)!=20000: raise SystemExit(f'prefix part {i} length {len(x)}')
+              prefix.append(x)
+          prefix_b64=''.join(prefix)
+          assert len(prefix_b64)==300000
+          prefix_bytes=base64.b64decode(prefix_b64,validate=True)
+          assert len(prefix_bytes)==225000
+          pool=parts[15]
+          need=59432
+          print('tail pool',len(pool),'need',need)
+          found=None
+          for off in range(0,len(pool)-need+1):
+              s=pool[off:off+need]
+              try: tail=base64.b64decode(s,validate=True)
+              except Exception: continue
+              if len(tail)!=44574: continue
+              b=prefix_bytes+tail
+              if hashlib.sha256(b).hexdigest()==target:
+                  print('FOUND tail offset',off,'bytes',len(b));found=b;break
+          if found is None: raise SystemExit('exact tail not found in part15 pool')
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'MerzoStreamSuite_R17_SOURCE.zip';out.write_bytes(found)
+          print('RECOVERY PASS',out,hashlib.sha256(found).hexdigest())
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf-8') as f:f.write(f'SOURCE_ZIP={out}\n')
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'recover.py';Set-Content $p $py -Encoding UTF8
+          python $p
+          if($LASTEXITCODE -ne 0){throw 'Deterministic recovery failed'}
+      - name: Validate recovered source
+        shell: pwsh
+        run: |
+          $dst=Join-Path $env:RUNNER_TEMP 'source-test';Expand-Archive $env:SOURCE_ZIP $dst -Force
+          $b=Get-ChildItem $dst -Recurse -Filter 06_BUILD_RUNTIME_RELEASE.ps1 -File|Select-Object -First 1
+          if(-not $b){throw 'Builder missing'}
+          $r=$b.Directory.FullName
+          foreach($x in @('MerzoStream.NetHost.sln','SELFTEST_PURE_DOTNET_STATIC.ps1','src\MerzoStream.Host\MerzoStream.Host.csproj','ui\web\app.js','ui\web\styles.css')){if(-not(Test-Path(Join-Path $r $x))){throw "Missing $x"}}
+          Write-Host "SOURCE ZIP VALIDATION PASS root=$r"
