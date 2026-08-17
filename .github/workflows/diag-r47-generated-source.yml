@@ -33,12 +33,9 @@ jobs:
           $patches=@('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py','r42_full_ui_rework.py','r42_window_contract_fix.py','r43_true_full_ui.py','r44_function_expansion.py','r44_finalize.py','r45_apply_selected_ux.py','r46_security_layout_hardening.py','r46_binding_finalize.py')
           foreach($p in $patches){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
           New-Item -ItemType Directory -Force diag|Out-Null
-          Copy-Item (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') diag\MainWindow.xaml
-          Copy-Item (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') diag\MainWindowViewModel.cs
-          Copy-Item (Join-Path $root 'data\tweaks.json') diag\tweaks.json
-          Copy-Item (Join-Path $root 'data\service_rules.json') diag\service_rules.json
-          Copy-Item (Join-Path $root 'data\task_rules.json') diag\task_rules.json
+          Copy-Item (Join-Path $root 'src') diag\src -Recurse
+          Copy-Item (Join-Path $root 'data') diag\data -Recurse
       - uses: actions/upload-artifact@v4
         with:
-          name: R47-generated-R46-source
+          name: R47-generated-R46-full-source
           path: diag
