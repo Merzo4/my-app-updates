@@ -1,0 +1,43 @@
+name: DIAG R47 GENERATED SOURCE
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/diag-r47-generated-source.yml']
+jobs:
+  inspect:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Restore exact R46 generated source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('r47.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          New-Item -ItemType Directory -Force r47|Out-Null;tar -xf r47.tar.xz -C r47
+          $sln=Get-ChildItem r47 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          $root=$sln.Directory.FullName
+          "SOURCE_ROOT=$root" >> $env:GITHUB_ENV
+          $f=Join-Path $root 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          $patches=@('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py','r42_full_ui_rework.py','r42_window_contract_fix.py','r43_true_full_ui.py','r44_function_expansion.py','r44_finalize.py','r45_apply_selected_ux.py','r46_security_layout_hardening.py','r46_binding_finalize.py')
+          foreach($p in $patches){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
+          New-Item -ItemType Directory -Force diag|Out-Null
+          Copy-Item (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') diag\MainWindow.xaml
+          Copy-Item (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') diag\MainWindowViewModel.cs
+          Copy-Item (Join-Path $root 'data\tweaks.json') diag\tweaks.json
+          Copy-Item (Join-Path $root 'data\service_rules.json') diag\service_rules.json
+          Copy-Item (Join-Path $root 'data\task_rules.json') diag\task_rules.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R47-generated-R46-source
+          path: diag
