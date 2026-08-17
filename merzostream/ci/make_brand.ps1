@@ -6,17 +6,17 @@ $web=Join-Path $env:MERZO_SRC 'ui\web'
 New-Item -ItemType Directory -Force -Path $content,$web | Out-Null
 $png=Join-Path $content 'MerzoStreamSuite.png'
 $ico=Join-Path $content 'MerzoStreamSuite.ico'
-$bmp=New-Object System.Drawing.Bitmap 256,256
+$bmp=[System.Drawing.Bitmap]::new(256,256)
 $g=[System.Drawing.Graphics]::FromImage($bmp)
 try {
   $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
   $g.Clear([System.Drawing.Color]::FromArgb(4,9,17))
-  $brush=New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(35,226,208))
-  $font=New-Object System.Drawing.Font 'Segoe UI',138,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel
-  $fmt=New-Object System.Drawing.StringFormat
+  $brush=[System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(35,226,208))
+  $font=[System.Drawing.Font]::new('Segoe UI',138,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel)
+  $fmt=[System.Drawing.StringFormat]::new()
   $fmt.Alignment=[System.Drawing.StringAlignment]::Center
   $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
-  $rect=New-Object System.Drawing.RectangleF 0,0,256,246
+  $rect=[System.Drawing.RectangleF]::new(0,0,256,246)
   $g.DrawString('M',$font,$brush,$rect,$fmt)
   $bmp.Save($png,[System.Drawing.Imaging.ImageFormat]::Png)
   $h=$bmp.GetHicon()
