@@ -13,9 +13,16 @@ jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch FINAL-5 on latest branch
+      - name: Dispatch FINAL-5 on latest branch with retry
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run merzostream-010h-final5.yml --repo "$GITHUB_REPOSITORY" --ref merzostream-010h-release
-          echo "FINAL-5 dispatched after release-support restore"
+          for n in 1 2 3 4 5; do
+            if gh workflow run merzostream-010h-final5.yml --repo "$GITHUB_REPOSITORY" --ref merzostream-010h-release; then
+              echo "FINAL-5 dispatched on attempt $n"
+              exit 0
+            fi
+            echo "Dispatch attempt $n failed; retrying..."
+            sleep 5
+          done
+          exit 1
