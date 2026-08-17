@@ -1,0 +1,33 @@
+name: MerzoStream diff R5 to 0.1.0h
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/merzostream-010h-diff-r5.yml']
+permissions:
+  contents: read
+jobs:
+  diff:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Reconstruct R5 and compare to h manifest
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:RUNNER_TEMP 'r5src';New-Item -ItemType Directory -Force -Path $root|Out-Null;$env:R5_ROOT=$root
+          $py=@'
+          import base64,hashlib,os,pathlib,tarfile,subprocess,json
+          root=pathlib.Path(os.environ['R5_ROOT']);ref='origin/merzostream-010g-r5-ci'
+          def rd(p):return subprocess.check_output(['git','show',f'{ref}:{p}'],text=True).replace('\n','').replace('\r','').strip()
+          c0=rd('merzostream/ci/010g-r5-csharp8/chunk00.b64');c1=rd('merzostream/ci/010g-r5-csharp8/chunk01.b64');p1=rd('merzostream/ci/010g-r5-csharp/part01.b64');p2=rd('merzostream/ci/010g-r5-csharp/part02-correct.b64');p3=rd('merzostream/ci/010g-r5-csharp/part02.b64');p4=rd('merzostream/ci/010g-r5-csharp/part04.b64');p5=rd('merzostream/ci/010g-r5-csharp/part05.b64');p6=rd('merzostream/ci/010g-r5-csharp/part06.b64')
+          raw=base64.b64decode(c0+c1+p1[2000:]+p2+p3+p4+p5+p6,validate=True);assert hashlib.sha256(raw).hexdigest()=='b80d662f290bd5cddcbf33847a9b7fd8abbd141e714a7708560c9032a6e4eb6f'
+          tgz=pathlib.Path(os.environ['RUNNER_TEMP'])/'r5.tar.gz';tgz.write_bytes(raw)
+          with tarfile.open(tgz,'r:gz') as t:t.extractall(root)
+          h={"MerzoStream.NetHost.sln":"83a719307a9c4550cac3c8d83bc71941d29f2844b4fab64617620e1635dfe61e","global.json":"cdcdf5cc17beb08d6736137a4fe5061ba955bc5c8acd91c5e244478e8f53ba01","src/MerzoStream.Foundation/Contracts/BridgeContracts.cs":"99d977594563c7b3aed1817fa8045ca54a61fde62a156623f0ab8471843183dd","src/MerzoStream.Foundation/MerzoStream.Foundation.csproj":"d7bac02ce2c7ecf76729d2f8b92d708dc2ed91cb917da80cdfbe1fce9c86ba2a","src/MerzoStream.Foundation/Paths/AppPaths.cs":"fc4895d0306434d1a33bbf34996c11f2781e6c272a57b1f94465e1be46a4d771","src/MerzoStream.Foundation/Services/DonationAlertsService.cs":"e2d14db2f53afc565171e99876f8fbd95be4feed278d473345742f924d0d4aaf","src/MerzoStream.Foundation/Services/HistoryService.cs":"575a90616169440e6833f704c8285cd712359e3b1919c723887852535594873c","src/MerzoStream.Foundation/Services/LocalPlayerServer.cs":"85ee2e76bc8144307290c96af62d6b3658954346b7e380b661349c976da11999","src/MerzoStream.Foundation/Services/MediaQueueService.cs":"eeb12becf0ef5e908c369b4885e4d8bc52420f73a444fdca741f85a8363e4f53","src/MerzoStream.Foundation/Services/MusicLibraryService.cs":"65a2ba2c7ffa5ad10f1621b4532561482bb10b332a875c9e4e6f86da807379f7","src/MerzoStream.Foundation/Services/ObsWebSocketService.cs":"52886c3b1bad2351bc7a6bcc74a0dce0011cd30af1c5a460cb72b4f135e21522","src/MerzoStream.Foundation/Services/OnlineMusicService.cs":"55f29df7e55997d9f4a2995ad4abd55e3bf35a14cf35ae40bea419dee3920b2a","src/MerzoStream.Foundation/Services/ProcessControlService.cs":"7a10e0718105da08402575c868643ec1326d8e35234edfdf6a16d4ab39c3e885","src/MerzoStream.Foundation/Services/ProcessDiagnosticsService.cs":"4a1fd0b99f56787f7eb3b016d07c25acc960835a9356763a3560c3932e466219","src/MerzoStream.Foundation/Services/StreamerBotService.cs":"646184aef551369d474dff1e98b1f5a54f29d49827a9005aa6fa7727b93dd6f1","src/MerzoStream.Foundation/Services/SystemDiagnosticsService.cs":"a1554263ae150ba455592ec78e9b133aaf82f097498204ccfdc0fe33323c7a5a","src/MerzoStream.Foundation/Services/SystemMetricsService.cs":"269c6bde95d544e0a91e91fcc9c48e2f14969d417340f0ae02a7ff21e89de693","src/MerzoStream.Foundation/Services/UpdateService.cs":"2cd40905e9f11a3ffcec8ddb06a6a2e94a604fbff33a1b0a414885c753b5ee94","src/MerzoStream.Foundation/Services/WindowsSecureStoreService.cs":"59a6edb38467cea1712076c7f618f082954ad06d6334a88295dac6ecf73cc9f3","src/MerzoStream.Foundation/State/AppSettings.cs":"47218003b9e50207760e35ec4a0699accfe879a7853fe1fc49f1c6443373233a","src/MerzoStream.Foundation/State/JsonFileStore.cs":"7d3fcdc9a7bd305a1d29a29cb580a92d8b13dc87d6c8d99ef6ad17068f50b473","src/MerzoStream.Host/DotNetBackend.cs":"ed0f2c4685d67c6a7c468ba3a177dca44952ab1e210834399f8169fac0e8b68d","src/MerzoStream.Host/MainForm.cs":"96d8aaf1e3d39ff09405e1823a9530e1bacc638ca4482dd00f0c040dad5c4791","src/MerzoStream.Host/MerzoApiServer.cs":"a1e94bf61666c34591421f1a66ed8d411a25148e3b871c094476c71b6de5d4fb","src/MerzoStream.Host/MerzoStream.Host.csproj":"48a368a207148e6d5aca5cbc5481d9d4e7aa8d2964e0cd819cd12ca420dd8f0c","src/MerzoStream.Host/NativeDialogService.cs":"294def7508b29ada172d6136506b0af242777fce4eaf8aeac31ec2e64fcb8d88","src/MerzoStream.Host/Program.cs":"d31239575ce848678bb1a3a163e402dbd801933d435dbe68f48e0653e44036b4","src/MerzoStream.Host/SingleInstanceGuard.cs":"fa6c6fc9d4e50a8fde64fd65b58295adae578facc9e50762fdfa7f76d6692042","src/MerzoStream.Setup/MerzoStream.Setup.csproj":"324b4c72f1563385b0ed24a80a33e82844f11068d2e31f11ec78ca4648feef0d","src/MerzoStream.Setup/Program.cs":"f2ecf89b59706eed7a9b16c2147b73a1f58aa28170961b278fe3d3b38e4c27c4","tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj":"9a4aa073e435df1d5081b2735ab114ca5ebea5a00f2466866066a2aec708d578","tools/MerzoStream.Foundation.SelfTest/Program.cs":"7f6b42532f88027a60bc007efcdc3e8a46d34cd86787b9360815e064b4ebc8cf"}
+          for p,want in h.items():
+              f=root/p
+              got=hashlib.sha256(f.read_bytes()).hexdigest() if f.exists() else 'MISSING'
+              if got!=want:print('DIFF',p,got)
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'diff.py';Set-Content $p $py -Encoding UTF8;python $p
