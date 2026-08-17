@@ -28,14 +28,14 @@ jobs:
           for i in range(15):
               x=(exact[16]+exact[17]) if i==8 else ((exact[24]+exact[25]) if i==12 else parts[i][:20000])
               assert len(x)==20000,(i,len(x));pref.append(x)
-          pb=base64.b64decode(''.join(pref),validate=True); raw=base64.b64decode(parts[15],validate=True); need=44574; extra=len(raw)-need; found=None
-          for off in range(len(raw)-need+1):
-              tail=raw[off:off+need]
-              if hashlib.sha256(pb+tail).hexdigest()==target: found=pb+tail; break
-          if found is None and extra>0:
-              for off in range(len(raw)-extra+1):
-                  tail=raw[:off]+raw[off+extra:]
-                  if hashlib.sha256(pb+tail).hexdigest()==target: found=pb+tail; break
+          pb=base64.b64decode(''.join(pref),validate=True); pool=parts[15]; need=59432; found=None
+          for off in range(0,len(pool)-need+1):
+              s=pool[off:off+need]
+              try: tail=base64.b64decode(s,validate=True)
+              except Exception: continue
+              if len(tail)!=44574: continue
+              candidate=pb+tail
+              if hashlib.sha256(candidate).hexdigest()==target: found=candidate; print('R17 tail offset',off); break
           assert found is not None, 'R17 recovery failed'
           source=temp/'r17.zip'; source.write_bytes(found); build=temp/'build'
           import zipfile
