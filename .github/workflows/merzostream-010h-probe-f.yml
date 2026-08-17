@@ -1,0 +1,61 @@
+name: MerzoStream verify 0.1.0f reconstruction
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/merzostream-010h-probe-f.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct R17 and apply 0.1.0f overlay
+        shell: pwsh
+        run: |
+          git fetch origin merzostream-010f-ota:refs/remotes/origin/merzostream-010f-ota
+          $py=@'
+          import base64,hashlib,subprocess,os,pathlib,tarfile,lzma,json
+          root=pathlib.Path.cwd(); temp=pathlib.Path(os.environ['RUNNER_TEMP'])
+          c='65895b85afaae8f06252190c29a3f9e848e4b41c'; target='d79b349825d817680477a1af849c4508efd3f1e6baf818c774239f1db11ef42e'
+          def gs(ref,path): return subprocess.check_output(['git','show',f'{ref}:{path}'],text=True).replace('\n','').replace('\r','').strip()
+          parts={i:gs(c,f'merzostream/ci/r17-zip/part{i:02d}.b64') for i in range(16)}
+          exact={16:(root/'merzostream/ci/r17-exact/chunk16.txt').read_text().strip(),17:(root/'merzostream/ci/r17-exact/chunk17.txt').read_text().strip(),24:(root/'merzostream/ci/r17-exact/chunk24.txt').read_text().strip(),25:(root/'merzostream/ci/r17-exact/chunk25.txt').read_text().strip()}
+          pref=[]
+          for i in range(15):
+              x=(exact[16]+exact[17]) if i==8 else ((exact[24]+exact[25]) if i==12 else parts[i][:20000])
+              assert len(x)==20000,(i,len(x));pref.append(x)
+          pb=base64.b64decode(''.join(pref),validate=True); raw=base64.b64decode(parts[15],validate=True); need=44574; extra=len(raw)-need; found=None
+          for off in range(len(raw)-need+1):
+              tail=raw[off:off+need]
+              if hashlib.sha256(pb+tail).hexdigest()==target: found=pb+tail; break
+          if found is None and extra>0:
+              for off in range(len(raw)-extra+1):
+                  tail=raw[:off]+raw[off+extra:]
+                  if hashlib.sha256(pb+tail).hexdigest()==target: found=pb+tail; break
+          assert found is not None, 'R17 recovery failed'
+          source=temp/'r17.zip'; source.write_bytes(found); build=temp/'build'
+          import zipfile
+          with zipfile.ZipFile(source) as z: z.extractall(build)
+          candidates=list(build.rglob('MerzoStream.NetHost.sln')); assert candidates
+          srcroot=candidates[0].parent
+          fparts=[]
+          for i in range(9): fparts.append(gs('origin/merzostream-010f-ota',f'merzostream/ci/010f-overlay/part{i:02d}.b64'))
+          fxz=temp/'f.tar.xz'; fxz.write_bytes(base64.b64decode(''.join(fparts),validate=True))
+          print('f overlay bytes',fxz.stat().st_size,'sha',hashlib.sha256(fxz.read_bytes()).hexdigest())
+          with lzma.open(fxz,'rb') as xf:
+              with tarfile.open(fileobj=xf,mode='r:') as tf: tf.extractall(srcroot)
+          info=json.loads((srcroot/'content/app_info.json').read_text(encoding='utf-8-sig'))
+          print('version after f overlay',info.get('version'))
+          assert info.get('version')=='0.1.0f',info
+          with open(os.environ['GITHUB_ENV'],'a',encoding='utf8') as e:e.write(f'SRCROOT={srcroot}\n')
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'rebuild.py'; Set-Content $p $py -Encoding UTF8; python $p
+          if($LASTEXITCODE -ne 0){throw 'reconstruction failed'}
+      - name: Static selftest 0.1.0f
+        shell: pwsh
+        working-directory: ${{ env.SRCROOT }}
+        run: ./SELFTEST_PURE_DOTNET_STATIC.ps1
