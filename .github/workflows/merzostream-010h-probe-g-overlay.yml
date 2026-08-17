@@ -16,22 +16,22 @@ jobs:
         shell: pwsh
         run: |
           $py=@'
-          import subprocess,base64,pathlib,lzma,tarfile,os,json
+          import subprocess,base64,pathlib,lzma,tarfile,os,json,hashlib
           ref='origin/merzostream-010g-ota'
           names=subprocess.check_output(['git','ls-tree','--name-only',ref,'merzostream/ci/010g-overlay/'],text=True).splitlines()
           names=[x for x in names if x.endswith('.b64')];print('PARTS',names)
           text=''.join(subprocess.check_output(['git','show',f'{ref}:{x}'],text=True).replace('\n','').replace('\r','').strip() for x in sorted(names))
-          print('B64LEN',len(text));raw=base64.b64decode(text,validate=True);print('RAW',len(raw),raw[:6])
+          print('B64LEN',len(text),'MOD4',len(text)%4)
+          text += '='*((4-len(text)%4)%4)
+          raw=base64.b64decode(text,validate=True);print('RAW',len(raw),raw[:6],'SHA',hashlib.sha256(raw).hexdigest())
           p=pathlib.Path(os.environ['RUNNER_TEMP'])/'g.bin';p.write_bytes(raw)
-          try:
-            with lzma.open(p,'rb') as xf:
-              with tarfile.open(fileobj=xf,mode='r:') as t:
-                ms=t.getmembers();print('TARFILES',len(ms));print('\n'.join(m.name for m in ms[:30]));t.extractall(pathlib.Path(os.environ['RUNNER_TEMP'])/'g')
-            g=pathlib.Path(os.environ['RUNNER_TEMP'])/'g';infos=list(g.rglob('app_info.json'));print('INFOS',infos)
-            for i in infos:
-              try:print(i,json.loads(i.read_text(encoding='utf-8-sig')).get('version'))
-              except Exception as e:print(e)
-          except Exception as e:
-            print('DECODE_ERROR',repr(e));raise
+          with lzma.open(p,'rb') as xf:
+            with tarfile.open(fileobj=xf,mode='r:') as t:
+              ms=t.getmembers();print('TARFILES',len(ms));print('\n'.join(m.name for m in ms[:30]));t.extractall(pathlib.Path(os.environ['RUNNER_TEMP'])/'g')
+          g=pathlib.Path(os.environ['RUNNER_TEMP'])/'g';infos=list(g.rglob('app_info.json'));print('INFOS',infos)
+          versions=[]
+          for i in infos:
+            v=json.loads(i.read_text(encoding='utf-8-sig')).get('version');versions.append(v);print(i,v)
+          assert '0.1.0g' in versions,versions
           '@
           $p=Join-Path $env:RUNNER_TEMP 'probe_g.py';Set-Content $p $py -Encoding UTF8;python $p
