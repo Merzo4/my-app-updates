@@ -1,0 +1,271 @@
+name: MerzoStream Suite 0.1.0h FINAL-2 Release
+
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/merzostream-010h-final2.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      VERSION: 0.1.0h
+      TAG: v0.1.0h
+    steps:
+      - name: Checkout release branch and source history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Reconstruct verified R5 CSharp baseline
+        shell: pwsh
+        run: |
+          git fetch origin merzostream-010g-r5-ci:refs/remotes/origin/merzostream-010g-r5-ci
+          $src=Join-Path $env:RUNNER_TEMP 'merzostream-src'
+          New-Item -ItemType Directory -Force -Path $src | Out-Null
+          "MERZO_SRC=$src" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:MERZO_SRC=$src
+          $py=@'
+          import base64,hashlib,os,pathlib,tarfile,subprocess
+          root=pathlib.Path(os.environ['MERZO_SRC']); ref='origin/merzostream-010g-r5-ci'
+          def rd(p): return subprocess.check_output(['git','show',f'{ref}:{p}'],text=True).replace('\n','').replace('\r','').strip()
+          c0=rd('merzostream/ci/010g-r5-csharp8/chunk00.b64')
+          c1=rd('merzostream/ci/010g-r5-csharp8/chunk01.b64')
+          p1=rd('merzostream/ci/010g-r5-csharp/part01.b64')
+          p2=rd('merzostream/ci/010g-r5-csharp/part02-correct.b64')
+          p3=rd('merzostream/ci/010g-r5-csharp/part02.b64')
+          p4=rd('merzostream/ci/010g-r5-csharp/part04.b64')
+          p5=rd('merzostream/ci/010g-r5-csharp/part05.b64')
+          p6=rd('merzostream/ci/010g-r5-csharp/part06.b64')
+          text=c0+c1+p1[2000:]+p2+p3+p4+p5+p6
+          assert len(text)==93332,len(text)
+          raw=base64.b64decode(text,validate=True)
+          want='b80d662f290bd5cddcbf33847a9b7fd8abbd141e714a7708560c9032a6e4eb6f'
+          got=hashlib.sha256(raw).hexdigest(); assert got==want,(got,want)
+          tgz=pathlib.Path(os.environ['RUNNER_TEMP'])/'r5.tar.gz'; tgz.write_bytes(raw)
+          with tarfile.open(tgz,'r:gz') as t: t.extractall(root)
+          assert (root/'MerzoStream.NetHost.sln').exists()
+          print('R5 BASELINE SHA PASS',got)
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'rebuild_r5.py'; Set-Content $p $py -Encoding UTF8
+          python $p
+          if($LASTEXITCODE -ne 0){throw 'R5 reconstruction failed'}
+
+      - name: Reconstruct exact verified R5 to 0.1.0h overlay
+        shell: pwsh
+        run: |
+          $py=@'
+          import base64,hashlib,lzma,os,pathlib,tarfile
+          repo=pathlib.Path.cwd(); src=pathlib.Path(os.environ['MERZO_SRC'])
+          base=repo/'merzostream/ci/010h-r5-overlay'
+          fix=repo/'merzostream/ci/010h-r5-overlay-fix'
+          expected=[
+          '9048a8c09fc1aaf78c9070d6b1ef46fc5be4b8e8f232b02fb7f8b5c50733bc40',
+          '6822d4b36cc7baf3ed4cbb77b3952e7fc43cf5a8b389b858a87f7ad783ceac5a',
+          '71720d704b82977a71ccd917efffbae0e7b58eff7392f61b4ef69a7b4baca372',
+          '3aaba00d7721164e8d5e94784dc865b5aa9e218501e364d585f535634666d78b',
+          '064d48a39f4f6b3c86a9b7ccd09a5421d7e3b52ae1b9df6d33cde56fbbc3c885',
+          '70a68992e2b7718ee217149129381fe53419a6bac71141357f423d1d29543f0b',
+          'b1acc1f156b345299807f450920698eb0c7cd2076b9700a387090af6fc7ccac9',
+          '35ddba3257c0666f8e2a5710983792bd781e029ac0d47edb24426b124e8c964d',
+          'd4da55f49897999ec3e0b2650d56374317c2629bbdb4ca81fc85af819d6f1c9e',
+          'aca0138882b57d0a472955be3dc7ef2ca7154e1dab6f256b74e386fc1fbd0b92',
+          '141ebd4a18dcc42176b44c3445ddfe9f749cc7b4fd1a86f21509212a92e0ba6c',
+          '80cebf1f2d9e4690f05e9df646802d54299a009ed13e083d7300e26f83f05192',
+          '28e819dc3b81c5df6b4feb76f463c874b9243104cbd7d95a23c858ad6d16298b',
+          '40a945677d03fb0cf40f2e56cd88195f51732c71d10e55be6bc211f265f80eb6']
+          parts=[]
+          for i in range(14):
+              if i==8:
+                  s=''.join((fix/f'part08{x}.txt').read_text().strip() for x in 'abc')
+              elif i==9:
+                  s=''.join((fix/f'part09{x}.txt').read_text().strip() for x in 'abc')
+              else:
+                  s=(base/f'part{i:02d}.b64').read_text().replace('\n','').replace('\r','').strip()
+              got=hashlib.sha256(s.encode()).hexdigest()
+              assert got==expected[i],(i,len(s),got,expected[i])
+              parts.append(s)
+              print(f'PART {i:02d} PASS len={len(s)} sha={got}')
+          text=''.join(parts)
+          assert len(text)==202236,len(text)
+          text += '='*((4-len(text)%4)%4)
+          raw=base64.b64decode(text,validate=True)
+          want='8244cf194a7738527613c0a844149065db53b5c67953e702c227ede93fa96ecc'
+          got=hashlib.sha256(raw).hexdigest(); assert got==want,(got,want)
+          xz=pathlib.Path(os.environ['RUNNER_TEMP'])/'010h-r5-overlay.tar.xz'; xz.write_bytes(raw)
+          with lzma.open(xz,'rb') as xf:
+              with tarfile.open(fileobj=xf,mode='r:') as tf: tf.extractall(src)
+          assert (src/'content/app_info.json').exists()
+          print('0.1.0h OVERLAY SHA PASS',got)
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'apply_010h.py'; Set-Content $p $py -Encoding UTF8
+          python $p
+          if($LASTEXITCODE -ne 0){throw '0.1.0h overlay reconstruction failed'}
+
+      - name: Restore and verify MerzoStream brand assets
+        shell: pwsh
+        run: |
+          $old=Join-Path $env:RUNNER_TEMP 'MerzoStreamSetup-0.0.8a.exe'
+          $oldSha=Join-Path $env:RUNNER_TEMP 'MerzoStreamSetup-0.0.8a.sha256'
+          Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Merzo4/my-app-updates/v0.0.8a/MerzoStreamSetup.exe' -OutFile $old
+          Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Merzo4/my-app-updates/v0.0.8a/MerzoStreamSetup.sha256' -OutFile $oldSha
+          $wantOld=((Get-Content $oldSha -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+          $gotOld=(Get-FileHash $old -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($wantOld -ne $gotOld){ throw "Old installer SHA mismatch: $gotOld != $wantOld" }
+          $brand=Join-Path $env:RUNNER_TEMP 'oldbrand'
+          New-Item -ItemType Directory -Force $brand | Out-Null
+          $seven='C:\Program Files\7-Zip\7z.exe'
+          if(Test-Path $seven){ & $seven x $old "-o$brand" -y | Out-Host }
+          $ico=Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.ico' -ErrorAction SilentlyContinue | Select-Object -First 1
+          $png=Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.png' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $ico -or -not $png){
+            Remove-Item $brand -Recurse -Force -ErrorAction SilentlyContinue
+            New-Item -ItemType Directory -Force $brand | Out-Null
+            $args=@('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-',"/DIR=$brand")
+            $proc=Start-Process -FilePath $old -ArgumentList $args -Wait -PassThru
+            if($proc.ExitCode -ne 0){ throw "Old installer extraction fallback failed: $($proc.ExitCode)" }
+            $ico=Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.ico' -ErrorAction SilentlyContinue | Select-Object -First 1
+            $png=Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.png' -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if(-not $ico -or -not $png){ throw 'MerzoStream brand assets not found in verified old installer' }
+          $icoHash=(Get-FileHash $ico.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $pngHash=(Get-FileHash $png.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($icoHash -ne '58b5f9c3b0f5ba731400414a08ccda6ed860ca1b64a8f894cac9ef0e251b4c28'){ throw "ICO SHA mismatch: $icoHash" }
+          if($pngHash -ne 'a96c9b3b920af13b1297268fe0c9a22bfcdf2cd12127c7b4161c57695a52364c'){ throw "PNG SHA mismatch: $pngHash" }
+          New-Item -ItemType Directory -Force "$env:MERZO_SRC\content" | Out-Null
+          New-Item -ItemType Directory -Force "$env:MERZO_SRC\ui\web" | Out-Null
+          Copy-Item $ico.FullName "$env:MERZO_SRC\content\MerzoStreamSuite.ico" -Force
+          Copy-Item $png.FullName "$env:MERZO_SRC\content\MerzoStreamSuite.png" -Force
+          Copy-Item $png.FullName "$env:MERZO_SRC\ui\web\MerzoStreamSuite.png" -Force
+          Write-Host 'BRAND ASSETS SHA PASS'
+
+      - name: Verify 0.1.0h source identity
+        shell: pwsh
+        run: |
+          $info=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json
+          if($info.version -ne '0.1.0h'){ throw "Wrong app version: $($info.version)" }
+          if(-not(Test-Path "$env:MERZO_SRC\MerzoStream.NetHost.sln")){throw 'Solution missing'}
+          if(-not(Test-Path "$env:MERZO_SRC\src\MerzoStream.Host\MerzoApiServer.cs")){throw 'Merzo API server missing'}
+          if(-not(Test-Path "$env:MERZO_SRC\ui\web\app.js")){throw 'UI app.js missing'}
+          Write-Host 'SOURCE IDENTITY PASS version=0.1.0h'
+
+      - name: JavaScript syntax check
+        shell: pwsh
+        run: |
+          node --check "$env:MERZO_SRC\ui\web\app.js"
+          if($LASTEXITCODE -ne 0){throw 'app.js syntax failed'}
+          node --check "$env:MERZO_SRC\ui\web\concept.js"
+          if($LASTEXITCODE -ne 0){throw 'concept.js syntax failed'}
+
+      - name: Static Pure .NET selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./SELFTEST_PURE_DOTNET_STATIC.ps1
+          if($LASTEXITCODE -ne 0){throw 'Static selftest failed'}
+
+      - name: Restore and compile full solution
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet restore MerzoStream.NetHost.sln
+          if($LASTEXITCODE -ne 0){throw 'dotnet restore failed'}
+          dotnet build MerzoStream.NetHost.sln -c Release --no-restore
+          if($LASTEXITCODE -ne 0){throw 'dotnet build failed'}
+
+      - name: Foundation selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet run --project tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj -c Release --no-restore
+          if($LASTEXITCODE -ne 0){throw 'Foundation selftest failed'}
+
+      - name: Create canonical full source package
+        shell: pwsh
+        run: |
+          $dst=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_0.1.0h_SOURCE.zip'
+          $exclude=@('bin','obj','artifacts')
+          $stage=Join-Path $env:RUNNER_TEMP 'source-stage'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Get-ChildItem $env:MERZO_SRC -Force | Where-Object { $exclude -notcontains $_.Name } | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
+          Get-ChildItem $stage -Recurse -Directory | Where-Object { $_.Name -in @('bin','obj','artifacts') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path "$stage\*" -DestinationPath $dst -CompressionLevel Optimal -Force
+          if(-not(Test-Path $dst)){throw 'Source ZIP missing'}
+          "SOURCE_ZIP=$dst" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE ZIP $((Get-Item $dst).Length) bytes SHA=$((Get-FileHash $dst -Algorithm SHA256).Hash)"
+
+      - name: Build self-contained runtime
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./06_BUILD_RUNTIME_RELEASE.ps1 -Version '0.1.0h' -Runtime 'win-x64'
+          if($LASTEXITCODE -ne 0){throw 'Runtime build failed'}
+          if(-not(Test-Path 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.zip')){throw 'Runtime ZIP missing'}
+
+      - name: Build branded single-file installer
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./08_BUILD_BRANDED_SETUP.ps1 -Version '0.1.0h' -RuntimeZip 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.zip'
+          if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
+          if(-not(Test-Path 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe')){throw 'Installer executable missing'}
+          $installerSha=(Get-FileHash 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe' -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256' "$installerSha  MerzoStreamSuite_Setup.exe" -Encoding ascii
+          Write-Host "INSTALLER SHA=$installerSha"
+
+      - name: Verify runtime package contents
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          $check=Join-Path $env:RUNNER_TEMP 'runtime-check'
+          Expand-Archive 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.zip' $check -Force
+          $exe=Get-ChildItem $check -Recurse -File -Filter 'MerzoStream.Host.exe' | Select-Object -First 1
+          if(-not $exe){throw 'MerzoStream.Host.exe missing from runtime'}
+          $info=Get-ChildItem $check -Recurse -File -Filter 'app_info.json' | Select-Object -First 1
+          if(-not $info){throw 'app_info.json missing from runtime'}
+          $j=Get-Content $info.FullName -Raw | ConvertFrom-Json
+          if($j.version -ne '0.1.0h'){throw "Runtime version mismatch: $($j.version)"}
+          Write-Host 'RUNTIME CONTENT PASS version=0.1.0h'
+
+      - name: Upload verified CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoStreamSuite-0.1.0h-READY
+          path: |
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.zip
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.sha256
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256
+            ${{ env.MERZO_SRC }}/RELEASE_NOTES_0.1.0h.md
+            ${{ env.SOURCE_ZIP }}
+          if-no-files-found: error
+
+      - name: Publish GitHub Release v0.1.0h
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          $tag='v0.1.0h'
+          $zip='artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.zip'
+          $sha='artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0h.sha256'
+          $setup='artifacts/branded-setup/MerzoStreamSuite_Setup.exe'
+          $setupSha='artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE -ne 0){
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --title 'MerzoStream Suite 0.1.0h' --notes-file RELEASE_NOTES_0.1.0h.md
+            if($LASTEXITCODE -ne 0){throw 'Failed to create GitHub release'}
+          }
+          gh release upload $tag $zip $sha $setup $setupSha $env:SOURCE_ZIP RELEASE_NOTES_0.1.0h.md --repo $env:GITHUB_REPOSITORY --clobber
+          if($LASTEXITCODE -ne 0){throw 'Failed to upload GitHub release assets'}
+          Write-Host 'GITHUB RELEASE v0.1.0h PUBLISHED'
