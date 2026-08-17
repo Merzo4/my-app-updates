@@ -59,47 +59,28 @@ jobs:
             if($LASTEXITCODE-ne0){throw "Patch failed $p"}
           }
 
-      - name: Collect generated UI and security-relevant source
+      - name: Collect full generated source snapshot
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $out=Join-Path $env:RUNNER_TEMP 'r45-generated-source'
+          $out=Join-Path $env:RUNNER_TEMP 'r45-generated-full-source'
           New-Item -ItemType Directory -Force $out|Out-Null
-          $wanted=@(
-            'src\MerzoOptimizer.App\MainWindow.xaml',
-            'src\MerzoOptimizer.App\MainWindow.xaml.cs',
-            'src\MerzoOptimizer.App\App.xaml',
-            'src\MerzoOptimizer.App\App.xaml.cs',
-            'src\MerzoOptimizer.App\ReleaseNotesWindow.xaml',
-            'src\MerzoOptimizer.App\ReleaseNotesWindow.xaml.cs',
-            'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs',
-            'src\MerzoOptimizer.Core\Elevation\ElevationModels.cs',
-            'src\MerzoOptimizer.Core\Updates\UpdateModels.cs',
-            'src\MerzoOptimizer.Windows\Elevation\ElevatedOperationBroker.cs',
-            'src\MerzoOptimizer.Windows\Elevation\ElevationAwareServices.cs',
-            'src\MerzoOptimizer.Windows\Updates\GitHubUpdateService.cs',
-            'src\MerzoOptimizer.ElevatedHelper\Program.cs',
-            'src\MerzoOptimizer.ElevatedHelper\helper.manifest',
-            'src\MerzoOptimizer.ElevatedHelper\MerzoOptimizer.ElevatedHelper.csproj',
-            'src\MerzoOptimizer.App\MerzoOptimizer.App.csproj',
-            'src\MerzoOptimizer.Windows\MerzoOptimizer.Windows.csproj',
-            'installer\MerzoWindowsOptimizer.iss',
-            'data\update_settings.json',
-            'build\Build-Production.ps1'
-          )
-          foreach($rel in $wanted){
-            $src=Join-Path $env:SOURCE_ROOT $rel
-            if(Test-Path $src){
-              $dst=Join-Path $out $rel
-              New-Item -ItemType Directory -Force (Split-Path $dst)|Out-Null
-              Copy-Item $src $dst -Force
-            }
+          foreach($dir in @('src','data','build','installer')){
+            $src=Join-Path $env:SOURCE_ROOT $dir
+            if(Test-Path $src){Copy-Item $src (Join-Path $out $dir) -Recurse -Force}
           }
-          Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src') -Recurse -File | Where-Object {$_.Name -match 'Update|Release|Elevat|Helper|MainWindow'} | Select-Object FullName | Out-File (Join-Path $out 'SOURCE_INDEX.txt') -Encoding UTF8
+          foreach($f in @('MerzoWindowsOptimizer.sln','Directory.Build.props')){
+            $src=Join-Path $env:SOURCE_ROOT $f
+            if(Test-Path $src){Copy-Item $src (Join-Path $out $f) -Force}
+          }
+          Get-ChildItem $out -Recurse -File | ForEach-Object {
+            $rel=$_.FullName.Substring($out.Length+1)
+            "$rel`t$($_.Length)"
+          } | Sort-Object | Set-Content (Join-Path $out 'FULL_SOURCE_INDEX.txt') -Encoding UTF8
 
       - uses: actions/upload-artifact@v4
         with:
-          name: r45-generated-layout-source
-          path: ${{ runner.temp }}/r45-generated-source
+          name: r45-generated-full-source
+          path: ${{ runner.temp }}/r45-generated-full-source
           if-no-files-found: error
           retention-days: 7
