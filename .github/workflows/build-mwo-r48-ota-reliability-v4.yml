@@ -1,0 +1,39 @@
+name: Merzo Windows Optimizer R48 OTA RELIABILITY V4
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/build-mwo-r48-ota-reliability-v4.yml'
+      - 'optimizer/scripts/r48_release_v4.ps1'
+      - 'optimizer/patches/r48_ota_reliability_wrapper.py'
+permissions:
+  contents: write
+concurrency:
+  group: mwo-r48-release-v4
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Build test and publish R48
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\optimizer\scripts\r48_release_v4.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.48-R48-OTA-BRIDGE
+          path: |
+            r48v4/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r48v4/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r48v4/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r48v4/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
