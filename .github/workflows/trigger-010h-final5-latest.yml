@@ -1,0 +1,21 @@
+name: Trigger MerzoStream 0.1.0h FINAL-5 latest
+
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/trigger-010h-final5-latest.yml']
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch FINAL-5 on latest branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run merzostream-010h-final5.yml --repo "$GITHUB_REPOSITORY" --ref merzostream-010h-release
+          echo "FINAL-5 dispatched on latest merzostream-010h-release"
