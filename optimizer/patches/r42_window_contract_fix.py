@@ -1,5 +1,5 @@
 from pathlib import Path
-import os
+import os, struct
 
 root=Path(os.environ['SOURCE_ROOT'])
 
@@ -38,4 +38,36 @@ if old not in a: raise SystemExit('R42 nav density anchor missing')
 a=a.replace(old,new)
 write(ap,a)
 
-print('R42 approved 1000x600 window contract: OK')
+# Self-contained 32-bit ICO, generated with the Python standard library so
+# production builds do not depend on Pillow or any external image package.
+w=h=32
+pixels=bytearray()
+for y in range(h-1,-1,-1):
+    for x0 in range(w):
+        # rounded dark tile
+        dx=max(0,4-x0,x0-27); dy=max(0,4-y,y-27)
+        inside=(dx*dx+dy*dy<=16)
+        if not inside:
+            b,g,r,alpha=0,0,0,0
+        else:
+            b,g,r,alpha=23,16,9,255
+            # teal border
+            if x0 in (4,5,26,27) or y in (4,5,26,27): b,g,r=172,184,85
+            # compact M mark
+            if (8<=x0<=10 and 10<=y<=23) or (21<=x0<=23 and 10<=y<=23): b,g,r=248,247,242
+            if 10<=x0<=16 and abs(y-(x0+1))<=1: b,g,r=248,247,242
+            if 16<=x0<=21 and abs(y-(33-x0))<=1: b,g,r=248,247,242
+            # teal lightning accent
+            if 16<=x0<=20 and 6<=y<=16 and (x0+y)>=24 and (x0+y)<=31: b,g,r=172,184,85
+        pixels += bytes((b,g,r,alpha))
+mask=bytes((w//8)*h)
+bi=struct.pack('<IIIHHIIIIII',40,w,h*2,1,32,0,len(pixels),0,0,0,0)
+image=bi+pixels+mask
+ico=struct.pack('<HHH',0,1,1)+struct.pack('<BBBBHHII',w,h,0,0,1,32,len(image),22)+image
+icon=root/'assets'/'MerzoWindowsOptimizer.ico'
+icon.parent.mkdir(parents=True,exist_ok=True)
+icon.write_bytes(ico)
+if not icon.exists() or icon.stat().st_size < 1000:
+    raise SystemExit('R42 icon generation failed')
+
+print('R42 approved 1000x600 window contract + icon: OK')
