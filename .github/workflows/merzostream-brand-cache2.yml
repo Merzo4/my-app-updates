@@ -1,0 +1,75 @@
+name: MerzoStream brand cache 2
+
+on:
+  push:
+    branches:
+      - merzostream-010h-release
+    paths:
+      - .github/workflows/merzostream-brand-cache2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cache:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Recover tagged installer binary
+        shell: cmd
+        run: git show v0.0.8a:MerzoStreamSetup.exe > "%RUNNER_TEMP%\MerzoStreamSetup-0.0.8a.exe"
+
+      - name: Verify and extract brand assets
+        shell: pwsh
+        run: |
+          $old = Join-Path $env:RUNNER_TEMP 'MerzoStreamSetup-0.0.8a.exe'
+          $wantLine = git show v0.0.8a:MerzoStreamSetup.sha256
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read tagged installer SHA file' }
+          $want = (($wantLine -join "`n").Trim() -split '\s+')[0].ToLowerInvariant()
+          $got = (Get-FileHash $old -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($got -ne $want) { throw "Tagged installer SHA mismatch: $got != $want" }
+          Write-Host "OLD INSTALLER SHA PASS $got"
+
+          $brand = Join-Path $env:RUNNER_TEMP 'oldbrand'
+          New-Item -ItemType Directory -Force -Path $brand | Out-Null
+          $seven = 'C:\Program Files\7-Zip\7z.exe'
+          if (-not (Test-Path $seven)) { throw '7-Zip is missing on runner' }
+          & $seven x $old "-o$brand" -y | Out-Host
+          if ($LASTEXITCODE -ne 0) { throw '7-Zip extraction failed' }
+
+          $ico = Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.ico' -ErrorAction SilentlyContinue | Select-Object -First 1
+          $png = Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.png' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $ico -or -not $png) { throw 'MerzoStream brand assets were not found in installer' }
+
+          $icoHash = (Get-FileHash $ico.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $pngHash = (Get-FileHash $png.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($icoHash -ne '58b5f9c3b0f5ba731400414a08ccda6ed860ca1b64a8f894cac9ef0e251b4c28') { throw "ICO SHA mismatch: $icoHash" }
+          if ($pngHash -ne 'a96c9b3b920af13b1297268fe0c9a22bfcdf2cd12127c7b4161c57695a52364c') { throw "PNG SHA mismatch: $pngHash" }
+
+          New-Item -ItemType Directory -Force -Path 'merzostream\brand-assets' | Out-Null
+          Copy-Item $ico.FullName 'merzostream\brand-assets\MerzoStreamSuite.ico' -Force
+          Copy-Item $png.FullName 'merzostream\brand-assets\MerzoStreamSuite.png' -Force
+          Write-Host 'BRAND ASSETS SHA PASS'
+
+      - name: Commit verified binary assets
+        shell: pwsh
+        run: |
+          git config user.name 'MerzoStream Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add merzostream/brand-assets/MerzoStreamSuite.ico merzostream/brand-assets/MerzoStreamSuite.png
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'Brand assets are already cached'
+            exit 0
+          }
+          git commit -m 'Cache verified MerzoStream brand assets'
+          if ($LASTEXITCODE -ne 0) { throw 'Brand asset commit failed' }
+          git push origin HEAD:merzostream-010h-release
+          if ($LASTEXITCODE -ne 0) { throw 'Brand asset push failed' }
+          Write-Host 'BRAND ASSETS PUSHED'
