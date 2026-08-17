@@ -1,0 +1,164 @@
+name: Merzo Windows Optimizer R46 SECURITY LAYOUT V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/build-mwo-r46-security-layout-v2.yml'
+      - 'optimizer/patches/r46_binding_finalize.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r46-release-v2
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          if($parts.Count-ne29){throw "Source parts missing: $($parts.Count)"}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('r46v2.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r46v2.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force r46v2|Out-Null;tar -xf r46v2.tar.xz -C r46v2
+          $sln=Get-ChildItem r46v2 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
+
+      - name: Apply exact R24-R46 chain
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          $patches=@('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py','r42_full_ui_rework.py','r42_window_contract_fix.py','r43_true_full_ui.py','r44_function_expansion.py','r44_finalize.py','r45_apply_selected_ux.py','r46_security_layout_hardening.py','r46_binding_finalize.py')
+          foreach($p in $patches){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
+          $ss=Get-Content $f -Raw;$ss=[regex]::Replace($ss,'Merzo Windows Optimizer — PRODUCTION R\d+[^"\r\n]*SelfTest','Merzo Windows Optimizer — PRODUCTION R46 SECURITY LAYOUT SelfTest');Set-Content $f $ss -Encoding UTF8
+
+      - name: Security all-page and OneWay gates
+        shell: pwsh
+        run: |
+          @'
+          import os,xml.etree.ElementTree as ET
+          from pathlib import Path
+          r=Path(os.environ['SOURCE_ROOT']);xp=r/'src/MerzoOptimizer.App/MainWindow.xaml';x=xp.read_text(encoding='utf-8-sig');u=(r/'src/MerzoOptimizer.Windows/Updates/GitHubUpdateService.cs').read_text(encoding='utf-8-sig');b=(r/'src/MerzoOptimizer.Windows/Elevation/ElevatedOperationBroker.cs').read_text(encoding='utf-8-sig');h=(r/'src/MerzoOptimizer.ElevatedHelper/Program.cs').read_text(encoding='utf-8-sig')
+          for t in ['MinWidth="920" MinHeight="560"','SidebarNavScroll','SidebarProtectedModeCard','OptimizationApplyBar','Production 0.1.46','Production R46']:
+              assert t in x,t
+          for i in range(12): assert f'x:Name="PageRoot{i}"' in x,f'PageRoot{i}'
+          opt=x[x.index('<!-- Optimization profiles -->'):x.index('<!-- Stage 3: Startup Optimizer -->')]
+          assert '<RowDefinition Height="*"/><RowDefinition Height="Auto"/>' in opt
+          assert '<RowDefinition Height="*"/><RowDefinition Height="58"/>' not in opt
+          root=ET.parse(xp).getroot();ns='{http://schemas.microsoft.com/winfx/2006/xaml/presentation}';xn='{http://schemas.microsoft.com/winfx/2006/xaml}'
+          required_oneway={'IsBusy','HasOptimizationScanResults','IsLightRecommended','IsStandardRecommended','DeepScanProgress','NetworkProgress','IsBalancedPowerActive','IsPerformancePowerActive','IsStartupUpdateNoticeVisible','UpdateProgress'}
+          seen=set()
+          for e in root.iter():
+              for val in e.attrib.values():
+                  if not val.startswith('{Binding '): continue
+                  prop=val[len('{Binding '):].split(',',1)[0].split('}',1)[0].strip()
+                  if prop in required_oneway:
+                      seen.add(prop);assert 'Mode=OneWay' in val,(prop,val)
+          assert required_oneway-seen==set(),('missing bindings',sorted(required_oneway-seen))
+          for t in ['OfficialOwner = "Merzo4"','OfficialRepository = "my-app-updates"','OfficialInstallerName = "MerzoWindowsOptimizerSetup-win-x64.exe"','MaximumInstallerBytes','FixedTimeShaEquals','FileShare.None','VerifiedSize','IsOfficialReleaseAssetUrl','ParseSidecarSha256','ContentLength']: assert t in u,t
+          assert '.Contains(OfficialInstallerName' not in u
+          for t in ['MERZO-ELEVATION/46','GetNamedPipeClientProcessId','--parent-pid','--nonce','RandomNumberGenerator','FileVersionInfo']: assert t in b,t
+          for t in ['MERZO-ELEVATION/46','GetNamedPipeServerProcessId','--parent-pid','--nonce','ValidateSnapshotAsync','ValidateKnownServiceAsync','ValidateKnownTaskAsync','ValidateStartupDynamicTweak','RequiresAdmin','ScanOnly']: assert t in h,t
+          main=next(z for z in root.iter(ns+'TabControl') if z.attrib.get(xn+'Name')=='MainTabs');assert len([c for c in list(main) if c.tag==ns+'TabItem'])==12
+          print('R46 SECURITY + 12 PAGE + ONEWAY GATE PASS')
+          '@|python
+          if($LASTEXITCODE-ne0){throw 'R46 source gate failed'}
+          foreach($p in Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src') -Recurse -Filter *.csproj){$z=Get-Content $p.FullName -Raw;if($z-match'<AssemblyVersion>([^<]+)</AssemblyVersion>'-and$Matches[1]-ne'0.1.46.0'){throw "Assembly $($p.Name): $($Matches[1])"};if($z-match'<FileVersion>([^<]+)</FileVersion>'-and$Matches[1]-ne'0.1.46.0'){throw "File $($p.Name): $($Matches[1])"}}
+          if(-not(Test-Path (Join-Path $env:SOURCE_ROOT 'R46_SECURITY_LAYOUT_HARDENING.marker'))){throw 'R46 marker missing'}
+          $s=Get-Content (Join-Path $env:SOURCE_ROOT 'data\update_settings.json') -Raw|ConvertFrom-Json;if(-not$s.auto_check-or$s.auto_download-or$s.auto_install-or$s.owner-ne'Merzo4'-or$s.repo-ne'my-app-updates'-or$s.release_tag_prefix-ne'mwo-v'-or$s.asset_name_contains-ne'MerzoWindowsOptimizerSetup-win-x64.exe'){throw 'Update policy/feed regression'}
+          $n=Get-Content (Join-Path $env:SOURCE_ROOT 'data\release_notes.json') -Raw|ConvertFrom-Json;if($n.version-ne'0.1.46'){throw 'Release notes version'}
+
+      - name: Build 0.1.46 without Obfuscar
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT;try{& .\build\Build-Production.ps1 -Version '0.1.46' -SkipObfuscation;if($LASTEXITCODE-ne0){throw 'Production build failed'}}finally{Pop-Location}
+
+      - name: Core SelfTest XAML and binary gates
+        shell: pwsh
+        run: |
+          dotnet run --project (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\MerzoOptimizer.SelfTest.csproj') -c Release;if($LASTEXITCODE-ne0){throw 'SelfTest failed'}
+          $dist=Join-Path $env:SOURCE_ROOT 'dist\app';foreach($n in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){$p=Join-Path $dist $n;if(-not(Test-Path $p)){throw "Missing $n"};$v=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString();if($v-ne'0.1.46.0'){throw "$n version $v"}}
+          if(Get-ChildItem $dist -Recurse -File|?{$_.Name-match'Obfuscar'}){throw 'Obfuscar artifact'}
+          foreach($f in Get-ChildItem (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App') -Recurse -Filter *.xaml|?{$_.FullName-notmatch'\\(bin|obj)\\'}){try{[xml](Get-Content $f.FullName -Raw)|Out-Null}catch{throw "Malformed XAML $($f.FullName): $($_.Exception.Message)"}}
+
+      - name: Runtime WPF bounds probe all 12 pages
+        shell: pwsh
+        run: |
+          $d=Join-Path $env:RUNNER_TEMP 'r46layout';New-Item -ItemType Directory -Force $d|Out-Null;$ap=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MerzoOptimizer.App.csproj'))
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup><ProjectReference Include="$ap" /></ItemGroup></Project>
+          "@|Set-Content (Join-Path $d 'p.csproj') -Encoding UTF8
+          @'
+          using System.Windows;using System.Windows.Controls;using System.Windows.Media;using MerzoOptimizer.App;static FrameworkElement N(DependencyObject p,string n){if(p is FrameworkElement f&&f.Name==n)return f;for(int i=0;i<VisualTreeHelper.GetChildrenCount(p);i++){var r=N(VisualTreeHelper.GetChild(p,i),n);if(r!=null)return r;}return null!;}static bool I(FrameworkElement c,FrameworkElement a){var p=c.TransformToAncestor(a).Transform(new Point(0,0));return p.X>=-2&&p.Y>=-2&&p.X+c.ActualWidth<=a.ActualWidth+2&&p.Y+c.ActualHeight<=a.ActualHeight+2;}[STAThread]static void Main(){var a=new App();a.InitializeComponent();foreach(var s in new[]{(1000d,600d),(920d,560d)}){var w=new MainWindow{Width=s.Item1,Height=s.Item2,Left=-20000,Top=-20000,ShowInTaskbar=false,ShowActivated=false};w.Show();w.UpdateLayout();var t=(TabControl)N(w,"MainTabs");var side=N(w,"SidebarProtectedModeCard");if(side is null||!I(side,w))throw new Exception("sidebar bottom overflow");for(int i=0;i<12;i++){t.SelectedIndex=i;w.UpdateLayout();var r=N(w,$"PageRoot{i}");if(r is null||r.ActualWidth<1||r.ActualHeight<1||!I(r,w))throw new Exception($"PageRoot{i} overflow at {s}");}t.SelectedIndex=2;w.UpdateLayout();var bar=N(w,"OptimizationApplyBar");if(bar is null||!I(bar,w))throw new Exception("Optimization footer overflow");w.Close();}a.Shutdown();Console.WriteLine("R46_LAYOUT_12_PAGES_PASS");}
+          '@|Set-Content (Join-Path $d 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $d 'p.csproj') -c Release;if($LASTEXITCODE-ne0){throw 'Layout probe failed'}
+
+      - name: Dispatcher and network read-only smokes
+        shell: pwsh
+        run: |
+          $d=Join-Path $env:RUNNER_TEMP 'r46smoke';New-Item -ItemType Directory -Force $d|Out-Null;$core=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Core.dll'));$win=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Windows.dll'))
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup><Reference Include="MerzoOptimizer.Core"><HintPath>$core</HintPath><Private>true</Private></Reference><Reference Include="MerzoOptimizer.Windows"><HintPath>$win</HintPath><Private>true</Private></Reference></ItemGroup></Project>
+          "@|Set-Content (Join-Path $d 's.csproj') -Encoding UTF8
+          @'
+          using MerzoOptimizer.Core.Dispatching;using MerzoOptimizer.Core.Network;using MerzoOptimizer.Windows.Elevation;using MerzoOptimizer.Windows.Network;using var d=new AsyncOperationDispatcher(2);var v=await d.RunAsync("r46",_=>Task.FromResult(46));if(v!=46)throw new Exception();await d.RunAsync("void",_=>Task.CompletedTask);var p=Path.Combine(Path.GetTempPath(),"mwo-r46-net");Directory.CreateDirectory(p);await using var b=new ElevatedOperationBroker(p,p,p);INetworkRepairService n=new WindowsNetworkRepairService(b);await n.DiagnoseAsync();Console.WriteLine("R46_RUNTIME_SMOKES_PASS");
+          '@|Set-Content (Join-Path $d 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $d 's.csproj') -c Release;if($LASTEXITCODE-ne0){throw 'Runtime smoke failed'}
+
+      - name: Full EXE startup smoke
+        shell: pwsh
+        run: |
+          $e=Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe';$p=Start-Process $e -WorkingDirectory (Split-Path $e) -PassThru;Start-Sleep 20;if($p.HasExited){throw "App exited $($p.ExitCode)"};Stop-Process $p.Id -Force
+
+      - name: Build installer portable and SHA256
+        shell: pwsh
+        run: |
+          $a=Join-Path $env:SOURCE_ROOT 'dist\app';$z=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip';if(Test-Path $z){Remove-Item $z -Force};Compress-Archive -Path (Join-Path $a '*') -DestinationPath $z -CompressionLevel Optimal
+          $iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe')|?{Test-Path $_}|Select-Object -First 1;if(-not$iscc){throw 'ISCC missing'};Push-Location $env:SOURCE_ROOT;try{& $iscc '/DMyAppVersion=0.1.46' '.\installer\MerzoWindowsOptimizer.iss';if($LASTEXITCODE-ne0){throw 'Inno failed'}}finally{Pop-Location}
+          $d=Join-Path $env:SOURCE_ROOT 'dist';foreach($f in @((Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe'),(Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip'))){if(-not(Test-Path $f)){throw "Missing $f"};$h=(Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant();"$h  $(Split-Path $f -Leaf)"|Set-Content ($f+'.sha256') -Encoding ascii -NoNewline}
+
+      - name: Upload gated R46
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-R46-SECURITY-LAYOUT
+          path: |
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish mwo-v0.1.46 after all gates
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $d=Join-Path $env:SOURCE_ROOT 'dist';$tag='mwo-v0.1.46';$files=@((Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe'),(Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'),(Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip'),(Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256'));$notes='R46 SECURITY + LAYOUT HARDENING: исправлен низ интерфейса и боковая навигация; все 12 страниц проходят layout gates; read-only UI bindings переведены на явный OneWay; updater проверяет официальный источник, точное имя, размер, GitHub digest и SHA-256 sidecar; elevated helper использует PID/nonce Named Pipe handshake и allow-list; Snapshot/Undo сохранены; Obfuscar запрещён. Authenticode подключается отдельно после появления внешнего code-signing сертификата.'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null|Out-Null
+          if($LASTEXITCODE-eq0){gh release edit $tag --repo $env:GITHUB_REPOSITORY --title 'Merzo Windows Optimizer 0.1.46 R46 SECURITY LAYOUT' --notes $notes;gh release upload $tag @files --repo $env:GITHUB_REPOSITORY --clobber}else{gh release create $tag @files --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.46 R46 SECURITY LAYOUT' --notes $notes}
+          if($LASTEXITCODE-ne0){throw 'Release publish failed'}
