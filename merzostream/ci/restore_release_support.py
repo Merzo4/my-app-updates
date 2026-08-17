@@ -14,3 +14,9 @@ if old in s:
 elif new not in s:
     raise SystemExit('StreamerBotService Select expression not found')
 print('STREAMERBOT SELECT FIX PASS')
+legacy=root/'src'/'MerzoStream.Host'/'MerzoStreamApiServer.cs'
+if legacy.exists():
+    legacy.unlink()
+    print('REMOVED OBSOLETE MerzoStreamApiServer.cs')
+else:
+    print('OBSOLETE MerzoStreamApiServer.cs ALREADY ABSENT')
