@@ -1,0 +1,36 @@
+name: MerzoStream probe verified R5 base
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/merzostream-010h-probe-r5.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct verified R5 package from its CI branch
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:RUNNER_TEMP 'r5src'; New-Item -ItemType Directory -Force -Path $root|Out-Null
+          $env:R5_ROOT=$root
+          $py=@'
+          import base64,hashlib,os,pathlib,tarfile,subprocess
+          root=pathlib.Path(os.environ['R5_ROOT']); ref='origin/merzostream-010g-r5-ci'
+          def rd(p):return subprocess.check_output(['git','show',f'{ref}:{p}'],text=True).replace('\n','').replace('\r','').strip()
+          c0=rd('merzostream/ci/010g-r5-csharp8/chunk00.b64');c1=rd('merzostream/ci/010g-r5-csharp8/chunk01.b64')
+          p1=rd('merzostream/ci/010g-r5-csharp/part01.b64');p2=rd('merzostream/ci/010g-r5-csharp/part02-correct.b64');p3=rd('merzostream/ci/010g-r5-csharp/part02.b64');p4=rd('merzostream/ci/010g-r5-csharp/part04.b64');p5=rd('merzostream/ci/010g-r5-csharp/part05.b64');p6=rd('merzostream/ci/010g-r5-csharp/part06.b64')
+          text=c0+c1+p1[2000:]+p2+p3+p4+p5+p6;assert len(text)==93332,len(text)
+          raw=base64.b64decode(text,validate=True); got=hashlib.sha256(raw).hexdigest();want='b80d662f290bd5cddcbf33847a9b7fd8abbd141e714a7708560c9032a6e4eb6f';assert got==want,(got,want)
+          tgz=pathlib.Path(os.environ['RUNNER_TEMP'])/'r5.tar.gz';tgz.write_bytes(raw)
+          with tarfile.open(tgz,'r:gz') as t:t.extractall(root)
+          checks=['MerzoStream.NetHost.sln','src/MerzoStream.Host/MerzoStream.Host.csproj','tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj','ui/web/index.html','ui/web/app.js','content/app_info.json','06_BUILD_RUNTIME_RELEASE.ps1','08_BUILD_BRANDED_SETUP.ps1','SELFTEST_PURE_DOTNET_STATIC.ps1']
+          for x in checks:print(x,'YES' if (root/x).exists() else 'NO')
+          print('FILES',sum(1 for x in root.rglob('*') if x.is_file()))
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'probe.py';Set-Content $p $py -Encoding UTF8;python $p
+          if($LASTEXITCODE -ne 0){throw 'R5 reconstruction failed'}
