@@ -42,6 +42,7 @@ rep(
 'performance active state')
 
 rep('Text="Все доступные схемы Windows"','Text="Все схемы Windows"','power schemes label')
+rep('Text="Состояние Windows, рекомендации и быстрые действия"','Text="Состояние системы Windows, рекомендации и быстрые действия"','dashboard state heading')
 
 p.write_text(s,encoding='utf-8')
 (root/'R43_UI_CONTRACT_FIX.marker').write_text('R43 UI CONTRACT FIX\n',encoding='utf-8')
