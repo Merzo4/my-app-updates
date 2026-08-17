@@ -45,3 +45,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run build-mwo-r43-true-full-ui.yml --ref merzo-windows-optimizer
+
+# R43 dashboard wording pass
