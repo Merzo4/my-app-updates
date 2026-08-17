@@ -38,4 +38,11 @@ new='''        string? metadataError = null;\n        if (!HasOfficialProduction
 if u.count(old)!=1: raise SystemExit(f'R46 updater definite-assignment anchor count {u.count(old)}')
 u=u.replace(old,new,1)
 updater.write_text(u,encoding='utf-8')
-print('R46 OneWay/helper/feed/updater compile finalize: OK')
+selftest=root/'src'/'MerzoOptimizer.SelfTest'/'Program.cs'
+st=selftest.read_text(encoding='utf-8-sig')
+old_test='''    if (!xaml.Contains("MinWidth=\\"880\\" MinHeight=\\"520\\"", StringComparison.Ordinal)) failures.Add("Approved minimum window must remain 880x520.");'''
+new_test='''    if (!xaml.Contains("MinWidth=\\"920\\" MinHeight=\\"560\\"", StringComparison.Ordinal)) failures.Add("R46 safe minimum window must remain 920x560.");'''
+if st.count(old_test)!=1: raise SystemExit(f'R46 minimum-window selftest anchor count {st.count(old_test)}')
+st=st.replace(old_test,new_test,1)
+selftest.write_text(st,encoding='utf-8')
+print('R46 OneWay/helper/feed/updater/minimum-window SelfTest finalize: OK')
