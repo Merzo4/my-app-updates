@@ -5,16 +5,12 @@ on:
     branches: [merzostream-010g-r5-ci]
     paths:
       - '.github/workflows/merzostream-010g-r5-ci.yml'
-      - 'merzostream/ci/010g-r5-csharp/**'
-      - 'merzostream/ci/010g-r5-csharp8/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  SOURCE_SHA256: d79b349825d817680477a1af849c4508efd3f1e6baf818c774239f1db11ef42e
-  SNAPSHOT_COMMIT: 65895b85afaae8f06252190c29a3f9e848e4b41c
   OVERLAY_SHA256: b80d662f290bd5cddcbf33847a9b7fd8abbd141e714a7708560c9032a6e4eb6f
 
 jobs:
@@ -23,48 +19,13 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Recover exact R17 source
+      - name: Assemble verified complete R5 CSharp source
         shell: pwsh
         run: |
-          $py=@'
-          import base64,hashlib,subprocess,os,pathlib
-          c=os.environ['SNAPSHOT_COMMIT'];target=os.environ['SOURCE_SHA256']
-          def gs(p):return subprocess.check_output(['git','show',f'{c}:{p}'],text=True).replace('\n','').replace('\r','').strip()
-          def rd(p):return pathlib.Path(p).read_text(encoding='utf-8').replace('\n','').replace('\r','').strip()
-          parts={i:gs(f'merzostream/ci/r17-zip/part{i:02d}.b64') for i in range(16)}
-          exact={16:rd('merzostream/ci/r17-exact/chunk16.txt'),17:rd('merzostream/ci/r17-exact/chunk17.txt'),24:rd('merzostream/ci/r17-exact/chunk24.txt'),25:rd('merzostream/ci/r17-exact/chunk25.txt')}
-          pref=[]
-          for i in range(15):
-              x=(exact[16]+exact[17]) if i==8 else ((exact[24]+exact[25]) if i==12 else parts[i][:20000])
-              assert len(x)==20000,(i,len(x));pref.append(x)
-          pb=base64.b64decode(''.join(pref),validate=True);assert len(pb)==225000
-          raw=base64.b64decode(parts[15],validate=True);need=44574;extra=len(raw)-need;found=None
-          for off in range(len(raw)-need+1):
-              tail=raw[off:off+need]
-              if hashlib.sha256(pb+tail).hexdigest()==target:found=pb+tail;break
-          if found is None and extra>0:
-              for off in range(len(raw)-extra+1):
-                  tail=raw[:off]+raw[off+extra:]
-                  if hashlib.sha256(pb+tail).hexdigest()==target:found=pb+tail;break
-          if found is None:raise SystemExit('R17 tail recovery failed')
-          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'MerzoStreamSuite_R17_SOURCE.zip';out.write_bytes(found)
-          print('R17 RECOVERY PASS',len(found),hashlib.sha256(found).hexdigest())
-          with open(os.environ['GITHUB_ENV'],'a',encoding='utf8') as f:f.write(f'SOURCE_ZIP={out}\n')
-          '@
-          $p=Join-Path $env:RUNNER_TEMP 'recover_r17.py';Set-Content $p $py -Encoding UTF8;python $p
-          if($LASTEXITCODE -ne 0){throw 'R17 recovery failed'}
-
-      - name: Expand R17 and apply verified R5 CSharp overlay
-        shell: pwsh
-        run: |
-          $src=Join-Path $env:RUNNER_TEMP 'src'
-          Expand-Archive $env:SOURCE_ZIP $src -Force
-          $sln=Get-ChildItem $src -Recurse -Filter MerzoStream.NetHost.sln -File|Select-Object -First 1
-          if(-not $sln){throw 'MerzoStream.NetHost.sln missing in recovered source'}
-          $root=$sln.Directory.FullName
+          $root=Join-Path $env:RUNNER_TEMP 'r5src'
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          $env:R5_ROOT=$root
           $py=@'
           import base64,hashlib,os,pathlib,tarfile
           root=pathlib.Path(os.environ['R5_ROOT'])
@@ -77,19 +38,21 @@ jobs:
           p4=rd('merzostream/ci/010g-r5-csharp/part04.b64')
           p5=rd('merzostream/ci/010g-r5-csharp/part05.b64')
           p6=rd('merzostream/ci/010g-r5-csharp/part06.b64')
-          # c0+c1 = source positions 0..15999. p1 is 14000..27999, so skip its 2000-char overlap.
           text=c0+c1+p1[2000:]+p2+p3+p4+p5+p6
           assert len(text)==93332,len(text)
           raw=base64.b64decode(text,validate=True)
           got=hashlib.sha256(raw).hexdigest();want=os.environ['OVERLAY_SHA256']
-          if got!=want:raise SystemExit(f'R5 overlay SHA mismatch {got} != {want}')
-          tgz=pathlib.Path(os.environ['RUNNER_TEMP'])/'r5-overlay.tar.gz';tgz.write_bytes(raw)
+          if got!=want:raise SystemExit(f'R5 source SHA mismatch {got} != {want}')
+          tgz=pathlib.Path(os.environ['RUNNER_TEMP'])/'r5-csharp.tar.gz';tgz.write_bytes(raw)
           with tarfile.open(tgz,'r:gz') as t:t.extractall(root)
-          print('R5 OVERLAY PASS',len(raw),got,'ROOT',root)
+          sln=root/'MerzoStream.NetHost.sln'
+          if not sln.exists():raise SystemExit('solution missing after R5 extraction')
+          print('R5 SOURCE PASS',len(raw),got)
           '@
-          $env:R5_ROOT=$root
-          $p=Join-Path $env:RUNNER_TEMP 'apply_r5.py';Set-Content $p $py -Encoding UTF8;python $p
-          if($LASTEXITCODE -ne 0){throw 'R5 overlay apply failed'}
+          $p=Join-Path $env:RUNNER_TEMP 'assemble_r5.py'
+          Set-Content $p $py -Encoding UTF8
+          python $p
+          if($LASTEXITCODE -ne 0){throw 'R5 source assembly failed'}
           "R5_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - uses: actions/setup-dotnet@v4
@@ -108,14 +71,13 @@ jobs:
         shell: pwsh
         run: dotnet run --project "$env:R5_ROOT/tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj" -c Release
 
-      - name: CI proof
+      - name: Create proof
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP/proof" | Out-Null
           @(
             'MerzoStream Suite 0.1.0g R5',
-            'R17 recovery: PASS',
-            'R5 overlay SHA-256: ' + $env:OVERLAY_SHA256,
+            'Complete CSharp source SHA-256: ' + $env:OVERLAY_SHA256,
             'dotnet restore: PASS',
             'dotnet build Release: PASS',
             'Foundation SelfTest: PASS',
