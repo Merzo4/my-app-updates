@@ -28,8 +28,9 @@ jobs:
           New-Item -ItemType Directory -Force r43base|Out-Null;tar -xf r43base.tar.xz -C r43base
           $sln=Get-ChildItem r43base -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
           if(-not$sln){throw 'Solution missing'}
-          "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
-          $f=Join-Path $sln.Directory.FullName 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $env:SOURCE_ROOT=$sln.Directory.FullName
+          "SOURCE_ROOT=$env:SOURCE_ROOT" >> $env:GITHUB_ENV
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
           $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
           $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
           $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
