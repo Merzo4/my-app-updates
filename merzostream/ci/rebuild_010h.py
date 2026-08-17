@@ -1,4 +1,4 @@
-import base64, hashlib, lzma, os, pathlib, subprocess, tarfile
+import base64, hashlib, lzma, os, pathlib, subprocess, sys, tarfile
 
 repo = pathlib.Path.cwd()
 root = pathlib.Path(os.environ['MERZO_SRC'])
@@ -73,3 +73,6 @@ with lzma.open(xz,'rb') as xf:
         tf.extractall(root)
 assert (root/'content/app_info.json').exists()
 print('0.1.0h OVERLAY SHA PASS',got)
+
+subprocess.check_call([sys.executable, str(repo/'merzostream/ci/restore_wrappers.py')])
+print('PURE DOTNET WRAPPERS RESTORED')
