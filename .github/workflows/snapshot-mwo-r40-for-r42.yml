@@ -40,19 +40,21 @@ jobs:
             if($LASTEXITCODE-ne0){throw "Patch failed: $p"}
           }
 
-      - name: Commit exact R40 App snapshot
+      - name: Commit exact R40 UI snapshot
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $dst='optimizer/snapshots/r40-app'
-          if(Test-Path $dst){Remove-Item $dst -Recurse -Force}
+          $dst='optimizer/snapshots/r40-ui'
           New-Item -ItemType Directory -Force $dst|Out-Null
-          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\*') $dst -Recurse -Force
-          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MerzoOptimizer.App.csproj') $dst -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml') (Join-Path $dst 'MainWindow.xaml') -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml.cs') (Join-Path $dst 'MainWindow.xaml.cs') -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\App.xaml') (Join-Path $dst 'App.xaml') -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\App.xaml.cs') (Join-Path $dst 'App.xaml.cs') -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') (Join-Path $dst 'MainWindowViewModel.cs') -Force
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add $dst
-          if(-not (git diff --cached --quiet)){
-            git commit -m 'Snapshot exact cumulative R40 app for R42 redesign'
-            git push origin HEAD:merzo-windows-optimizer
-          }
+          git add -f $dst
+          git commit -m 'Snapshot exact cumulative R40 UI for R42 redesign'
+          if($LASTEXITCODE-ne0){throw 'Snapshot commit failed'}
+          git push origin HEAD:merzo-windows-optimizer
+          if($LASTEXITCODE-ne0){throw 'Snapshot push failed'}
