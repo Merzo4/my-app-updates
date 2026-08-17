@@ -1,0 +1,58 @@
+name: Snapshot MWO R40 UI for R42
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/snapshot-mwo-r40-for-r42.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Restore trusted source and apply cumulative R24-R40
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          if($parts.Count-ne29){throw 'Source parts missing'}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('snapshot-r40.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash snapshot-r40.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force snapshot-r40|Out-Null
+          tar -xf snapshot-r40.tar.xz -C snapshot-r40
+          $sln=Get-ChildItem snapshot-r40 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          $env:SOURCE_ROOT=$sln.Directory.FullName
+          foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py')){
+            python (Join-Path 'optimizer/patches' $p)
+            if($LASTEXITCODE-ne0){throw "Patch failed: $p"}
+          }
+
+      - name: Commit exact R40 App snapshot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dst='optimizer/snapshots/r40-app'
+          if(Test-Path $dst){Remove-Item $dst -Recurse -Force}
+          New-Item -ItemType Directory -Force $dst|Out-Null
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\*') $dst -Recurse -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MerzoOptimizer.App.csproj') $dst -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $dst
+          if(-not (git diff --cached --quiet)){
+            git commit -m 'Snapshot exact cumulative R40 app for R42 redesign'
+            git push origin HEAD:merzo-windows-optimizer
+          }
