@@ -34,11 +34,13 @@ jobs:
           tar -xf snapshot-r40.tar.xz -C snapshot-r40
           $sln=Get-ChildItem snapshot-r40 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
           if(-not$sln){throw 'Solution missing'}
-          $env:SOURCE_ROOT=$sln.Directory.FullName
+          $sourceRoot=$sln.Directory.FullName
           foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py')){
+            $env:SOURCE_ROOT=$sourceRoot
             python (Join-Path 'optimizer/patches' $p)
             if($LASTEXITCODE-ne0){throw "Patch failed: $p"}
           }
+          "SOURCE_ROOT=$sourceRoot" >> $env:GITHUB_ENV
 
       - name: Commit exact R40 UI snapshot
         shell: pwsh
