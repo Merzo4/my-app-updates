@@ -1,0 +1,34 @@
+name: Fix R48 cumulative chain
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/fix-r48-chain.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Replace temporary R47 patch with final R47 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/build-mwo-r48-ota-reliability.yml')
+          s=p.read_text(encoding='utf-8')
+          old="'r47_simple_builds.py','r47_scan_status_fix.py','r48_ota_reliability.py'"
+          new="'r47_simple_builds.py','r47_finalize.py','r48_ota_reliability.py'"
+          if old not in s:
+              raise SystemExit('R48 chain anchor missing')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/build-mwo-r48-ota-reliability.yml
+          git commit -m 'Use final R47 patch in R48 chain'
+          git push origin HEAD:merzo-windows-optimizer
