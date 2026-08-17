@@ -18,4 +18,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run merzostream-010h-final5.yml --repo "$GITHUB_REPOSITORY" --ref merzostream-010h-release
-          echo "FINAL-5 dispatched on latest merzostream-010h-release"
+          echo "FINAL-5 dispatched after release-support restore"
