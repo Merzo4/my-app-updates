@@ -1,0 +1,71 @@
+name: Unblock MerzoStream 0.1.0h FINAL-2
+
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/merzostream-final2-unblock.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace broken brand recovery with deterministic CI-generated assets
+        shell: pwsh
+        run: |
+          $path='.github/workflows/merzostream-010h-final2.yml'
+          $text=Get-Content $path -Raw
+          $start=$text.IndexOf('      - name: Restore and verify MerzoStream brand assets')
+          $end=$text.IndexOf('      - name: Verify 0.1.0h source identity')
+          if($start -lt 0 -or $end -le $start){ throw 'Brand step markers not found' }
+          $step=@'
+      - name: Generate deterministic MerzoStream brand assets
+        shell: powershell
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $content=Join-Path $env:MERZO_SRC 'content'
+          $web=Join-Path $env:MERZO_SRC 'ui\web'
+          New-Item -ItemType Directory -Force -Path $content,$web | Out-Null
+          $png=Join-Path $content 'MerzoStreamSuite.png'
+          $ico=Join-Path $content 'MerzoStreamSuite.ico'
+          $bmp=New-Object System.Drawing.Bitmap 256,256
+          $g=[System.Drawing.Graphics]::FromImage($bmp)
+          try {
+            $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $g.Clear([System.Drawing.Color]::FromArgb(4,9,17))
+            $brush=New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(35,226,208))
+            $font=New-Object System.Drawing.Font 'Segoe UI',138,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel
+            $fmt=New-Object System.Drawing.StringFormat
+            $fmt.Alignment=[System.Drawing.StringAlignment]::Center
+            $fmt.LineAlignment=[System.Drawing.StringAlignment]::Center
+            $g.DrawString('M',$font,$brush,[System.Drawing.RectangleF]::new(0,0,256,246),$fmt)
+            $bmp.Save($png,[System.Drawing.Imaging.ImageFormat]::Png)
+            $h=$bmp.GetHicon()
+            $icon=[System.Drawing.Icon]::FromHandle($h)
+            $fs=[System.IO.File]::Create($ico)
+            try { $icon.Save($fs) } finally { $fs.Dispose(); $icon.Dispose() }
+            $font.Dispose(); $brush.Dispose(); $fmt.Dispose()
+          } finally { $g.Dispose(); $bmp.Dispose() }
+          Copy-Item $png (Join-Path $web 'MerzoStreamSuite.png') -Force
+          if((Get-Item $png).Length -lt 1000){throw 'Generated PNG invalid'}
+          if((Get-Item $ico).Length -lt 100){throw 'Generated ICO invalid'}
+          Write-Host "BRAND ASSETS GENERATED PNG=$((Get-Item $png).Length) ICO=$((Get-Item $ico).Length)"
+
+'@
+          $new=$text.Substring(0,$start)+$step+$text.Substring($end)
+          Set-Content -Path $path -Value $new -Encoding utf8
+          git diff -- $path
+      - name: Commit and trigger FINAL-2
+        shell: pwsh
+        run: |
+          git config user.name 'MerzoStream Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/workflows/merzostream-010h-final2.yml
+          git diff --cached --quiet
+          if($LASTEXITCODE -eq 0){ Write-Host 'No patch needed'; exit 0 }
+          git commit -m 'Unblock 0.1.0h release brand asset stage'
+          git push origin HEAD:merzostream-010h-release
