@@ -45,31 +45,53 @@ jobs:
           if got!=want:raise SystemExit(f'R5 source SHA mismatch {got} != {want}')
           tgz=pathlib.Path(os.environ['RUNNER_TEMP'])/'r5-csharp.tar.gz';tgz.write_bytes(raw)
           with tarfile.open(tgz,'r:gz') as t:t.extractall(root)
-          sln=root/'MerzoStream.NetHost.sln'
-          if not sln.exists():raise SystemExit('solution missing after R5 extraction')
+          if not (root/'MerzoStream.NetHost.sln').exists():raise SystemExit('solution missing')
           print('R5 SOURCE PASS',len(raw),got)
           '@
-          $p=Join-Path $env:RUNNER_TEMP 'assemble_r5.py'
-          Set-Content $p $py -Encoding UTF8
-          python $p
+          $p=Join-Path $env:RUNNER_TEMP 'assemble_r5.py';Set-Content $p $py -Encoding UTF8;python $p
           if($LASTEXITCODE -ne 0){throw 'R5 source assembly failed'}
           "R5_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Apply reviewed API docs compile fix and CI icon-neutral project metadata
+        shell: pwsh
+        run: |
+          $env:R5_ROOT=$env:R5_ROOT
+          $py=@'
+          import os,pathlib
+          root=pathlib.Path(os.environ['R5_ROOT'])
+          p=root/'src/MerzoStream.Host/MerzoStreamApiServer.cs'
+          s=p.read_text(encoding='utf-8')
+          start=s.index('    private string ApiDocsHtml()')
+          end=s.index('\n    public async ValueTask DisposeAsync()',start)
+          new='''    private string ApiDocsHtml()\n    {\n        var cfg = _settings.Load().Api;\n        var html = """\n<!doctype html><html lang="ru"><meta charset="utf-8"><title>MerzoStream API v1</title>\n<style>body{font:15px Segoe UI,Arial;background:#07131d;color:#dceaf4;max-width:920px;margin:40px auto;padding:0 20px}code,pre{background:#0d2230;padding:3px 6px;border-radius:5px}pre{padding:14px;overflow:auto}h1,h2{color:#37d9ef}.tag{color:#62f7b2}</style>\n<h1>MerzoStream Integration API v1</h1><p>REST: <code>http://127.0.0.1:__PORT__/api/v1</code> &nbsp; WebSocket: <code>ws://127.0.0.1:__PORT__/api/v1/ws</code></p>\n<p>Authorization: <code>Authorization: Bearer &lt;token&gt;</code> or <code>X-MerzoStream-Token</code>.</p>\n<h2>REST</h2><pre>GET /health\nGET /state\nGET /streamerbot/actions\nPOST /streamerbot/action/run\nPOST /streamerbot/media-request\nPOST /obs/command\nPOST /media/control\nPOST /music/control</pre>\n<h2>WebSocket</h2><pre>{"id":"1","method":"streamerbot.actions.list","args":{}}\n{"id":"2","method":"streamerbot.action.run","args":{"id":"ACTION_GUID","args":{}}}\n{"id":"3","method":"obs.status","args":{}}</pre>\n</html>\n""";\n        return html.Replace("__PORT__", cfg.Port.ToString());\n    }\n'''
+          p.write_text(s[:start]+new+s[end:],encoding='utf-8')
+          for rel in ['src/MerzoStream.Host/MerzoStream.Host.csproj']:
+              q=root/rel; x=q.read_text(encoding='utf-8');
+              x=x.replace('    <ApplicationIcon>..\\..\\content\\MerzoStreamSuite.ico</ApplicationIcon>\n','')
+              q.write_text(x,encoding='utf-8')
+          print('API DOCS FIX APPLIED')
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'fix_r5.py';Set-Content $p $py -Encoding UTF8;python $p
+          if($LASTEXITCODE -ne 0){throw 'R5 compile fix failed'}
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore
+      - name: Restore Host and SelfTest
         shell: pwsh
-        run: dotnet restore "$env:R5_ROOT/MerzoStream.NetHost.sln"
+        run: |
+          dotnet restore "$env:R5_ROOT/src/MerzoStream.Host/MerzoStream.Host.csproj"
+          if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+          dotnet restore "$env:R5_ROOT/tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj"
 
-      - name: Build Release
+      - name: Build Host Release
         shell: pwsh
-        run: dotnet build "$env:R5_ROOT/MerzoStream.NetHost.sln" -c Release --no-restore
+        run: dotnet build "$env:R5_ROOT/src/MerzoStream.Host/MerzoStream.Host.csproj" -c Release --no-restore
 
       - name: Foundation SelfTest
         shell: pwsh
-        run: dotnet run --project "$env:R5_ROOT/tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj" -c Release
+        run: dotnet run --project "$env:R5_ROOT/tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj" -c Release --no-restore
 
       - name: Create proof
         shell: pwsh
@@ -78,8 +100,9 @@ jobs:
           @(
             'MerzoStream Suite 0.1.0g R5',
             'Complete CSharp source SHA-256: ' + $env:OVERLAY_SHA256,
-            'dotnet restore: PASS',
-            'dotnet build Release: PASS',
+            'API docs compile fix: PASS',
+            'dotnet restore Host + SelfTest: PASS',
+            'dotnet build Host Release: PASS',
             'Foundation SelfTest: PASS',
             'UTC: ' + [DateTime]::UtcNow.ToString('o')
           ) | Set-Content "$env:RUNNER_TEMP/proof/R5_CI_PASS.txt" -Encoding UTF8
