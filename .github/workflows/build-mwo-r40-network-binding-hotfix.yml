@@ -1,0 +1,165 @@
+name: Merzo Windows Optimizer R40 NETWORK BINDING HOTFIX
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/build-mwo-r40-network-binding-hotfix.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          if($parts.Count-ne29){throw 'Source parts missing'}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('r40.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r40.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force r40|Out-Null;tar -xf r40.tar.xz -C r40
+          $sln=Get-ChildItem r40 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          "SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
+
+      - name: Apply cumulative R24-R40 patches
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          foreach($p in @('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py')){
+            python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed: $p"}
+          }
+          $self=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$ss=Get-Content $self -Raw
+          $ss=[regex]::Replace($ss,'Merzo Windows Optimizer — PRODUCTION R\d+[^"\r\n]*SelfTest','Merzo Windows Optimizer — PRODUCTION R40 NETWORK BINDING HOTFIX SelfTest')
+          $ss=$ss.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R40 NETWORK BINDING HOTFIX SelfTest')
+          Set-Content $self $ss -Encoding UTF8
+
+      - name: Branded icon
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          @'
+          from PIL import Image,ImageDraw
+          from pathlib import Path
+          import os
+          o=Path(os.environ['SOURCE_ROOT'])/'assets'/'MerzoWindowsOptimizer.ico';o.parent.mkdir(parents=True,exist_ok=True)
+          im=Image.new('RGBA',(256,256),(10,16,22,255));d=ImageDraw.Draw(im);t=(62,155,145,255);w=(238,247,247,255);p=(19,30,40,255)
+          d.rounded_rectangle((12,12,244,244),radius=52,fill=p,outline=t,width=10);d.ellipse((42,42,214,214),outline=(47,94,98,255),width=5)
+          d.line((62,176,62,91,104,142,128,105,152,142,194,91,194,176),fill=w,width=16)
+          d.polygon([(143,45),(117,104),(143,104),(126,154),(188,84),(156,84),(176,45)],fill=t)
+          im.save(o,format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          '@|Set-Content icon.py -Encoding UTF8
+          python icon.py
+
+      - name: Build 0.1.40 without obfuscation
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT
+          try { & .\build\Build-Production.ps1 -Version '0.1.40' -SkipObfuscation; if($LASTEXITCODE-ne0){throw 'Build failed'} }
+          finally { Pop-Location }
+
+      - name: Verify R40 hotfix and regression gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$root=$env:SOURCE_ROOT;$dist=Join-Path $root 'dist\app'
+          foreach($name in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
+            $p=Join-Path $dist $name;if(-not(Test-Path $p)){throw "Missing $name"}
+            $v=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString();Write-Host "$name=$v";if($v-ne'0.1.40.0'){throw "$name version gate failed: $v"}
+          }
+          $x=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
+          if(-not$x.Contains('Production R40') -or -not$x.Contains('v0.1.40')){throw 'R40 visible identity missing'}
+          if(-not$x.Contains('ProgressBar Value="{Binding NetworkProgress, Mode=OneWay}"')){throw 'NetworkProgress OneWay hotfix missing'}
+          if($x.Contains('ProgressBar Value="{Binding NetworkProgress}"')){throw 'Unsafe NetworkProgress binding remains'}
+          foreach($t in @('GAME BUILD','GAME SAFE','GAME PERFORMANCE','GAME EXTREME','GAME LAB','Gaming Network','Repair / Network','Центр выполнения')){if(-not$x.Contains($t)){throw "R39 regression: $t"}}
+          $notes=Get-Content (Join-Path $root 'data\release_notes.json') -Raw|ConvertFrom-Json;if($notes.version-ne'0.1.40'){throw 'Release notes version gate failed'}
+          if(-not(Test-Path (Join-Path $root 'R40_NETWORK_BINDING_HOTFIX.marker'))){throw 'R40 marker missing'}
+          Write-Host 'R40 binding/regression gates PASS'
+
+      - name: Dispatcher runtime smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$smoke=Join-Path $env:RUNNER_TEMP 'merzo-r40-dispatcher-smoke'
+          if(Test-Path $smoke){Remove-Item $smoke -Recurse -Force};New-Item -ItemType Directory $smoke|Out-Null
+          $core=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Core.dll'))
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup><ItemGroup><Reference Include="MerzoOptimizer.Core"><HintPath>$core</HintPath><Private>true</Private></Reference></ItemGroup></Project>
+          "@|Set-Content (Join-Path $smoke 'Smoke.csproj') -Encoding UTF8
+          @'
+          using MerzoOptimizer.Core.Dispatching;
+          using var d=new AsyncOperationDispatcher(2);var v=await d.RunAsync("r40-generic",_=>Task.FromResult(40));if(v!=40)throw new Exception("generic");await d.RunAsync("r40-void",_=>Task.CompletedTask);Console.WriteLine("R40_DISPATCHER_SMOKE: PASS");
+          '@|Set-Content (Join-Path $smoke 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $smoke 'Smoke.csproj') -c Release;if($LASTEXITCODE-ne0){throw 'Dispatcher smoke failed'}
+
+      - name: App startup smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$exe=Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe';$p=Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru;Start-Sleep -Seconds 16;if($p.HasExited){throw "App exited $($p.ExitCode)"};Stop-Process -Id $p.Id -Force;Write-Host 'R40 app startup smoke: PASS'
+
+      - name: Rebuild portable
+        shell: pwsh
+        run: |
+          $a=Join-Path $env:SOURCE_ROOT 'dist\app';$z=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip';if(Test-Path $z){Remove-Item $z -Force};Compress-Archive -Path (Join-Path $a '*') -DestinationPath $z -CompressionLevel Optimal
+
+      - name: Build installer and hashes
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y;if($LASTEXITCODE-ne0){throw 'Inno install failed'}
+          $iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe')|?{Test-Path $_}|select -First 1;if(-not$iscc){throw 'ISCC missing'}
+          Push-Location $env:SOURCE_ROOT
+          try { &$iscc '/DMyAppVersion=0.1.40' '.\installer\MerzoWindowsOptimizer.iss';if($LASTEXITCODE-ne0){throw 'Installer failed'};$e='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe';$z='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip';$eh=(Get-FileHash $e -Algorithm SHA256).Hash.ToLowerInvariant();$zh=(Get-FileHash $z -Algorithm SHA256).Hash.ToLowerInvariant();"$eh  MerzoWindowsOptimizerSetup-win-x64.exe"|Set-Content "$e.sha256" -Encoding ascii;"$zh  MerzoWindowsOptimizer-portable-win-x64.zip"|Set-Content "$z.sha256" -Encoding ascii;Write-Host "R40_INSTALLER_SHA256=$eh";Write-Host "R40_PORTABLE_SHA256=$zh" } finally { Pop-Location }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.40-R40-NETWORK-BINDING-HOTFIX
+          path: |
+            r40/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r40/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r40/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r40/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+
+      - name: Publish mwo-v0.1.40
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          $ErrorActionPreference='Stop'
+          $tag='mwo-v0.1.40';$d=Join-Path $env:SOURCE_ROOT 'dist'
+          gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes 2>$null
+          if($LASTEXITCODE-ne0){$global:LASTEXITCODE=0}
+          git push origin ":refs/tags/$tag" 2>$null
+          if($LASTEXITCODE-ne0){$global:LASTEXITCODE=0}
+          $notes=Join-Path $env:RUNNER_TEMP 'r40-notes.txt'
+          @'
+          ИСПРАВЛЕНО
+          • Исправлен реальный сбой после обновления: WPF пытался использовать TwoWay binding для read-only NetworkProgress.
+          • ProgressBar Repair / Network теперь использует явный Mode=OneWay.
+          • Crash Reporter и диагностическая версия обновлены до 0.1.40 / Production R40.
+
+          СОХРАНЕНО
+          • Полный R39 GAME BUILD: GAME SAFE / PERFORMANCE / EXTREME / LAB.
+          • Gaming Network SAFE/EXTREME, Process Reduction, Snapshot/Undo, Audit Memory и Update Center.
+          '@ | Set-Content $notes -Encoding UTF8
+          $files=@(
+            (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe'),
+            (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'),
+            (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip'),
+            (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256')
+          )
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.40 (R40 NETWORK BINDING HOTFIX)' --notes-file $notes @files
+          if($LASTEXITCODE-ne0){throw 'Release publish failed'}
