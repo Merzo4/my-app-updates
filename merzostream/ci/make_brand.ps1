@@ -29,3 +29,5 @@ Copy-Item $png (Join-Path $web 'MerzoStreamSuite.png') -Force
 if((Get-Item $png).Length -lt 1000){throw 'PNG invalid'}
 if((Get-Item $ico).Length -lt 100){throw 'ICO invalid'}
 Write-Host "BRAND PASS PNG=$((Get-Item $png).Length) ICO=$((Get-Item $ico).Length)"
+python .\merzostream\ci\restore_release_support.py
+if($LASTEXITCODE -ne 0){throw 'Release support restore failed'}
