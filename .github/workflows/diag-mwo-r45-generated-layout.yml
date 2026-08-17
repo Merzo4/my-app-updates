@@ -67,12 +67,25 @@ jobs:
           New-Item -ItemType Directory -Force $out|Out-Null
           $wanted=@(
             'src\MerzoOptimizer.App\MainWindow.xaml',
+            'src\MerzoOptimizer.App\MainWindow.xaml.cs',
             'src\MerzoOptimizer.App\App.xaml',
+            'src\MerzoOptimizer.App\App.xaml.cs',
+            'src\MerzoOptimizer.App\ReleaseNotesWindow.xaml',
+            'src\MerzoOptimizer.App\ReleaseNotesWindow.xaml.cs',
             'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs',
+            'src\MerzoOptimizer.Core\Elevation\ElevationModels.cs',
+            'src\MerzoOptimizer.Core\Updates\UpdateModels.cs',
             'src\MerzoOptimizer.Windows\Elevation\ElevatedOperationBroker.cs',
+            'src\MerzoOptimizer.Windows\Elevation\ElevationAwareServices.cs',
+            'src\MerzoOptimizer.Windows\Updates\GitHubUpdateService.cs',
             'src\MerzoOptimizer.ElevatedHelper\Program.cs',
+            'src\MerzoOptimizer.ElevatedHelper\helper.manifest',
+            'src\MerzoOptimizer.ElevatedHelper\MerzoOptimizer.ElevatedHelper.csproj',
+            'src\MerzoOptimizer.App\MerzoOptimizer.App.csproj',
+            'src\MerzoOptimizer.Windows\MerzoOptimizer.Windows.csproj',
             'installer\MerzoWindowsOptimizer.iss',
-            'data\update_settings.json'
+            'data\update_settings.json',
+            'build\Build-Production.ps1'
           )
           foreach($rel in $wanted){
             $src=Join-Path $env:SOURCE_ROOT $rel
