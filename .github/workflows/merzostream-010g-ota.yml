@@ -1,0 +1,165 @@
+name: MerzoStream Pure .NET 0.1.0g Cumulative OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzostream-010g-ota]
+    paths:
+      - '.github/workflows/merzostream-010g-ota.yml'
+
+permissions:
+  contents: write
+
+env:
+  VERSION: 0.1.0g
+  SOURCE_SHA256: d79b349825d817680477a1af849c4508efd3f1e6baf818c774239f1db11ef42e
+  OVERLAY_SHA256: 0a3dae5e173c895bd5e68873362b13643f42c69bcbccda5455444ecce3939165
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct exact R17 source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Read-Part([string]$rel) {
+            $p = Join-Path $env:GITHUB_WORKSPACE $rel
+            if (-not (Test-Path $p)) { throw "Missing: $rel" }
+            return ((Get-Content -LiteralPath $p -Raw) -replace '\s','')
+          }
+          function Sha256Hex([byte[]]$bytes) {
+            return ([Security.Cryptography.SHA256]::Create().ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') }) -join ''
+          }
+          $prefixSegments = @(
+            'merzostream\ci\r17-exact\chunk00.txt','merzostream\ci\r17-exact\chunk01.txt','merzostream\ci\r17-zip\part01.b64',
+            'merzostream\ci\r17-exact\chunk04.txt','merzostream\ci\r17-exact\chunk05.txt','merzostream\ci\r17-zip\part03.b64',
+            'merzostream\ci\r17-zip\part04.b64','merzostream\ci\r17-zip\part05.b64','merzostream\ci\r17-zip\part06.b64',
+            'merzostream\ci\r17-exact\chunk14.txt','merzostream\ci\r17-exact\chunk15.txt','merzostream\ci\r17-exact\chunk16.txt','merzostream\ci\r17-exact\chunk17.txt',
+            'merzostream\ci\r17-zip\part09.b64','merzostream\ci\r17-zip\part10.b64','merzostream\ci\r17-zip\part11.b64',
+            'merzostream\ci\r17-exact\chunk24.txt','merzostream\ci\r17-exact\chunk25.txt','merzostream\ci\r17-exact\chunk26.txt',
+            'merzostream\ci\r17-exact\chunk27.txt','merzostream\ci\r17-exact\chunk28.txt','merzostream\ci\r17-exact\chunk29.txt'
+          )
+          $prefixB64 = ($prefixSegments | ForEach-Object { Read-Part $_ }) -join ''
+          if ($prefixB64.Length -ne 300000) { throw "Prefix length mismatch: $($prefixB64.Length)" }
+          $fullBytes = $null
+          $blobShas = @('5efcf64ad88b1a6420956d32cc39b8cc35168503','5de70c11c61f34ba5842481572cb5c5e9c33d328','c8b5ba301259205ed5584e673d8126345512054b')
+          $allBlobs = $true
+          $tailB64 = ''
+          foreach ($sha in $blobShas) {
+            & git cat-file -e "$sha`^{blob}" 2>$null
+            if ($LASTEXITCODE -ne 0) { $allBlobs = $false; break }
+            $tailB64 += ((& git cat-file -p $sha) -join '') -replace '\s',''
+          }
+          if ($allBlobs -and $tailB64.Length -eq 59432) {
+            try {
+              $candidate = [Convert]::FromBase64String($prefixB64 + $tailB64)
+              if ((Sha256Hex $candidate) -eq $env:SOURCE_SHA256) { $fullBytes = $candidate }
+            } catch {}
+          }
+          if (-not $fullBytes) {
+            $prefixBytes = [Convert]::FromBase64String($prefixB64)
+            $tailByteLength = 44574
+            $paths = @('merzostream/ci/r17-zip/part15.b64','merzostream/ci/r17-zip/part16.b64','merzostream/ci/r17-zip/part17.b64')
+            $versions = New-Object System.Collections.Generic.List[string]
+            foreach ($path in $paths) {
+              $commits = @(& git log --all --format=%H -- $path)
+              foreach ($commit in $commits) {
+                try { $txt = ((& git show "$commit`:$path" 2>$null) -join '') -replace '\s',''; if ($txt.Length -gt 0) { $versions.Add($txt) } } catch {}
+              }
+              if (Test-Path $path) { $versions.Add(((Get-Content $path -Raw) -replace '\s','')) }
+            }
+            try { $versions.Add((Read-Part 'merzostream\ci\r17-zip\part15.b64') + (Read-Part 'merzostream\ci\r17-zip\part16.b64') + (Read-Part 'merzostream\ci\r17-zip\part17.b64')) } catch {}
+            foreach ($b64 in $versions) {
+              try { $bytes = [Convert]::FromBase64String($b64) } catch { continue }
+              if ($bytes.Length -lt $tailByteLength) { continue }
+              for ($i=0; $i -le $bytes.Length-22; $i++) {
+                if ($bytes[$i] -ne 0x50 -or $bytes[$i+1] -ne 0x4b -or $bytes[$i+2] -ne 0x05 -or $bytes[$i+3] -ne 0x06) { continue }
+                $commentLen = $bytes[$i+20] + 256*$bytes[$i+21]
+                $end = $i + 22 + $commentLen
+                $start = $end - $tailByteLength
+                if ($start -lt 0 -or $end -gt $bytes.Length) { continue }
+                $full = New-Object byte[] 269574
+                [Array]::Copy($prefixBytes,0,$full,0,225000)
+                [Array]::Copy($bytes,$start,$full,225000,$tailByteLength)
+                if ((Sha256Hex $full) -eq $env:SOURCE_SHA256) { $fullBytes = $full; break }
+              }
+              if ($fullBytes) { break }
+            }
+          }
+          if (-not $fullBytes) { throw 'Unable to reconstruct R17 source with exact SHA-256.' }
+          $zip = Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_R17_SOURCE.zip'
+          [IO.File]::WriteAllBytes($zip,$fullBytes)
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:SOURCE_SHA256) { throw 'Final source SHA mismatch' }
+          $src = Join-Path $env:RUNNER_TEMP 'merzostream-source'
+          Expand-Archive -LiteralPath $zip -DestinationPath $src -Force
+          $builder = Get-ChildItem $src -Recurse -Filter '06_BUILD_RUNTIME_RELEASE.ps1' -File | Select-Object -First 1
+          if (-not $builder) { throw 'Builder missing' }
+          "MERZO_SRC=$($builder.Directory.FullName)" >> $env:GITHUB_ENV
+
+      - name: Apply verified 0.1.0g cumulative overlay
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parts = @(Get-ChildItem "$env:GITHUB_WORKSPACE\merzostream\ci\010g-overlay\part*.b64" -File | Sort-Object Name)
+          if ($parts.Count -lt 17) { throw "Overlay incomplete: $($parts.Count) parts" }
+          $b64 = ($parts | ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw) -replace '\s','' }) -join ''
+          $bytes = [Convert]::FromBase64String($b64)
+          $overlay = Join-Path $env:RUNNER_TEMP 'merzostream_010g_text_overlay.tar.xz'
+          [IO.File]::WriteAllBytes($overlay,$bytes)
+          $sha=(Get-FileHash $overlay -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne $env:OVERLAY_SHA256) { throw "Overlay SHA mismatch: $sha" }
+          python -c "import tarfile,sys; tarfile.open(sys.argv[1],'r:xz').extractall(sys.argv[2])" $overlay $env:MERZO_SRC
+          if ($LASTEXITCODE -ne 0) { throw 'Overlay extraction failed' }
+          $appInfo=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json
+          if ($appInfo.version -ne $env:VERSION) { throw "Overlay version mismatch: $($appInfo.version)" }
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Static selftest
+        shell: pwsh
+        run: |
+          & "$env:MERZO_SRC\SELFTEST_PURE_DOTNET_STATIC.ps1" -Root $env:MERZO_SRC
+          if ($LASTEXITCODE -ne 0) { throw 'Static selftest failed' }
+
+      - name: Build runtime
+        shell: pwsh
+        run: |
+          & "$env:MERZO_SRC\06_BUILD_RUNTIME_RELEASE.ps1" -Version $env:VERSION -Runtime 'win-x64'
+          if ($LASTEXITCODE -ne 0) { throw 'Runtime build failed' }
+          $zip="$env:MERZO_SRC\artifacts\runtime-release\MerzoStreamSuite-runtime-win-x64-$env:VERSION.zip"
+          $sha="$env:MERZO_SRC\artifacts\runtime-release\MerzoStreamSuite-runtime-win-x64-$env:VERSION.sha256"
+          if (!(Test-Path $zip) -or !(Test-Path $sha)) { throw 'Runtime assets missing' }
+          "RUNTIME_ZIP=$zip" >> $env:GITHUB_ENV
+          "RUNTIME_SHA=$sha" >> $env:GITHUB_ENV
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoStreamSuite-0.1.0g-PURE-DOTNET-OTA
+          path: |
+            ${{ env.RUNTIME_ZIP }}
+            ${{ env.RUNTIME_SHA }}
+          if-no-files-found: error
+
+      - name: Publish OTA release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag="v$env:VERSION"
+          $notes="$env:MERZO_SRC\RELEASE_NOTES_0.1.0g.md"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -ne 0) { gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "MerzoStream Suite $env:VERSION - cumulative UI/OBS/Media/Music/OTA" --notes-file $notes }
+          gh release upload $tag "$env:RUNTIME_ZIP" "$env:RUNTIME_SHA" --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Release upload failed' }
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --latest
