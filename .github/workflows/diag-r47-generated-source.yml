@@ -23,6 +23,7 @@ jobs:
           $sln=Get-ChildItem r47 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
           if(-not$sln){throw 'Solution missing'}
           $root=$sln.Directory.FullName
+          $env:SOURCE_ROOT=$root
           "SOURCE_ROOT=$root" >> $env:GITHUB_ENV
           $f=Join-Path $root 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
           $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
