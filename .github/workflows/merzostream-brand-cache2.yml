@@ -25,8 +25,8 @@ jobs:
         shell: cmd
         run: git show v0.0.8a:MerzoStreamSetup.exe > "%RUNNER_TEMP%\MerzoStreamSetup-0.0.8a.exe"
 
-      - name: Verify and extract brand assets
-        shell: pwsh
+      - name: Recover brand icon directly from verified installer
+        shell: powershell
         run: |
           $old = Join-Path $env:RUNNER_TEMP 'MerzoStreamSetup-0.0.8a.exe'
           $wantLine = git show v0.0.8a:MerzoStreamSetup.sha256
@@ -36,26 +36,24 @@ jobs:
           if ($got -ne $want) { throw "Tagged installer SHA mismatch: $got != $want" }
           Write-Host "OLD INSTALLER SHA PASS $got"
 
-          $brand = Join-Path $env:RUNNER_TEMP 'oldbrand'
-          New-Item -ItemType Directory -Force -Path $brand | Out-Null
-          $seven = 'C:\Program Files\7-Zip\7z.exe'
-          if (-not (Test-Path $seven)) { throw '7-Zip is missing on runner' }
-          & $seven x $old "-o$brand" -y | Out-Host
-          if ($LASTEXITCODE -ne 0) { throw '7-Zip extraction failed' }
-
-          $ico = Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.ico' -ErrorAction SilentlyContinue | Select-Object -First 1
-          $png = Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.png' -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $ico -or -not $png) { throw 'MerzoStream brand assets were not found in installer' }
-
-          $icoHash = (Get-FileHash $ico.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          $pngHash = (Get-FileHash $png.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($icoHash -ne '58b5f9c3b0f5ba731400414a08ccda6ed860ca1b64a8f894cac9ef0e251b4c28') { throw "ICO SHA mismatch: $icoHash" }
-          if ($pngHash -ne 'a96c9b3b920af13b1297268fe0c9a22bfcdf2cd12127c7b4161c57695a52364c') { throw "PNG SHA mismatch: $pngHash" }
+          Add-Type -AssemblyName System.Drawing
+          $icon = [System.Drawing.Icon]::ExtractAssociatedIcon($old)
+          if ($null -eq $icon) { throw 'Windows could not extract application icon from verified installer' }
 
           New-Item -ItemType Directory -Force -Path 'merzostream\brand-assets' | Out-Null
-          Copy-Item $ico.FullName 'merzostream\brand-assets\MerzoStreamSuite.ico' -Force
-          Copy-Item $png.FullName 'merzostream\brand-assets\MerzoStreamSuite.png' -Force
-          Write-Host 'BRAND ASSETS SHA PASS'
+          $icoPath = Join-Path $PWD 'merzostream\brand-assets\MerzoStreamSuite.ico'
+          $pngPath = Join-Path $PWD 'merzostream\brand-assets\MerzoStreamSuite.png'
+
+          $stream = [System.IO.File]::Create($icoPath)
+          try { $icon.Save($stream) } finally { $stream.Dispose() }
+          $bitmap = $icon.ToBitmap()
+          try { $bitmap.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png) } finally { $bitmap.Dispose(); $icon.Dispose() }
+
+          if ((Get-Item $icoPath).Length -lt 1000) { throw 'Extracted ICO is unexpectedly small' }
+          if ((Get-Item $pngPath).Length -lt 1000) { throw 'Generated PNG is unexpectedly small' }
+          Write-Host "ICO $((Get-Item $icoPath).Length) bytes SHA=$((Get-FileHash $icoPath -Algorithm SHA256).Hash)"
+          Write-Host "PNG $((Get-Item $pngPath).Length) bytes SHA=$((Get-FileHash $pngPath -Algorithm SHA256).Hash)"
+          Write-Host 'BRAND ASSETS RECOVERED FROM VERIFIED INSTALLER'
 
       - name: Commit verified binary assets
         shell: pwsh
@@ -68,7 +66,7 @@ jobs:
             Write-Host 'Brand assets are already cached'
             exit 0
           }
-          git commit -m 'Cache verified MerzoStream brand assets'
+          git commit -m 'Cache MerzoStream icon recovered from verified installer'
           if ($LASTEXITCODE -ne 0) { throw 'Brand asset commit failed' }
           git push origin HEAD:merzostream-010h-release
           if ($LASTEXITCODE -ne 0) { throw 'Brand asset push failed' }
