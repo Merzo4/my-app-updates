@@ -19,4 +19,11 @@ for old,new in replacements.items():
     if count!=1: raise SystemExit(f'R46 binding finalize anchor count {count}: {old}')
     s=s.replace(old,new,1)
 p.write_text(s,encoding='utf-8')
-print('R46 explicit OneWay binding finalize: OK')
+helper=root/'src'/'MerzoOptimizer.ElevatedHelper'/'Program.cs'
+h=helper.read_text(encoding='utf-8-sig')
+old_name='IsValidDynamicStartupTweak'
+new_name='ValidateStartupDynamicTweak'
+if h.count(old_name)!=2: raise SystemExit(f'R46 helper validation rename count {h.count(old_name)}')
+h=h.replace(old_name,new_name)
+helper.write_text(h,encoding='utf-8')
+print('R46 explicit OneWay bindings + helper validation naming finalize: OK')
