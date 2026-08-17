@@ -5,3 +5,12 @@ out=root/'release'/'GITHUB_ACTIONS_MERZOSTREAM_RUNTIME.yml'
 out.parent.mkdir(parents=True,exist_ok=True)
 out.write_bytes(base64.b64decode(data))
 print('RELEASE SUPPORT PASS',out,len(out.read_bytes()))
+p=root/'src'/'MerzoStream.Foundation'/'Services'/'StreamerBotService.cs'
+s=p.read_text(encoding='utf-8')
+old='actions = actions.Select(ToWireAction).ToArray(),'
+new='actions = actions.Select(x => ToWireAction(x)).ToArray(),'
+if old in s:
+    p.write_text(s.replace(old,new,1),encoding='utf-8')
+elif new not in s:
+    raise SystemExit('StreamerBotService Select expression not found')
+print('STREAMERBOT SELECT FIX PASS')
