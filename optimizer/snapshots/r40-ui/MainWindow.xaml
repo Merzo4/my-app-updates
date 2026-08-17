@@ -1,0 +1,1110 @@
+<Window x:Class="MerzoOptimizer.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Merzo Windows Optimizer — Production 0.1.33 · R33 STABILITY RECOVERY"
+        Icon="Assets/MerzoWindowsOptimizer.ico"
+        Width="1000" Height="600"
+        MinWidth="880" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{StaticResource WindowBg}">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="36"
+                            ResizeBorderThickness="7"
+                            CornerRadius="8"
+                            GlassFrameThickness="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Grid Background="{StaticResource WindowBg}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="176"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Compact title bar -->
+        <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{StaticResource TopBarBg}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                    <Border Width="20" Height="20" Background="{StaticResource Accent}" CornerRadius="5" Margin="0,0,7,0">
+                        <TextBlock Text="M" Foreground="#07110F" FontWeight="Bold" FontSize="11.8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="Merzo Windows Optimizer" FontWeight="SemiBold" FontSize="12.8" VerticalAlignment="Center"/>
+                    <TextBlock Text="  ·  Production R40" Foreground="{StaticResource TextMuted}" FontSize="11.2" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,5,0">
+                    <Border Background="#12231F" BorderBrush="#21443C" BorderThickness="1" CornerRadius="10" Padding="7,2" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="5" Height="5" Fill="{StaticResource Accent}" Margin="0,0,5,0"/>
+                            <TextBlock Text="UNDO READY" Foreground="{StaticResource Accent}" FontSize="10.4" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="Режим: " Foreground="{StaticResource TextMuted}" FontSize="11.2" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding AdminText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="11.2" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button Style="{StaticResource TitleBarButton}" Content="&#xE921;" Click="Minimize_Click"/>
+                    <Button Style="{StaticResource TitleBarButton}" Content="&#xE922;" Click="MaximizeRestore_Click"/>
+                    <Button Style="{StaticResource CloseTitleBarButton}" Content="&#xE8BB;" Click="Close_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Dense navigation -->
+        <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="7,8,7,7">
+                <Border DockPanel.Dock="Bottom" Background="#0F2721" BorderBrush="#1F4B40" BorderThickness="1" CornerRadius="8" Padding="7" Margin="0,5,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="6" Height="6" Fill="{StaticResource Accent}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Защищённый режим" Foreground="{StaticResource Accent}" FontSize="11.2" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <TextBlock Text="Snapshot + Undo · UAC по запросу" Foreground="{StaticResource TextMuted}" FontSize="10.4" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel>
+                    <StackPanel Margin="5,0,3,7">
+                        <TextBlock Text="MERZO" Foreground="{StaticResource Accent}" FontSize="10.4" FontWeight="Bold"/>
+                        <TextBlock Text="Windows Optimizer" FontSize="15" FontWeight="SemiBold" Margin="0,1,0,0"/>
+                        <TextBlock Text="Production · v0.1.40" Foreground="{StaticResource TextMuted}" FontSize="10.4"/>
+                    </StackPanel>
+
+                    <TextBlock Style="{StaticResource Eyebrow}" Text="ОСНОВНОЕ" Margin="6,0,0,3"/>
+                    <RadioButton x:Name="DashboardNav" GroupName="MainNav" IsChecked="True" Style="{StaticResource NavRadioButton}" Click="Dashboard_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Главная" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="AuditNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Audit_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Аудит системы" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="TweaksNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Tweaks_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE72E;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Оптимизация" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="StartupNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Startup_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7B8;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Автозагрузка" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="CleanupNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Cleanup_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Очистка / Debloat" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="ServicesTasksNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="ServicesTasks_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Службы / задачи" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="PowerNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Power_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Питание " FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="UpdatesNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Updates_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Обновления" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="RestoreNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Restore_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7A7;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Восстановление" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="LogsNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Logs_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Журнал" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+
+                    <TextBlock Style="{StaticResource Eyebrow}" Text="СЛЕДУЮЩИЕ ЭТАПЫ" Margin="6,9,0,3"/>
+                    <RadioButton x:Name="GamingDevNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="GamingDev_Click">
+                        <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="13" Width="21"/><TextBlock Text="Gaming / Developer" FontWeight="SemiBold"/></StackPanel>
+                    </RadioButton>
+                    <!-- R37_NETWORK_NAV_TEMPLATE <RadioButton x:Name="GamingDevNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="GamingDev_Click" Content="Gaming / Developer"/> -->
+                    <RadioButton x:Name="NetworkNav" GroupName="MainNav" Style="{StaticResource NavRadioButton}" Click="Network_Click" Content="⌁  Repair / Network"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <TabControl x:Name="MainTabs" Grid.Row="1" Grid.Column="1" Background="{StaticResource WindowBg}" BorderThickness="0" Padding="0">
+            <TabControl.ItemContainerStyle>
+                <Style TargetType="TabItem"><Setter Property="Visibility" Value="Collapsed"/></Style>
+            </TabControl.ItemContainerStyle>
+
+            <!-- Dashboard: designed to fit inside 1000x600 without page scrolling -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38"/>
+                        <RowDefinition Height="34"/>
+                        <RowDefinition Height="180"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Обзор системы"/>
+                            <TextBlock Text="Диагностика Windows · системные настройки не изменяются" Foreground="{StaticResource TextMuted}" FontSize="10.4" Margin="0,1,0,0"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Command="{Binding RunAuditCommand}" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="12.8" Margin="0,0,6,0" Foreground="#EEF6F4"/>
+                                <TextBlock Text="{Binding AuditButtonText, Mode=OneWay}" Foreground="#EEF6F4" FontSize="11.8"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="#111A20" BorderBrush="#23443F" BorderThickness="1" CornerRadius="7" Padding="8,4" Margin="0,2,0,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" FontSize="12.8" Margin="0,0,7,0" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding StatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontWeight="SemiBold" FontSize="11.2" TextTrimming="CharacterEllipsis"/>
+                                <ProgressBar Margin="0,3,12,0" IsIndeterminate="{Binding IsBusy}"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="READ ONLY" Foreground="{StaticResource Accent}" FontSize="10.4" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,4,0,4">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="192"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,6,0" Padding="10">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Eyebrow}" Text="SYSTEM HEALTH"/>
+                                    <TextBlock Text="Общая оценка" FontSize="14" FontWeight="SemiBold" Margin="0,1,0,0"/>
+                                </StackPanel>
+                                <Grid Grid.Row="1" Width="96" Height="96" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Ellipse Stroke="#2C3948" StrokeThickness="7"/>
+                                    <Ellipse Stroke="{StaticResource Accent}" StrokeThickness="2" Margin="5" Opacity="0.85"/>
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding HealthScoreText, Mode=OneWay}" FontSize="21" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="Health Score" Foreground="{StaticResource TextMuted}" FontSize="10.4" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel Grid.Row="2">
+                                    <TextBlock Text="{Binding HealthRatingText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontWeight="SemiBold" FontSize="11.8" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="Не benchmark" Foreground="{StaticResource TextMuted}" FontSize="10.4" Margin="0,1,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <UniformGrid Grid.Column="1" Columns="2" Rows="3">
+                            <Border Style="{StaticResource CompactCardBorder}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="RAM"/><TextBlock Text="{Binding RamText, Mode=OneWay}" FontSize="12.8" FontWeight="SemiBold" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xE950;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource Accent}" Opacity="0.8"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource CompactCardBorder}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="ПРОЦЕССЫ"/><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding ProcessText, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" Margin="0,1,5,0"/><TextBlock Text="{Binding ProcessDetailText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.5" VerticalAlignment="Bottom" Margin="0,0,0,2" TextTrimming="CharacterEllipsis"/></StackPanel></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextMuted}"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource CompactCardBorder}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="АВТОЗАГРУЗКА"/><TextBlock Text="{Binding StartupText, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xE768;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextMuted}"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource CompactCardBorder}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="СИСТЕМНЫЙ ДИСК"/><TextBlock Text="{Binding StorageText, Mode=OneWay}" FontSize="12.8" FontWeight="SemiBold" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding StorageDetailText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="10.4" Margin="0,1,0,0"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xEDA2;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource TextMuted}"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource CompactCardBorder}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="ПИТАНИЕ"/><TextBlock Text="{Binding PowerPlanText, Mode=OneWay}" FontSize="12.8" FontWeight="SemiBold" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xE945;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="#69A7EF"/>
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource CompactCardBorder}">
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="ПРОЦЕССОР"/><TextBlock Text="{Binding CpuText, Mode=OneWay}" FontSize="11.8" FontWeight="SemiBold" Margin="0,2,0,0" TextWrapping="Wrap" MaxHeight="28"/></StackPanel>
+                                    <TextBlock Grid.Column="1" Text="&#xE950;" FontFamily="Segoe MDL2 Assets" FontSize="17" Foreground="{StaticResource Accent}"/>
+                                </Grid>
+                            </Border>
+                        </UniformGrid>
+                    </Grid>
+
+                    <Grid Grid.Row="3" Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.35*"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,6,0" Padding="10">
+                            <StackPanel>
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="Windows" FontSize="12.8" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" Foreground="{StaticResource TextMuted}" FontSize="10.4"><Run Text="Аудит: "/><Run Text="{Binding LastAuditText, Mode=OneWay}"/></TextBlock>
+                                </Grid>
+                                <TextBlock Text="{Binding WindowsText, Mode=OneWay}" FontSize="12.8" FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding GpuText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="11.2" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                                <Separator Margin="0,5,0,4"/>
+                                <TextBlock Text="{Binding AuditFreshnessText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="10.2" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding AuditCatalogText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.7" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="0" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="Проверено" FontSize="12.8" FontWeight="SemiBold"/>
+                                <TextBlock Text="✓ Windows / build / права" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,4,0,0"/>
+                                <TextBlock Text="✓ CPU / GPU / RAM / процессы" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,2,0,0"/>
+                                <TextBlock Text="✓ Автозагрузка / диски / питание" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,2,0,0"/>
+                                <TextBlock Text="Score: прозрачная базовая формула" Foreground="{StaticResource TextMuted}" FontSize="10.4" Margin="0,5,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Audit -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center"><TextBlock Style="{StaticResource PageTitle}" Text="Аудит системы"/><TextBlock Text="Подробности диагностики · только чтение" Foreground="{StaticResource TextMuted}" FontSize="11.2"/></StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource PrimaryButton}" Command="{Binding RunAuditCommand}" Content="Обновить данные" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#111A20" BorderBrush="#23443F" BorderThickness="1" CornerRadius="7" Padding="8,4" Margin="0,2,0,3">
+                        <TextBlock Text="{Binding StatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="11.2" TextTrimming="CharacterEllipsis"/>
+                    </Border>
+                    <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" Margin="0,4,0,0">
+                        <TabItem Header="Автозагрузка" Style="{StaticResource SubTabItem}">
+                            <DataGrid ItemsSource="{Binding StartupItems}" AutoGenerateColumns="False" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Имя" Binding="{Binding Name, Mode=OneWay}" Width="135"/>
+                                    <DataGridTextColumn Header="Источник" Binding="{Binding Source, Mode=OneWay}" Width="120"/>
+                                    <DataGridTextColumn Header="Scope" Binding="{Binding Scope, Mode=OneWay}" Width="65"/>
+                                    <DataGridTextColumn Header="Команда / путь" Binding="{Binding Command, Mode=OneWay}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        <TabItem Header="Процессы / Performance" Style="{StaticResource SubTabItem}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="96"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#101B22" BorderBrush="#2A4B54" BorderThickness="1" CornerRadius="8" Padding="9,6" Margin="0,0,0,5">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="30"/></Grid.RowDefinitions>
+                                        <StackPanel><TextBlock Text="{Binding PerformanceProcessSummaryText, Mode=OneWay}" FontSize="10.8" FontWeight="SemiBold"/><TextBlock Text="{Binding ProcessReductionStatusText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.4" TextWrapping="Wrap"/></StackPanel>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                            <Button Style="{StaticResource CompactPrimaryButton}" Command="{Binding SelectProcessSafeCommand}" Click="OpenOptimization_Click" Content="SAFE" MinWidth="70" Margin="0,3,5,0" ToolTip="Фоновые источники с минимальным риском"/>
+                                            <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectProcessAggressiveCommand}" Click="OpenOptimization_Click" Content="AGGRESSIVE" MinWidth="92" Margin="0,3,5,0" ToolTip="Более глубокая разгрузка — проверьте функции перед применением"/>
+                                            <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectProcessLiteCommand}" Click="OpenOptimization_Click" Content="LITE-LIKE" MinWidth="82" Margin="0,3,0,0" ToolTip="Максимальная обратимая разгрузка без отключения Defender/Windows Update/IPv6/pagefile"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding TopProcesses}" AutoGenerateColumns="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Процесс" Binding="{Binding Name, Mode=OneWay}" Width="115"/>
+                                        <DataGridTextColumn Header="RAM" Binding="{Binding WorkingSetHuman, Mode=OneWay}" Width="64"/>
+                                        <DataGridTextColumn Header="Источник" Binding="{Binding SourceHint, Mode=OneWay}" Width="185"/>
+                                        <DataGridTextColumn Header="Режим" Binding="{Binding ReductionTier, Mode=OneWay}" Width="78"/>
+                                        <DataGridTextColumn Header="Потенциал" Binding="{Binding ReductionPotential, Mode=OneWay}" Width="82"/>
+                                        <DataGridTextColumn Header="Рекомендация" Binding="{Binding PerformanceAdvice, Mode=OneWay}" Width="*"/>
+                                        <DataGridTextColumn Header="PID" Binding="{Binding ProcessId, Mode=OneWay}" Width="52"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Накопители" Style="{StaticResource SubTabItem}">
+                            <DataGrid ItemsSource="{Binding StorageItems}" AutoGenerateColumns="False" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Диск" Binding="{Binding Name, Mode=OneWay}" Width="70"/>
+                                    <DataGridTextColumn Header="Тип" Binding="{Binding DriveType, Mode=OneWay}" Width="100"/>
+                                    <DataGridTextColumn Header="FS" Binding="{Binding FileSystem, Mode=OneWay}" Width="70"/>
+                                    <DataGridTextColumn Header="Всего" Binding="{Binding TotalBytes, Mode=OneWay, Converter={StaticResource BytesToHuman}}" Width="*"/>
+                                    <DataGridTextColumn Header="Свободно" Binding="{Binding FreeBytes, Mode=OneWay, Converter={StaticResource BytesToHuman}}" Width="*"/>
+                                    <DataGridTextColumn Header="Своб., %" Binding="{Binding FreePercent, Mode=OneWay, StringFormat={}{0:F1}%}" Width="75"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+
+                        <TabItem Header="Обратная связь" Style="{StaticResource SubTabItem}">
+                            <Grid Margin="2,6,2,2">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <Border Background="#101B22" BorderBrush="#2A4B54" BorderThickness="1" CornerRadius="8" Padding="10,7" Margin="0,0,0,6">
+                                    <StackPanel><TextBlock Text="Центр обратной связи" FontSize="12.8" FontWeight="SemiBold"/><TextBlock Text="Опишите ошибку, зависание или идею. Merzo откроет заранее заполненный GitHub Issue — отправка произойдёт только после вашего подтверждения в браузере." Foreground="{StaticResource TextMuted}" FontSize="10" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel>
+                                </Border>
+                                <TextBox Grid.Row="1" Text="{Binding FeedbackText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Padding="9" Margin="0,0,0,6" ToolTip="Что произошло, что вы ожидали и как повторить проблему"/>
+                                <Border Grid.Row="2" Background="#111A20" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="8" Padding="8,6">
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding FeedbackStatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.7" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding SaveDiagnosticsCommand}" Content="Диагностический ZIP" Margin="0,0,5,0"/>
+                                        <Button Grid.Column="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding OpenFeatureRequestCommand}" Content="Предложить функцию" Margin="0,0,5,0"/>
+                                        <Button Grid.Column="3" Style="{StaticResource CompactPrimaryButton}" Command="{Binding OpenBugReportCommand}" Content="Сообщить об ошибке"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </TabItem>
+
+            <!-- Optimization profiles -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <!-- FIRST SCREEN: one clear scan action -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOptimizationScanResults}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="48"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="92"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Проверка и оптимизация"/>
+                            <TextBlock Text="Сначала Merzo изучит Windows и уже потом предложит подходящий уровень оптимизации." Foreground="{StaticResource TextMuted}" FontSize="10.8"/>
+                        </StackPanel>
+
+                        <Grid Grid.Row="1" Margin="0,5,0,6">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="0.95*"/></Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource PresetCardBorder}" Margin="0,0,7,0" Padding="14">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Сначала проверим Windows" FontSize="16" FontWeight="SemiBold"/>
+                                        <TextBlock Text="Без изменений системы. Merzo сравнит текущие настройки с большой базой, распознает уже применённые твики сборки и рассчитает, что действительно осталось полезного." Foreground="{StaticResource TextSecondary}" FontSize="10.7" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <Button Grid.Row="1" Style="{StaticResource ScanOrbButton}" Command="{Binding RunDeepOptimizationScanCommand}" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="Запустить глубокую проверку">
+                                        <StackPanel HorizontalAlignment="Center">
+                                            <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="25" HorizontalAlignment="Center"/>
+                                            <TextBlock Text="ПРОВЕРИТЬ" FontSize="10.4" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <StackPanel Grid.Row="2">
+                                        <ProgressBar Value="{Binding DeepScanProgress, Mode=OneWay}" Maximum="100" Height="4"/>
+                                        <TextBlock Text="{Binding DeepScanStatusText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="10.2" TextAlignment="Center" Margin="0,5,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource PresetCardBorder}" Margin="0" Padding="12">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Что проверит Merzo" FontSize="13" FontWeight="SemiBold"/>
+                                        <TextBlock Text="8 этапов · ничего не применяется" Foreground="{StaticResource Accent}" FontSize="10.2" Margin="0,2,0,7"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1">
+                                        <TextBlock Text="1  Windows, build и оборудование" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="2  База оптимизаций и сборочных твиков" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="3  Автозагрузка" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="4  Очистка и размеры кэшей" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="5  Службы и Scheduled Tasks" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="6  Питание" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="7  Appx / Debloat" Foreground="{StaticResource TextSecondary}" FontSize="10.4" Margin="0,0,0,5"/>
+                                        <TextBlock Text="8  Итог и персональная рекомендация" Foreground="{StaticResource TextSecondary}" FontSize="10.4"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <Border Grid.Row="2" Background="#101820" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="8" Padding="9,6">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Text="Ход проверки" FontSize="11.2" FontWeight="SemiBold"/>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+                                    <ItemsControl ItemsSource="{Binding DeepScanSteps}">
+                                        <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Foreground="{StaticResource TextMuted}" FontSize="9.9" TextTrimming="CharacterEllipsis"/></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- AFTER SCAN: recommendation first, controls second -->
+                    <Grid>
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOptimizationScanResults}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="72"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Результат проверки"/>
+                                <TextBlock Text="Merzo учитывает то, что уже сделано вашей Windows или сборкой, и не предлагает повторять применённые изменения." Foreground="{StaticResource TextMuted}" FontSize="10.4"/>
+                            </StackPanel>
+                            <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding RunRecoveryTestCommand}" Content="Проверить Undo" Margin="0,0,6,4"/>
+                            <Button Grid.Column="2" Style="{StaticResource CompactPrimaryButton}" Command="{Binding RunDeepOptimizationScanCommand}" Content="Проверить снова" Margin="0,0,0,4"/>
+                        </Grid>
+
+                        <Border Grid.Row="1" Background="#102A26" BorderBrush="#2B655A" BorderThickness="1" CornerRadius="9" Padding="11,7" Margin="0,2,0,6">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <Border Width="38" Height="38" Background="#173A35" BorderBrush="#2A5F56" BorderThickness="1" CornerRadius="19" Margin="0,0,9,0"><TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="Merzo рекомендует: " FontSize="11.2" Foreground="{StaticResource TextSecondary}"/><TextBlock Text="{Binding RecommendedProfileTitle, Mode=OneWay}" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/></StackPanel>
+                                    <TextBlock Text="{Binding RecommendedProfileReason, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.1" TextWrapping="Wrap" Margin="0,2,8,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding DeepScanSummaryText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.5" TextAlignment="Right" TextWrapping="Wrap" MaxWidth="210"/></StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" SelectedIndex="{Binding SelectedOptimizationTabIndex, Mode=TwoWay}">
+                            <TabItem Header="Профили" Style="{StaticResource SubTabItem}">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,4,4,0">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0" Margin="0,0,6,0" Padding="10" CornerRadius="9">
+                                                <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#141B24"/><Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/><Setter Property="BorderThickness" Value="1"/><Style.Triggers><DataTrigger Binding="{Binding IsLightRecommended}" Value="True"><Setter Property="Background" Value="#112923"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/><Setter Property="BorderThickness" Value="2"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                                                <StackPanel>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="LIGHT" FontSize="15" FontWeight="SemiBold"/><Border Grid.Column="1"><Border.Style><Style TargetType="Border" BasedOn="{StaticResource RecommendationBadge}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsLightRecommended}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="РЕКОМЕНДУЕТСЯ" Foreground="{StaticResource Accent}" FontSize="9.4" FontWeight="Bold"/></Border></Grid>
+                                                    <TextBlock Text="Лёгкая очистка Windows" Foreground="{StaticResource Accent}" FontSize="10.4" Margin="0,4,0,2"/>
+                                                    <TextBlock Text="Безопасная оптимизация + Privacy SAFE: реклама, Activity History, Spotlight, tailored experiences и лишний consumer-контент." Foreground="{StaticResource TextMuted}" FontSize="9.9" TextWrapping="Wrap" MinHeight="38"/>
+                                                    <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding LightProfileAvailableText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" VerticalAlignment="Center"/><Button Grid.Column="1" Style="{StaticResource CompactPrimaryButton}" Command="{Binding SelectLightProfileCommand}" Content="Выбрать"/></Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="1" Margin="0,0,6,0" Padding="10" CornerRadius="9">
+                                                <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#141B24"/><Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/><Setter Property="BorderThickness" Value="1"/><Style.Triggers><DataTrigger Binding="{Binding IsStandardRecommended}" Value="True"><Setter Property="Background" Value="#112923"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/><Setter Property="BorderThickness" Value="2"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                                                <StackPanel>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="STANDARD" FontSize="15" FontWeight="SemiBold"/><Border Grid.Column="1"><Border.Style><Style TargetType="Border" BasedOn="{StaticResource RecommendationBadge}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsStandardRecommended}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="РЕКОМЕНДУЕТСЯ" Foreground="{StaticResource Accent}" FontSize="9.4" FontWeight="Bold"/></Border></Grid>
+                                                    <TextBlock Text="Оптимальный баланс" Foreground="{StaticResource Warning}" FontSize="10.4" Margin="0,4,0,2"/>
+                                                    <TextBlock Text="Всё из LIGHT + Privacy STRICT: диагностические политики, DiagTrack/telemetry tasks, фоновые приложения, Game DVR и Delivery Optimization." Foreground="{StaticResource TextMuted}" FontSize="9.9" TextWrapping="Wrap" MinHeight="38"/>
+                                                    <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding StandardProfileAvailableText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" VerticalAlignment="Center"/><Button Grid.Column="1" Style="{StaticResource CompactPrimaryButton}" Command="{Binding SelectStandardProfileCommand}" Content="Выбрать"/></Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="2" Margin="0" Padding="10" CornerRadius="9">
+                                                <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#141B24"/><Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/><Setter Property="BorderThickness" Value="1"/><Style.Triggers><DataTrigger Binding="{Binding IsMaximumRecommended}" Value="True"><Setter Property="Background" Value="#112923"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/><Setter Property="BorderThickness" Value="2"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                                                <StackPanel>
+                                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="MAXIMUM" FontSize="15" FontWeight="SemiBold"/><Border Grid.Column="1"><Border.Style><Style TargetType="Border" BasedOn="{StaticResource RecommendationBadge}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsMaximumRecommended}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="РЕКОМЕНДУЕТСЯ" Foreground="{StaticResource Accent}" FontSize="9.4" FontWeight="Bold"/></Border></Grid>
+                                                    <TextBlock Text="Максимум без поломки системы" Foreground="#FF9AAA" FontSize="10.4" Margin="0,4,0,2"/>
+                                                    <TextBlock Text="Всё из STANDARD + Privacy MAX: максимальные обратимые privacy-настройки, WER service/tasks и более глубокая оптимизация. Критические компоненты Windows сохраняются." Foreground="{StaticResource TextMuted}" FontSize="9.9" TextWrapping="Wrap" MinHeight="38"/>
+                                                    <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding MaximumProfileAvailableText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" VerticalAlignment="Center"/><Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectMaximumProfileCommand}" Content="Выбрать"/></Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <Border Background="#21171A" BorderBrush="#633642" BorderThickness="1" CornerRadius="9" Padding="10,7" Margin="0,7,0,0">
+                                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <Border Width="36" Height="36" CornerRadius="18" Background="#351D24" Margin="0,0,9,0"><TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="#FF9AAA" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal"><TextBlock Text="LITE BUILD" FontSize="12.8" FontWeight="SemiBold"/><Border Background="#351D24" BorderBrush="#6A3442" BorderThickness="1" CornerRadius="6" Padding="6,1" Margin="7,0,0,0"><TextBlock Text="ЭКСПЕРИМЕНТАЛЬНО" Foreground="#FF9AAA" FontSize="9.4" FontWeight="Bold"/></Border></StackPanel>
+                                                    <TextBlock Text="MAXIMUM + дополнительные обратимые настройки фоновой активности и OneDrive через политику. Appx/debloat сканируется отдельно. Defender, Windows Update, Store, IPv6, SFC/DISM не удаляются и не ломаются." Foreground="{StaticResource TextSecondary}" FontSize="9.8" TextWrapping="Wrap" Margin="0,2,10,0"/>
+                                                    <TextBlock Text="{Binding LiteBuildProfileAvailableText, Mode=OneWay}" Foreground="#FFB2BC" FontSize="9.7" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectLiteBuildProfileCommand}" Content="Открыть LITE BUILD" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border Background="#111A20" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="8" Padding="8,5" Margin="0,7,0,0">
+                                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding SelectedTweaksText, Mode=OneWay}" FontWeight="SemiBold" FontSize="10.7" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding ClearTweakSelectionCommand}" Content="Снять выбор" Margin="0,0,6,0"/>
+                                                <Button Grid.Column="2" Style="{StaticResource CompactPrimaryButton}" Command="{Binding ApplySelectedTweaksCommand}" Content="Перейти к применению"/>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <TabItem Header="По одной" Style="{StaticResource SubTabItem}">
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                        <Border Background="{StaticResource CardAlt}" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="7" Padding="8,3" Margin="0,0,7,3"><TextBox Style="{StaticResource SearchTextBox}" Text="{Binding TweakSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="Поиск по базе твиков"/></Border>
+                                        <TextBlock Grid.Column="1" Text="Ручной режим: известные опасные сборочные твики видны для диагностики, но Apply у них заблокирован." Foreground="{StaticResource TextMuted}" FontSize="9.8" VerticalAlignment="Center" TextAlignment="Right"/>
+                                    </Grid>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+                                        <ItemsControl ItemsSource="{Binding IndividualTweaks}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource CompactListItemBorder}" MinHeight="62">
+                                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="168"/></Grid.ColumnDefinitions>
+                                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanSelect}" VerticalAlignment="Center"/>
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="  ·  " Foreground="{StaticResource TextMuted}"/><TextBlock Text="{Binding CategoryDisplay, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.5"/></StackPanel><TextBlock Text="{Binding Description, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.5" TextTrimming="CharacterEllipsis" Margin="0,2,8,0"/></StackPanel>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Border Background="#111720" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Padding="5,2" Margin="0,0,4,0"><TextBlock Text="{Binding StateText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.4"/></Border><Border Background="{StaticResource AccentSoft}" CornerRadius="6" Padding="5,2"><TextBlock Text="{Binding Risk, Mode=OneWay}" Foreground="{Binding RiskColor, Mode=OneWay}" FontSize="9.4" FontWeight="Bold"/></Border></StackPanel>
+                                                            <Grid Grid.Column="3" Margin="7,0,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="5"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Button Grid.Column="0" Style="{StaticResource TablePrimaryButton}" Command="{Binding ApplyCommand}" Content="Применить"/><Button Grid.Column="2" Style="{StaticResource TableActionButton}" Command="{Binding RestoreCommand}" Content="Вернуть"/></Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </TabItem>
+
+                            <TabItem Header="Выбранное" Style="{StaticResource SubTabItem}">
+                                <Grid Margin="0,4,0,0">
+                                    <Grid.RowDefinitions><RowDefinition Height="46"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <Border Grid.Row="0" Background="#111A20" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="8" Padding="8,5" Margin="0,0,0,5"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding SelectedTweaksText, Mode=OneWay}" FontWeight="SemiBold" FontSize="10.7" VerticalAlignment="Center"/><Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding ClearTweakSelectionCommand}" Content="Очистить" Margin="0,0,6,0"/><Button Grid.Column="2" Style="{StaticResource CompactPrimaryButton}" Command="{Binding ApplySelectedTweaksCommand}" Content="Применить набор"/></Grid></Border>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0"><ItemsControl ItemsSource="{Binding SelectedTweaks}"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource SelectedListItemBorder}"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" VerticalAlignment="Center"/><StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="11.2" FontWeight="SemiBold"/><TextBlock Text="{Binding CategoryDisplay, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.7" Margin="0,1,0,0"/></StackPanel><StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"><Border Background="#111720" BorderBrush="{StaticResource Border}" BorderThickness="1" CornerRadius="6" Padding="5,2" Margin="0,0,4,0"><TextBlock Text="{Binding StateText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.4"/></Border><Border Background="{StaticResource AccentSoft}" CornerRadius="6" Padding="5,2"><TextBlock Text="{Binding Risk, Mode=OneWay}" Foreground="{Binding RiskColor, Mode=OneWay}" FontSize="9.4" FontWeight="Bold"/></Border></StackPanel></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+                                </Grid>
+                            </TabItem>
+
+                            <TabItem Header="Ход работы" Style="{StaticResource SubTabItem}">
+                                <Grid Margin="0,5,0,0">
+                                    <Grid.RowDefinitions><RowDefinition Height="142"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <Border Grid.Row="0" Background="#101B22" BorderBrush="#2A5A56" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,0,0,7">
+                                        <Grid>
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                            <Grid Grid.Row="0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel>
+                                                    <TextBlock Text="Центр выполнения" FontSize="14.5" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="Живой ход операции · ничего не скрывается в фоне" Foreground="{StaticResource TextMuted}" FontSize="10.2" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Border Grid.Column="1" Background="#173733" BorderBrush="#2C6A63" BorderThickness="1" CornerRadius="11" Padding="9,4" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DeepScanProgress, StringFormat={}{0:0}%}" Foreground="#72C3B9" FontSize="12" FontWeight="Bold"/>
+                                                </Border>
+                                            </Grid>
+                                            <TextBlock Grid.Row="1" Text="{Binding DeepScanStatusText, Mode=OneWay}" Foreground="#D9E8E7" FontSize="11.7" FontWeight="SemiBold" Margin="0,8,0,0" TextTrimming="CharacterEllipsis"/>
+                                            <ProgressBar Grid.Row="2" Value="{Binding DeepScanProgress, Mode=OneWay}" Maximum="100" Height="7" Margin="0,8,0,7"/>
+                                            <Grid Grid.Row="3">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Background="#152128" CornerRadius="7" Padding="7,3" Margin="0,0,5,0"><TextBlock Text="1  Snapshot" FontSize="9.7" Foreground="#A8C1C0"/></Border>
+                                                    <Border Background="#152128" CornerRadius="7" Padding="7,3" Margin="0,0,5,0"><TextBlock Text="2  Apply" FontSize="9.7" Foreground="#A8C1C0"/></Border>
+                                                    <Border Background="#152128" CornerRadius="7" Padding="7,3" Margin="0,0,5,0"><TextBlock Text="3  Verify" FontSize="9.7" Foreground="#A8C1C0"/></Border>
+                                                    <Border Background="#152128" CornerRadius="7" Padding="7,3" Margin="0,0,5,0"><TextBlock Text="4  Log" FontSize="9.7" Foreground="#A8C1C0"/></Border>
+                                                    <Border Background="#17332F" CornerRadius="7" Padding="7,3"><TextBlock Text="Undo ready" FontSize="9.7" Foreground="#6FC1B7"/></Border>
+                                                </StackPanel>
+                                                <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding CancelDeepOptimizationScanCommand}" Content="Отменить" MinWidth="86"/>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                    <Border Grid.Row="1" Background="#0F151C" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="10" Padding="9">
+                                        <Grid>
+                                            <Grid.RowDefinitions><RowDefinition Height="31"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                            <Grid Grid.Row="0">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                <StackPanel Orientation="Horizontal"><TextBlock Text="Этапы операции" FontSize="11.8" FontWeight="SemiBold"/><Border Background="#17312E" CornerRadius="7" Padding="6,2" Margin="8,0,0,0"><TextBlock Text="LIVE" Foreground="#69BDB4" FontSize="9.3" FontWeight="Bold"/></Border></StackPanel>
+                                                <TextBlock Grid.Column="1" Text="Snapshot → Apply → Verify → Log → Undo" Foreground="{StaticResource TextMuted}" FontSize="9.6" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <ItemsControl ItemsSource="{Binding DeepScanSteps}">
+                                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                                        <Border Background="#121B24" BorderBrush="#23333D" BorderThickness="1" CornerRadius="8" Padding="9,6" Margin="0,0,0,5">
+                                                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="24"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                                <Border Width="15" Height="15" CornerRadius="8" Background="#173A35" BorderBrush="#34786F" BorderThickness="1" VerticalAlignment="Center"><TextBlock Text="✓" Foreground="#70C2B7" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                                                                <TextBlock Grid.Column="1" Text="{Binding}" FontSize="10.6" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </ScrollViewer>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </TabItem>
+
+                        </TabControl>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Stage 3: Startup Optimizer -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Style="{StaticResource PageTitle}" Text="Оптимизатор автозагрузки"/><TextBlock Text="Управление HKCU/HKLM Run · каждое отключение с snapshot" Foreground="{StaticResource TextMuted}" FontSize="11.2"/></StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding RefreshStartupOptimizerCommand}" Content="Обновить" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#111A20" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="7" Padding="8,4" Margin="0,2,0,3">
+                        <TextBlock Text="{Binding StartupOptimizerStatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.4" TextTrimming="CharacterEllipsis"/>
+                    </Border>
+                    <DataGrid Grid.Row="2" ItemsSource="{Binding StartupOptimizerItems}" AutoGenerateColumns="False" IsReadOnly="True" Margin="0,4,0,0" RowHeight="29" ColumnHeaderHeight="28">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Имя" Binding="{Binding Name, Mode=OneWay}" Width="115"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding StatusText, Mode=OneWay}" Width="70"/>
+                            <DataGridTextColumn Header="Scope" Binding="{Binding Scope, Mode=OneWay}" Width="62"/>
+                            <DataGridTextColumn Header="Рекомендация" Binding="{Binding Recommendation, Mode=OneWay}" Width="185"/>
+                            <DataGridTextColumn Header="Команда / путь" Binding="{Binding Command, Mode=OneWay}" Width="*"/>
+                            <DataGridTemplateColumn Header="" Width="92">
+                                <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Style="{StaticResource TableActionButton}" Command="{Binding DisableCommand}" Content="Отключить"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="" Width="80">
+                                <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Style="{StaticResource TableActionButton}" Command="{Binding RestoreCommand}" Content="Вернуть"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Cleanup Center + Debloat audit -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0"><TextBlock Style="{StaticResource PageTitle}" Text="Очистка / Debloat"/><TextBlock Text="Cleanup UX 2.0 · компактный выбор · ZIP snapshot + Undo для каждого удаления" Foreground="{StaticResource TextMuted}" FontSize="10.4"/></StackPanel>
+                    <TabControl Grid.Row="1" Background="Transparent" BorderThickness="0" Margin="0,3,0,0" SelectedIndex="{Binding SelectedCleanupTabIndex, Mode=TwoWay}">
+                        <TabItem Header="Очистка" Style="{StaticResource SubTabItem}">
+                            <Grid Margin="0,4,0,0">
+                                <Grid.RowDefinitions><RowDefinition Height="48"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#111820" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="8" Padding="9,6" Margin="0,0,0,6">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding CleanupSelectionText, Mode=OneWay}" FontWeight="SemiBold" FontSize="11.8"/>
+                                            <TextBlock Text="{Binding CleanupStatusText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.9" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectAllCleanupCommand}" Content="Выбрать всё" Margin="5,0,0,0"/>
+                                        <Button Grid.Column="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding ClearCleanupSelectionCommand}" Content="Снять" Margin="5,0,0,0"/>
+                                        <Button Grid.Column="3" Style="{StaticResource CompactSecondaryButton}" Command="{Binding RefreshCleanupCommand}" Content="Пересканировать" Margin="5,0,0,0"/>
+                                        <Button Grid.Column="4" Style="{StaticResource CompactPrimaryButton}" Command="{Binding CleanSelectedCommand}" Content="Очистить выбранное" Margin="5,0,0,0" MinWidth="126"/>
+                                    </Grid>
+                                </Border>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding CleanupCategories}">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Width="392" Height="94" Style="{StaticResource CardBorder}" Margin="0,0,7,7" Padding="9,7">
+                                                    <Border.ToolTip>
+                                                        <ToolTip>
+                                                            <StackPanel MaxWidth="430">
+                                                                <TextBlock Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" FontSize="11.8"/>
+                                                                <TextBlock Text="Что очищается" Foreground="{StaticResource Accent}" FontSize="9.5" FontWeight="SemiBold" Margin="0,5,0,1"/>
+                                                                <TextBlock Text="{Binding Description, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="Путь" Foreground="{StaticResource Accent}" FontSize="9.5" FontWeight="SemiBold" Margin="0,5,0,1"/>
+                                                                <TextBlock Text="{Binding RootPath, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontFamily="Consolas" FontSize="9.5" TextWrapping="Wrap"/>
+                                                                <TextBlock Text="Перед удалением создаются ZIP-backup и Snapshot; занятые/защищённые файлы пропускаются." Foreground="{StaticResource TextMuted}" FontSize="9.5" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                                            </StackPanel>
+                                                        </ToolTip>
+                                                    </Border.ToolTip>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                        <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected, Mode=TwoWay}" IsEnabled="{Binding CanClean}" VerticalAlignment="Top" Margin="0,2,8,0"/>
+                                                        <StackPanel Grid.Column="1">
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <TextBlock Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" FontSize="12.3" TextTrimming="CharacterEllipsis" MaxWidth="205"/>
+                                                                <Border Background="{StaticResource AccentSoft}" CornerRadius="6" Padding="5,1" Margin="6,0,0,0"><TextBlock Text="{Binding SafetyText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="9.4" FontWeight="Bold"/></Border>
+                                                            </StackPanel>
+                                                            <TextBlock Margin="0,3,0,0" FontSize="10.7"><Run Text="{Binding SizeText, Mode=OneWay}" FontWeight="SemiBold"/><Run Text="  ·  "/><Run Text="{Binding FileCountText, Mode=OneWay}"/></TextBlock>
+                                                            <TextBlock Text="{Binding RootPath, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontFamily="Consolas" FontSize="9.4" TextTrimming="CharacterEllipsis" Margin="0,3,0,0"/>
+                                                            <TextBlock Text="{Binding Description, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.5" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                        <Button Grid.Column="2" Style="{StaticResource TableActionButton}" Command="{Binding CleanCommand}" Content="Очистить" MinWidth="66" Margin="7,0,0,0" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Debloat Appx" Style="{StaticResource SubTabItem}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="{Binding DebloatStatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.4" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/><Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding RefreshDebloatCommand}" Content="Пересканировать"/></Grid>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding DebloatApps}" AutoGenerateColumns="False" IsReadOnly="True" RowHeight="27" ColumnHeaderHeight="27" Margin="0,3,0,0">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Приложение" Binding="{Binding DisplayName, Mode=OneWay}" Width="155"/>
+                                        <DataGridTextColumn Header="Статус" Binding="{Binding Status, Mode=OneWay}" Width="85"/>
+                                        <DataGridTextColumn Header="Package" Binding="{Binding PackageName, Mode=OneWay}" Width="180"/>
+                                        <DataGridTextColumn Header="Рекомендация" Binding="{Binding Recommendation, Mode=OneWay}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+
+                        <TabItem Header="Ход очистки" Style="{StaticResource SubTabItem}">
+                            <Grid Margin="0,4,0,0">
+                                <Grid.RowDefinitions><RowDefinition Height="126"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#101B22" BorderBrush="#2A4B54" BorderThickness="1" CornerRadius="9" Padding="11,8" Margin="0,0,0,7">
+                                    <Grid>
+                                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                        <Grid Grid.Row="0">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <StackPanel><TextBlock Text="{Binding CleanupOperationTitle, Mode=OneWay}" FontSize="12.5" FontWeight="SemiBold"/><TextBlock Text="{Binding CleanupOperationPhase, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="10.4" FontWeight="SemiBold" Margin="0,2,0,0"/></StackPanel>
+                                            <Border Grid.Column="1" Background="#173A35" BorderBrush="#2B655A" BorderThickness="1" CornerRadius="10" Padding="8,3" Margin="8,0,6,0" VerticalAlignment="Center"><TextBlock Text="{Binding CleanupProgressText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontWeight="Bold" FontSize="10.4"/></Border>
+                                            <Button Grid.Column="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding CancelCleanupOperationCommand}" Content="Отменить" MinWidth="82" VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <ProgressBar Grid.Row="1" Value="{Binding CleanupProgress, Mode=OneWay}" Maximum="100" Height="6" Margin="0,9,0,6"/>
+                                        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0"><TextBlock Text="Сейчас выполняется" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding CleanupOperationDetail, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" TextWrapping="Wrap" Margin="0,2,12,0"/></StackPanel>
+                                            <StackPanel Grid.Column="1"><TextBlock Text="Защита / результат" Style="{StaticResource Eyebrow}"/><TextBlock Text="{Binding CleanupOperationResult, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" TextWrapping="Wrap" Margin="0,2,0,0"/></StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                                <Border Grid.Row="1" Background="#0F151C" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="9" Padding="8">
+                                    <Grid><Grid.RowDefinitions><RowDefinition Height="26"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Этапы операции" FontSize="11.3" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="Подготовка → Backup (по выбору) → Snapshot/Очистка → Проверка" Foreground="{StaticResource TextMuted}" FontSize="9.5"/></Grid>
+                                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ItemsControl ItemsSource="{Binding CleanupOperationSteps}"><ItemsControl.ItemTemplate><DataTemplate><Border Background="#121B24" BorderBrush="#202C39" BorderThickness="1" CornerRadius="7" Padding="8,5" Margin="0,0,0,4"><TextBlock Text="{Binding}" Foreground="{StaticResource TextSecondary}" FontSize="10.2" TextWrapping="Wrap"/></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </TabItem>
+
+            <!-- Services + Scheduled Tasks reversible control -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="34"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Style="{StaticResource PageTitle}" Text="Службы и задачи"/><TextBlock Text="Ручное Disable/Restore с snapshot · критические KEEP-правила заблокированы" Foreground="{StaticResource TextMuted}" FontSize="11.2"/></StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding RefreshServicesTasksCommand}" Content="Обновить" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#111A20" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="7" Padding="8,4" Margin="0,2,0,3"><TextBlock Text="{Binding ServicesTasksStatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.4" TextTrimming="CharacterEllipsis"/></Border>
+                    <TabControl Grid.Row="2" Background="Transparent" BorderThickness="0" Margin="0,4,0,0">
+                        <TabItem Header="Службы" Style="{StaticResource SubTabItem}">
+                            <DataGrid ItemsSource="{Binding ServiceAuditItems}" AutoGenerateColumns="False" IsReadOnly="True" RowHeight="30" ColumnHeaderHeight="28">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Служба" Binding="{Binding DisplayName, Mode=OneWay}" Width="138"/>
+                                    <DataGridTextColumn Header="Состояние" Binding="{Binding Status, Mode=OneWay}" Width="72"/>
+                                    <DataGridTextColumn Header="Запуск" Binding="{Binding StartType, Mode=OneWay}" Width="68"/>
+                                    <DataGridTextColumn Header="Risk" Binding="{Binding Risk, Mode=OneWay}" Width="68"/>
+                                    <DataGridTextColumn Header="Рекомендация" Binding="{Binding Recommendation, Mode=OneWay}" Width="*"/>
+                                    <DataGridTemplateColumn Header="" Width="78">
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Style="{StaticResource TableActionButton}" Command="{Binding DisableCommand}" Content="Отключить" MinWidth="62"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="" Width="72">
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Style="{StaticResource TableActionButton}" Command="{Binding RestoreCommand}" Content="Вернуть" MinWidth="58"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                        <TabItem Header="Scheduled Tasks" Style="{StaticResource SubTabItem}">
+                            <DataGrid ItemsSource="{Binding ScheduledTaskAuditItems}" AutoGenerateColumns="False" IsReadOnly="True" RowHeight="30" ColumnHeaderHeight="28">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Задача" Binding="{Binding Name, Mode=OneWay}" Width="140"/>
+                                    <DataGridTextColumn Header="Путь" Binding="{Binding Path, Mode=OneWay}" Width="155"/>
+                                    <DataGridTextColumn Header="State" Binding="{Binding State, Mode=OneWay}" Width="68"/>
+                                    <DataGridTextColumn Header="Risk" Binding="{Binding Risk, Mode=OneWay}" Width="66"/>
+                                    <DataGridTextColumn Header="Рекомендация" Binding="{Binding Recommendation, Mode=OneWay}" Width="*"/>
+                                    <DataGridTemplateColumn Header="" Width="78">
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Style="{StaticResource TableActionButton}" Command="{Binding DisableCommand}" Content="Отключить" MinWidth="62"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="" Width="72">
+                                        <DataGridTemplateColumn.CellTemplate><DataTemplate><Button Style="{StaticResource TableActionButton}" Command="{Binding RestoreCommand}" Content="Вернуть" MinWidth="58"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </TabItem>
+
+            <!-- R38: Gaming Boost / Extreme Performance -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="172"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Gaming Build / Developer"/>
+                            <TextBlock Text="Игровая сборка Windows: системные твики, источники фоновых процессов, службы/задачи и сеть объединены в один план. SAFE → PERFORMANCE → EXTREME → LAB." Foreground="{StaticResource TextMuted}" FontSize="10.4"/>
+                        </StackPanel>
+                    </Grid>
+                    <UniformGrid Grid.Row="1" Columns="3" Margin="0,4,0,7">
+                        <Border Style="{StaticResource PresetCardBorder}" Margin="0,0,5,0" Padding="10,8">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel><TextBlock Text="SAFE GAMING" FontSize="13.2" FontWeight="SemiBold"/><TextBlock Text="Игровая база + безопасная разгрузка + Gaming Network SAFE." Foreground="{StaticResource TextSecondary}" FontSize="9.8" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel>
+                                <TextBlock Grid.Row="1" Text="Game Mode, контроль DVR и уже проверенные Gaming-настройки." Foreground="{StaticResource TextMuted}" FontSize="9.4" TextWrapping="Wrap" Margin="0,7,0,4"/>
+                                <Button Grid.Row="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectGamingProfileCommand}" Click="OpenOptimization_Click" Content="GAME SAFE" HorizontalAlignment="Left"/>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource PresetCardBorder}" Margin="5,0" Padding="10,8" BorderBrush="#315E59">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel><TextBlock Text="PERFORMANCE" FontSize="13.2" FontWeight="SemiBold"/><TextBlock Text="Игровые/Performance твики + фоновые процессы/службы + Gaming Network SAFE." Foreground="{StaticResource TextSecondary}" FontSize="9.8" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel>
+                                <TextBlock Grid.Row="1" Text="Для игрового ПК на каждый день. Более жёстко, но без LAB-настроек scheduler/HAGS." Foreground="{StaticResource TextMuted}" FontSize="9.4" TextWrapping="Wrap" Margin="0,7,0,4"/>
+                                <Button Grid.Row="2" Style="{StaticResource CompactPrimaryButton}" Command="{Binding SelectGamingPerformanceCommand}" Click="OpenOptimization_Click" Content="GAME PERFORMANCE" HorizontalAlignment="Left"/>
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource PresetCardBorder}" Margin="5,0,0,0" Padding="10,8" Background="#191519" BorderBrush="#6B4A51">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel><StackPanel Orientation="Horizontal"><TextBlock Text="EXTREME" FontSize="13.2" FontWeight="SemiBold"/><Border Background="#3B2026" CornerRadius="8" Padding="5,1" Margin="7,0,0,0"><TextBlock Text="АГРЕССИВНО" Foreground="#D89098" FontSize="8.7" FontWeight="Bold"/></Border></StackPanel><TextBlock Text="PERFORMANCE + агрессивная разгрузка Windows + Gaming Network EXTREME." Foreground="{StaticResource TextSecondary}" FontSize="9.8" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel>
+                                <TextBlock Grid.Row="1" Text="Для пользователей, которым важнее отклик/FPS, чем лишние фоновые функции Windows." Foreground="#BFA3A8" FontSize="9.4" TextWrapping="Wrap" Margin="0,7,0,4"/>
+                                <Button Grid.Row="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectGamingExtremeCommand}" Click="OpenOptimization_Click" Content="GAME EXTREME" HorizontalAlignment="Left"/>
+                            </Grid>
+                        </Border>
+                    
+                        <Border Style="{StaticResource PresetCardBorder}" Margin="4,0,0,0" Padding="9,7" BorderBrush="#3D716B" Background="#10201F">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="GAME BUILD" FontSize="12.6" FontWeight="SemiBold"/><Border Background="#173733" CornerRadius="8" Padding="5,1" Margin="5,0,0,0"><TextBlock Text="NEW" Foreground="#6BCABE" FontSize="8.5" FontWeight="Bold"/></Border></StackPanel>
+                                    <TextBlock Text="Игровая Windows одним профилем" Foreground="{StaticResource Accent}" FontSize="9.3" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <TextBlock Grid.Row="1" Text="Твики + снижение фоновых процессов + службы/задачи + Gaming Network. По умолчанию PERFORMANCE; SAFE / EXTREME / LAB доступны в Gaming Boost." Foreground="{StaticResource TextSecondary}" FontSize="9.2" TextWrapping="Wrap" Margin="0,5,0,4"/>
+                                <Button Grid.Row="2" Style="{StaticResource CompactPrimaryButton}" Command="{Binding SelectGamingPerformanceCommand}" Click="OpenOptimization_Click" Content="GAME PERFORMANCE" HorizontalAlignment="Stretch"/>
+                            </Grid>
+                        </Border>
+</UniformGrid>
+                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="7"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Background="#18151B" BorderBrush="#644D72" BorderThickness="1" CornerRadius="9" Padding="10,8">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="LAB MODE" FontSize="13" FontWeight="SemiBold"/><Border Background="#33243C" CornerRadius="9" Padding="6,2" Margin="7,0,0,0"><TextBlock Text="EXPERIMENTAL" Foreground="#C59AD6" FontSize="8.8" FontWeight="Bold"/></Border></StackPanel>
+                                <TextBlock Grid.Row="1" Text="EXTREME + экспериментальные scheduler/GPU/MMCSS-настройки и дополнительные условные службы. Сравнивайте FPS, frametime и фоновые процессы до/после." Foreground="{StaticResource TextSecondary}" FontSize="9.7" TextWrapping="Wrap" Margin="0,5,0,5"/>
+                                <TextBlock Grid.Row="2" Text="В LAB могут войти HAGS, foreground scheduler bias и MMCSS 10%. Defender, Windows Update, Store, IPv6 и pagefile не отключаются." Foreground="#B99CC3" FontSize="9.3" TextWrapping="Wrap"/>
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,8,0,0"><Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectGamingLabCommand}" Click="OpenOptimization_Click" Content="GAME LAB"/><Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding ApplyGamingNetworkExtremeCommand}" Content="Network EXTREME" Margin="6,0,0,0"/></StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource CardBorder}" Padding="10,8">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                                <TextBlock Text="Developer" FontSize="13" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="1" Text="Long Paths, PowerShell privacy, Explorer и Edge-настройки для рабочей среды." Foreground="{StaticResource TextSecondary}" FontSize="9.7" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                <TextBlock Grid.Row="2" Text="Gaming Network SAFE можно применить отдельно: RSS Enabled + TCP Auto-Tuning Normal." Foreground="{StaticResource TextMuted}" FontSize="9.4" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                <StackPanel Grid.Row="3" Margin="0,8,0,0"><Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding SelectDeveloperProfileCommand}" Click="OpenOptimization_Click" Content="Developer-твики" HorizontalAlignment="Left"/><Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding ApplyGamingNetworkSafeCommand}" Content="Network SAFE" HorizontalAlignment="Left" Margin="0,5,0,0"/></StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Compact power center with explicit active plan -->
+                        <!-- R37 Repair / Network Center -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="43"/><RowDefinition Height="61"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Style="{StaticResource PageTitle}" Text="Repair / Network"/><TextBlock Text="Диагностика и штатное восстановление сетевого стека Windows — без сомнительных ping/TCP-хаков" Foreground="{StaticResource TextMuted}" FontSize="10.4"/></StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource CompactPrimaryButton}" Command="{Binding DiagnoseNetworkCommand}" Content="Диагностика" MinWidth="108" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#101B22" BorderBrush="#2A5A56" BorderThickness="1" CornerRadius="9" Padding="10,7" Margin="0,2,0,7">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="115"/></Grid.ColumnDefinitions>
+                            <StackPanel><TextBlock Text="{Binding NetworkStatusText, Mode=OneWay}" FontSize="11.5" FontWeight="SemiBold"/><TextBlock Text="{Binding NetworkOperationText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.7" Margin="0,2,8,0" TextTrimming="CharacterEllipsis"/></StackPanel>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="{Binding NetworkProgress, StringFormat={}{0:0}%}" Foreground="#6FC1B7" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Right"/><ProgressBar Value="{Binding NetworkProgress, Mode=OneWay}" Maximum="100" Height="5" Margin="0,4,0,0"/></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="0.95*"/></Grid.ColumnDefinitions>
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <Border Style="{StaticResource CardBorder}" Padding="11" Margin="0,0,0,7"><StackPanel>
+                                    <TextBlock Text="Активное подключение" FontSize="12.5" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding NetworkAdapterText}" Foreground="{StaticResource TextSecondary}" FontSize="10.5" Margin="0,3,0,7" TextWrapping="Wrap"/>
+                                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="92"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                        <TextBlock Text="IPv4" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Column="1" Text="{Binding NetworkIpText}" FontWeight="SemiBold"/>
+                                        <TextBlock Grid.Row="1" Text="Шлюз" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NetworkGatewayText}"/>
+                                        <TextBlock Grid.Row="2" Text="DNS" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding NetworkDnsText}" TextWrapping="Wrap"/>
+                                        <TextBlock Grid.Row="3" Text="DHCP" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding NetworkDhcpText}"/>
+                                        <TextBlock Grid.Row="4" Text="Скорость" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding NetworkSpeedText}"/>
+                                    </Grid>
+                                </StackPanel></Border>
+                                <Border Style="{StaticResource CardBorder}" Padding="11"><StackPanel>
+                                    <TextBlock Text="Проверка соединения" FontSize="12.2" FontWeight="SemiBold"/>
+                                    <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="100"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                        <TextBlock Text="Шлюз" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Column="1" Text="{Binding NetworkGatewayTestText}"/>
+                                        <TextBlock Grid.Row="1" Text="DNS lookup" Foreground="{StaticResource TextMuted}"/><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NetworkDnsTestText}"/>
+                                    </Grid>
+                                </StackPanel></Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <Border Style="{StaticResource CardBorder}" Padding="11" Margin="0,0,0,7"><StackPanel>
+                                    <TextBlock Text="Gaming Network" FontSize="12.5" FontWeight="SemiBold"/>
+                                    <TextBlock Text="SAFE нормализует TCP. EXTREME сохраняет baseline и применяет поддерживаемые low-latency параметры адаптера без принудительного reconnect." Foreground="{StaticResource TextMuted}" FontSize="9.7" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                                    <UniformGrid Columns="2" Rows="1">
+                                        <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding ApplyGamingNetworkSafeCommand}" Content="LOW LATENCY SAFE" Margin="0,0,5,0"/>
+                                        <Button Style="{StaticResource CompactPrimaryButton}" Command="{Binding ApplyGamingNetworkExtremeCommand}" Content="EXTREME"/>
+                                    </UniformGrid>
+                                    <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding RestoreGamingNetworkCommand}" Content="Вернуть baseline EXTREME" Margin="0,6,0,0"/>
+                                    <TextBlock Text="EXTREME может увеличить CPU/энергопотребление. Если драйвер не поддерживает отдельный параметр, Merzo пропустит его вместо случайной записи в реестр драйвера." Foreground="#B69A6A" FontSize="9.3" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                </StackPanel></Border>
+                                <Border Style="{StaticResource CardBorder}" Padding="11" Margin="0,0,0,7"><StackPanel>
+                                    <TextBlock Text="Быстрый Repair" FontSize="12.5" FontWeight="SemiBold"/><TextBlock Text="Только встроенные команды Windows. UAC запрашивается в момент изменения." Foreground="{StaticResource TextMuted}" FontSize="9.8" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                                    <UniformGrid Columns="2" Rows="2">
+                                        <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding FlushDnsCommand}" Content="Очистить DNS" Margin="0,0,5,5"/>
+                                        <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding RenewDhcpCommand}" Content="Обновить DHCP" Margin="0,0,0,5"/>
+                                        <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding ResetWinsockCommand}" Content="Сбросить Winsock" Margin="0,0,5,0"/>
+                                        <Button Style="{StaticResource CompactSecondaryButton}" Command="{Binding ResetTcpIpCommand}" Content="Сбросить TCP/IP"/>
+                                    </UniformGrid>
+                                    <Button Style="{StaticResource CompactPrimaryButton}" Command="{Binding RepairNetworkCommand}" Content="Восстановить сеть Windows" Margin="0,9,0,0" Height="36"/>
+                                    <TextBlock Text="Не отключает IPv6, не меняет MTU/TCP autotuning и не удаляет Wi‑Fi/VPN профили. Winsock/TCP-IP reset может потребовать перезагрузку." Foreground="#B69A6A" FontSize="9.5" TextWrapping="Wrap" Margin="0,7,0,0"/>
+                                </StackPanel></Border>
+                                <Border Style="{StaticResource CardBorder}" Padding="10"><StackPanel><TextBlock Text="Ход восстановления" FontSize="11.8" FontWeight="SemiBold" Margin="0,0,0,6"/><ItemsControl ItemsSource="{Binding NetworkOperationSteps}"><ItemsControl.ItemTemplate><DataTemplate><Border Background="#121B24" BorderBrush="#23333D" BorderThickness="1" CornerRadius="7" Padding="7,5" Margin="0,0,0,4"><TextBlock Text="{Binding}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" TextWrapping="Wrap"/></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+<TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="58"/><RowDefinition Height="112"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Style="{StaticResource PageTitle}" Text="Питание"/><TextBlock Text="Штатные схемы Windows · LIVE-синхронизация активного режима · Snapshot / Undo" Foreground="{StaticResource TextMuted}" FontSize="10.4"/></StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding RestorePowerCommand}" Content="Вернуть прошлый план" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="#102A26" BorderBrush="#2B655A" BorderThickness="1" CornerRadius="9" Padding="10,6" Margin="0,2,0,6">
+                        <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Border Width="34" Height="34" Background="#173A35" CornerRadius="17" Margin="0,0,8,0"><TextBlock Text="&#xE945;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center"><TextBlock Text="АКТИВНЫЙ ПЛАН" Foreground="{StaticResource Accent}" FontSize="9.4" FontWeight="Bold"/><TextBlock Text="{Binding ActivePowerSchemeName, Mode=OneWay}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/></StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"><TextBlock Text="{Binding PowerSchemeCountText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.1" TextAlignment="Right"/><TextBlock Text="{Binding PowerStatusText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.4" TextAlignment="Right" MaxWidth="280" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding PowerLiveText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="9.4" TextAlignment="Right" Margin="0,2,0,0"/></StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Padding="10,7" CornerRadius="9" Margin="0,0,6,0">
+                            <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#141B24"/><Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/><Setter Property="BorderThickness" Value="1"/><Style.Triggers><DataTrigger Binding="{Binding IsBalancedPowerActive}" Value="True"><Setter Property="Background" Value="#112923"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/><Setter Property="BorderThickness" Value="2"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel><StackPanel Orientation="Horizontal"><TextBlock Text="Сбалансированный" FontSize="12.8" FontWeight="SemiBold"/><Border Background="#173A35" CornerRadius="6" Padding="5,1" Margin="7,0,0,0"><Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsBalancedPowerActive}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="АКТИВЕН" Foreground="{StaticResource Accent}" FontSize="9.4" FontWeight="Bold"/></Border></StackPanel><TextBlock Text="Основной режим Windows для повседневной работы." Foreground="{StaticResource TextMuted}" FontSize="9.8" Margin="0,4,10,0"/></StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource CompactPrimaryButton}" Command="{Binding ActivateBalancedPowerCommand}" Content="Включить" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="1" Padding="10,7" CornerRadius="9" Margin="0">
+                            <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#141B24"/><Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/><Setter Property="BorderThickness" Value="1"/><Style.Triggers><DataTrigger Binding="{Binding IsPerformancePowerActive}" Value="True"><Setter Property="Background" Value="#2A2515"/><Setter Property="BorderBrush" Value="{StaticResource Warning}"/><Setter Property="BorderThickness" Value="2"/></DataTrigger></Style.Triggers></Style></Border.Style>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel><StackPanel Orientation="Horizontal"><TextBlock Text="Высокая производительность" FontSize="12.8" FontWeight="SemiBold"/><Border Background="#332B17" CornerRadius="6" Padding="5,1" Margin="7,0,0,0"><Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsPerformancePowerActive}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style><TextBlock Text="АКТИВЕН" Foreground="{StaticResource Warning}" FontSize="9.4" FontWeight="Bold"/></Border></StackPanel><TextBlock Text="Штатный High Performance для ПК от сети. Возможны больший нагрев и расход энергии." Foreground="{StaticResource TextMuted}" FontSize="9.8" Margin="0,4,10,0" TextWrapping="Wrap"/></StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding ActivatePerformancePowerCommand}" Content="Включить" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Border Grid.Row="3" Background="#111820" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="9" Padding="9,7">
+                        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Все схемы Windows" FontSize="11.8" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="● активная" Foreground="{StaticResource Accent}" FontSize="9.7"/></Grid>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,6,0,0"><ItemsControl ItemsSource="{Binding PowerSchemes}"><ItemsControl.ItemTemplate><DataTemplate><Border BorderThickness="1" CornerRadius="7" Padding="8,5" Margin="0,0,0,4"><Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#121820"/><Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/><Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True"><Setter Property="Background" Value="#112923"/><Setter Property="BorderBrush" Value="{StaticResource Accent}"/></DataTrigger></Style.Triggers></Style></Border.Style><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="●" Foreground="{StaticResource Accent}" FontSize="10.4" VerticalAlignment="Center"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Opacity" Value="0.15"/><Style.Triggers><DataTrigger Binding="{Binding IsActive}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><TextBlock Grid.Column="1" Text="{Binding Name, Mode=OneWay}" FontWeight="SemiBold" FontSize="10.8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/><TextBlock Grid.Column="2" Text="{Binding Guid, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontFamily="Consolas" FontSize="9.4" VerticalAlignment="Center"/></Grid></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- R31: visual Update Center 4.0 -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="118"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Style="{StaticResource PageTitle}" Text="Обновления"/><TextBlock Text="Весь процесс виден: проверка → загрузка → SHA-256 → установка → запуск" Foreground="{StaticResource TextMuted}" FontSize="10.7"/></StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource CompactSecondaryButton}" Command="{Binding CheckUpdatesCommand}" Content="Проверить обновления" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <Button Grid.Column="2" Style="{StaticResource CompactPrimaryButton}" Command="{Binding DownloadUpdateCommand}" Content="Скачать и установить" VerticalAlignment="Center"/>
+                    </Grid>
+                    <Border Grid.Row="1" Background="#101B22" BorderBrush="#2A4B54" BorderThickness="1" CornerRadius="9" Padding="10,8" Margin="0,3,0,7">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <Grid Grid.Row="0"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Text="{Binding UpdatePhaseText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="9.5" FontWeight="Bold"/><TextBlock Text="{Binding UpdateStatusText, Mode=OneWay}" FontWeight="SemiBold" FontSize="11.3" TextWrapping="Wrap" Margin="0,2,12,0"/></StackPanel>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Right"><TextBlock Text="{Binding UpdateProgressText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="15" FontWeight="Bold" TextAlignment="Right"/><TextBlock Text="{Binding UpdateSpeedText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.5" TextAlignment="Right"/></StackPanel>
+                            </Grid>
+                            <ProgressBar Grid.Row="1" Value="{Binding UpdateProgress, Mode=OneWay}" Maximum="100" IsIndeterminate="{Binding IsUpdateProgressIndeterminate, Mode=OneWay}" Height="7" Margin="0,9,0,6"/>
+                            <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="Передано: " Foreground="{StaticResource TextMuted}" FontSize="9.9"/><TextBlock Text="{Binding UpdateTransferText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" FontWeight="SemiBold"/><TextBlock Text="   ·   SHA-256 обязателен" Foreground="{StaticResource TextMuted}" FontSize="9.9"/></StackPanel>
+                                <TextBlock Grid.Column="1" Text="{Binding UpdateLatestText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="9.9" Margin="10,0" VerticalAlignment="Center"/>
+                                <Button Grid.Column="2" Style="{StaticResource CompactSecondaryButton}" Command="{Binding CancelUpdateCommand}" Content="Отменить" MinWidth="78"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.65*"/><ColumnDefinition Width="1*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource PresetCardBorder}" Margin="0,0,7,0" Padding="10,8">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <StackPanel><TextBlock Text="Что нового" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="{Binding UpdateReleaseTitleText, Mode=OneWay}" Foreground="{StaticResource Accent}" FontSize="10.4" FontWeight="SemiBold" Margin="0,3,0,5"/></StackPanel>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><TextBlock Text="{Binding UpdateReleaseNotesText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.1" TextWrapping="Wrap" Padding="0,1,8,0"/></ScrollViewer>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource PresetCardBorder}" Margin="0" Padding="10,8">
+                            <StackPanel><TextBlock Text="Статус канала" FontSize="12.8" FontWeight="SemiBold"/><TextBlock Text="{Binding UpdateRepositoryText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.1" Margin="0,6,0,0" TextWrapping="Wrap"/><TextBlock Text="{Binding UpdatePolicyText, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontSize="9.9" Margin="0,5,0,0" TextWrapping="Wrap"/><Border Background="#102D27" BorderBrush="#24554B" BorderThickness="1" CornerRadius="7" Padding="7,5" Margin="0,10,0,0"><TextBlock Text="После установки экран запуска остаётся открыт, пока новая версия полностью не загрузит основное окно." Foreground="{StaticResource Accent}" FontSize="9.9" TextWrapping="Wrap"/></Border></StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Stage 2: Restore Center -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="38"/>
+                        <RowDefinition Height="46"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource PageTitle}" Text="Центр восстановления"/>
+                            <TextBlock Text="Snapshot history · Undo отдельных твиков · Restore All" Foreground="{StaticResource TextMuted}" FontSize="11.2"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Command="{Binding RefreshStage2Command}" Padding="8,4" Margin="6,0,0,4" Content="Обновить"/>
+                        <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Command="{Binding RestoreAllCommand}" Padding="8,4" Margin="6,0,0,4" Content="Restore All"/>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="#111A20" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="7" Padding="8" Margin="0,2,0,5">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE7A7;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Accent}" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding SnapshotSummaryText, Mode=OneWay}" FontWeight="SemiBold" FontSize="11.2"/>
+                                <TextBlock Text="{Binding SnapshotDirectory, Mode=OneWay}" Foreground="{StaticResource TextMuted}" FontFamily="Consolas" FontSize="9.5" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding Snapshots}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardBorder}" Height="52" Margin="0,0,0,5" Padding="8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="84"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="82"/>
+                                                <ColumnDefinition Width="72"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding CreatedText, Mode=OneWay}" FontSize="10.4" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding ShortId, Mode=OneWay}" FontFamily="Consolas" FontSize="9.5" Foreground="{StaticResource TextMuted}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="6,0">
+                                                <TextBlock Text="{Binding Name, Mode=OneWay}" FontSize="11.2" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding EntryCountText, Mode=OneWay}" FontSize="9.5" Foreground="{StaticResource TextMuted}"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding StatusText, Mode=OneWay}" Foreground="{StaticResource TextSecondary}" FontSize="10.4" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <Button Grid.Column="3" Style="{StaticResource SecondaryButton}" Command="{Binding RestoreCommand}" MinHeight="24" Padding="6,3" FontSize="10.4" Content="Restore" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+
+            <!-- Logs -->
+            <TabItem>
+                <Grid Margin="11,8,11,9">
+                    <Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <StackPanel><TextBlock Style="{StaticResource PageTitle}" Text="Журнал и архитектура"/><TextBlock Text="Audit trail работает уже с первого сканирования" Foreground="{StaticResource TextMuted}" FontSize="11.2"/></StackPanel>
+                    <Grid Grid.Row="1" Margin="0,4,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="1.15*"/><ColumnDefinition Width="0.85*"/></Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,6,0" Padding="11">
+                            <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="ПАПКА ЛОГОВ"/><TextBlock Text="{Binding LogDirectory, Mode=OneWay}" FontFamily="Consolas" FontSize="11.2" TextWrapping="Wrap" Margin="0,5,0,0" Foreground="{StaticResource TextSecondary}"/><Separator Margin="0,10,0,9"/><TextBlock Text="Stage 2 уже пишет старое/новое значение для твиков и Restore, статус операции, snapshot ID и ошибки." Foreground="{StaticResource TextMuted}" FontSize="11.2" TextWrapping="Wrap"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="0" Padding="11">
+                            <StackPanel><TextBlock Style="{StaticResource Eyebrow}" Text="ARCHITECTURE"/><TextBlock Text="UI → Core → Windows" FontSize="14" FontWeight="SemiBold" Margin="0,7,0,7"/><TextBlock Text="Core contracts + async dispatcher" Foreground="{StaticResource TextSecondary}" FontSize="11.2"/><TextBlock Text="Core не зависит от WPF, Registry или P/Invoke." Foreground="{StaticResource TextMuted}" TextWrapping="Wrap" FontSize="11.2" Margin="0,4,0,0"/></StackPanel>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+            <!-- R32: persistent in-app startup update notification. It appears after the silent startup check and stays until user opens Updates or closes it. -->
+        <Border Grid.Row="1" Grid.Column="1" Panel.ZIndex="50" HorizontalAlignment="Right" VerticalAlignment="Top" Width="430" Margin="0,9,12,0" Background="#123028" BorderBrush="#4ECAB3" BorderThickness="1.5" CornerRadius="10" Padding="11,8">
+            <Border.Style><Style TargetType="Border"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsStartupUpdateNoticeVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="34"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Border Width="30" Height="30" Background="#1B493F" CornerRadius="15" VerticalAlignment="Top"><TextBlock Text="&#xE895;" FontFamily="Segoe MDL2 Assets" Foreground="#59D8C2" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                <StackPanel Grid.Column="1" Margin="8,0,10,0"><TextBlock Text="ДОСТУПНО ОБНОВЛЕНИЕ" Foreground="#59D8C2" FontSize="9.4" FontWeight="Bold"/><TextBlock Text="{Binding StartupUpdateNoticeText, Mode=OneWay}" FontSize="11.3" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0"/><TextBlock Text="{Binding StartupUpdateNoticeDetailText, Mode=OneWay}" Foreground="#A9B7C4" FontSize="9.5" TextWrapping="Wrap" Margin="0,2,0,0"/><Button Style="{StaticResource CompactPrimaryButton}" Click="OpenUpdatesFromNotice_Click" Content="Открыть обновления" HorizontalAlignment="Left" Margin="0,6,0,0"/></StackPanel>
+                <Button Grid.Column="2" Style="{StaticResource TableActionButton}" Command="{Binding DismissStartupUpdateNoticeCommand}" Content="×" Width="26" Height="25" FontSize="14" ToolTip="Скрыть уведомление"/>
+            </Grid>
+        </Border>
+</Grid>
+    <!-- R30: visual Update Center 4.0 retained in R31 -->
+</Window>
