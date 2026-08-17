@@ -31,4 +31,11 @@ cfg=json.loads(settings_path.read_text(encoding='utf-8-sig'))
 if cfg.get('repository_owner')!='Merzo4' or cfg.get('repository_name')!='my-app-updates': raise SystemExit('R46 update feed aliases refused: non-official repository')
 cfg['owner']=cfg['repository_owner']; cfg['repo']=cfg['repository_name']
 settings_path.write_text(json.dumps(cfg,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-print('R46 explicit OneWay bindings + helper validation naming + official feed aliases finalize: OK')
+updater=root/'src'/'MerzoOptimizer.Windows'/'Updates'/'GitHubUpdateService.cs'
+u=updater.read_text(encoding='utf-8-sig')
+old='''        if (!HasOfficialProductionConfiguration() || !ValidateDownloadMetadata(update, out var metadataError))\n            return new UpdateDownloadResult { Success = false, Message = metadataError ?? "Метаданные обновления отклонены." };\n'''
+new='''        string? metadataError = null;\n        if (!HasOfficialProductionConfiguration())\n            return new UpdateDownloadResult { Success = false, Message = "Конфигурация обновлений не является официальной." };\n        if (!ValidateDownloadMetadata(update, out metadataError))\n            return new UpdateDownloadResult { Success = false, Message = metadataError ?? "Метаданные обновления отклонены." };\n'''
+if u.count(old)!=1: raise SystemExit(f'R46 updater definite-assignment anchor count {u.count(old)}')
+u=u.replace(old,new,1)
+updater.write_text(u,encoding='utf-8')
+print('R46 OneWay/helper/feed/updater compile finalize: OK')
