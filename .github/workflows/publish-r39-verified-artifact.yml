@@ -1,0 +1,62 @@
+name: Publish R39 verified artifact
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/publish-r39-verified-artifact.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download already verified R39 artifact
+        env:
+          GH_TOKEN: '${{ github.token }}'
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          gh run download 31988038088 --repo "$GITHUB_REPOSITORY" --name MerzoWindowsOptimizer-0.1.39-R39-GAMING-BUILD --dir dist
+          ls -lah dist
+      - name: Verify exact R39 hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          echo '1411cbde15f2c5751edd5984c00ad748f3c007b99c623cabeb4fb90c63ce87ed  MerzoWindowsOptimizerSetup-win-x64.exe' | sha256sum -c -
+          echo '80126fc4ece29083a033d0e99a248ac2059a6aa34f4f43556ff36fa709d4634c  MerzoWindowsOptimizer-portable-win-x64.zip' | sha256sum -c -
+          grep -qi '^1411cbde15f2c5751edd5984c00ad748f3c007b99c623cabeb4fb90c63ce87ed' MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          grep -qi '^80126fc4ece29083a033d0e99a248ac2059a6aa34f4f43556ff36fa709d4634c' MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+      - name: Publish mwo-v0.1.39 from verified artifact
+        env:
+          GH_TOKEN: '${{ github.token }}'
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='mwo-v0.1.39'
+          gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes >/dev/null 2>&1 || true
+          git push origin ":refs/tags/$tag" >/dev/null 2>&1 || true
+          cat > r39-notes.txt <<'EOF'
+          ДОБАВЛЕНО
+          • GAME BUILD встроен прямо в основные профили оптимизации.
+          • GAME SAFE / PERFORMANCE / EXTREME / LAB — четыре уровня игровой Windows.
+          • Один подтверждённый план объединяет Registry/Policy, снижение источников фоновых процессов, службы/задачи и Gaming Network.
+          • PERFORMANCE использует Gaming Network SAFE; EXTREME/LAB — Gaming Network EXTREME с baseline адаптера.
+
+          ИЗМЕНЕНО
+          • Gaming Boost R38 теперь выбирает полный Gaming Build, а не только Gaming-категорию.
+          • Вместо случайного завершения процессов Merzo уменьшает источники их автозапуска/фоновой работы и отключает только проверяемые службы из allow-list профиля.
+          • Operation Center показывает единый ход: Tweaks → Services → Tasks → Network → результат.
+
+          ВАЖНО
+          • EXTREME/LAB могут отключать необязательные Hotspot/Smart Card/Sensors/Tablet/Biometrics сценарии, поэтому перед применением показывается отдельное предупреждение.
+          • Defender, Windows Update, Store, IPv6 и pagefile не отключаются.
+          • При ошибке EXTREME-сети Merzo пытается вернуть baseline адаптера и затем откатывает Snapshot-изменения.
+          • Production остаётся без Obfuscar; finished DLL прошла dispatcher runtime smoke, network contract smoke и startup smoke в исходном R39 build run 31988038088.
+          EOF
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target fffd0487ad172c7c7526332a690c12be8e709dca --title 'Merzo Windows Optimizer 0.1.39 (R39 GAMING BUILD)' --notes-file r39-notes.txt \
+            dist/MerzoWindowsOptimizerSetup-win-x64.exe \
+            dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+            dist/MerzoWindowsOptimizer-portable-win-x64.zip \
+            dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
