@@ -1,0 +1,102 @@
+name: MerzoStream brand assets cache
+
+on:
+  push:
+    branches: [merzostream-010h-release]
+    paths: ['.github/workflows/merzostream-brand-cache.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cache-brand-assets:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract verified brand assets from tagged installer without running it
+        shell: pwsh
+        run: |
+          $py=@'
+          import subprocess,pathlib,hashlib
+          temp=pathlib.Path(r'${{ runner.temp }}')
+          old=temp/'MerzoStreamSetup-0.0.8a.exe'
+          old.write_bytes(subprocess.check_output(['git','show','v0.0.8a:MerzoStreamSetup.exe']))
+          sha=subprocess.check_output(['git','show','v0.0.8a:MerzoStreamSetup.sha256'],text=True).strip().split()[0].lower()
+          got=hashlib.sha256(old.read_bytes()).hexdigest()
+          assert got==sha,(got,sha)
+          print('OLD INSTALLER SHA PASS',got)
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'get_old.py'; Set-Content $p $py -Encoding UTF8
+          python $p
+          if($LASTEXITCODE -ne 0){throw 'Failed to reconstruct tagged installer'}
+          $old=Join-Path $env:RUNNER_TEMP 'MerzoStreamSetup-0.0.8a.exe'
+          $brand=Join-Path $env:RUNNER_TEMP 'oldbrand'
+          New-Item -ItemType Directory -Force $brand | Out-Null
+          $seven='C:\Program Files\7-Zip\7z.exe'
+          if(-not(Test-Path $seven)){throw '7-Zip missing on runner'}
+          & $seven x $old "-o$brand" -y | Out-Host
+          if($LASTEXITCODE -ne 0){throw '7-Zip could not extract tagged installer'}
+          $ico=Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.ico' | Select-Object -First 1
+          $png=Get-ChildItem $brand -Recurse -File -Filter 'MerzoStreamSuite.png' | Select-Object -First 1
+          if(-not $ico -or -not $png){throw 'Brand assets not found in extracted tagged installer'}
+          $icoHash=(Get-FileHash $ico.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $pngHash=(Get-FileHash $png.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($icoHash -ne '58b5f9c3b0f5ba731400414a08ccda6ed860ca1b64a8f894cac9ef0e251b4c28'){throw "ICO SHA mismatch $icoHash"}
+          if($pngHash -ne 'a96c9b3b920af13b1297268fe0c9a22bfcdf2cd12127c7b4161c57695a52364c'){throw "PNG SHA mismatch $pngHash"}
+          New-Item -ItemType Directory -Force 'merzostream/brand-assets' | Out-Null
+          Copy-Item $ico.FullName 'merzostream/brand-assets/MerzoStreamSuite.ico' -Force
+          Copy-Item $png.FullName 'merzostream/brand-assets/MerzoStreamSuite.png' -Force
+          Write-Host 'BRAND ASSETS EXTRACTED + SHA PASS'
+
+      - name: Switch FINAL-2 to cached verified brand assets
+        shell: pwsh
+        run: |
+          $py=@'
+          from pathlib import Path
+          p=Path('.github/workflows/merzostream-010h-final2.yml')
+          s=p.read_text(encoding='utf-8')
+          a=s.index('      - name: Restore and verify MerzoStream brand assets')
+          b=s.index('      - name: Verify 0.1.0h source identity')
+          step='''      - name: Restore and verify MerzoStream brand assets
+        shell: pwsh
+        run: |
+          $ico='merzostream/brand-assets/MerzoStreamSuite.ico'
+          $png='merzostream/brand-assets/MerzoStreamSuite.png'
+          if(-not(Test-Path $ico) -or -not(Test-Path $png)){throw 'Cached brand assets missing'}
+          $icoHash=(Get-FileHash $ico -Algorithm SHA256).Hash.ToLowerInvariant()
+          $pngHash=(Get-FileHash $png -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($icoHash -ne '58b5f9c3b0f5ba731400414a08ccda6ed860ca1b64a8f894cac9ef0e251b4c28'){throw "ICO SHA mismatch: $icoHash"}
+          if($pngHash -ne 'a96c9b3b920af13b1297268fe0c9a22bfcdf2cd12127c7b4161c57695a52364c'){throw "PNG SHA mismatch: $pngHash"}
+          New-Item -ItemType Directory -Force "$env:MERZO_SRC\\content" | Out-Null
+          New-Item -ItemType Directory -Force "$env:MERZO_SRC\\ui\\web" | Out-Null
+          Copy-Item $ico "$env:MERZO_SRC\\content\\MerzoStreamSuite.ico" -Force
+          Copy-Item $png "$env:MERZO_SRC\\content\\MerzoStreamSuite.png" -Force
+          Copy-Item $png "$env:MERZO_SRC\\ui\\web\\MerzoStreamSuite.png" -Force
+          Write-Host 'BRAND ASSETS CACHE SHA PASS'
+
+'''
+          p.write_text(s[:a]+step+s[b:],encoding='utf-8')
+          print('FINAL-2 PATCHED TO CACHED BRAND ASSETS')
+          '@
+          $p=Join-Path $env:RUNNER_TEMP 'patch_final.py'; Set-Content $p $py -Encoding UTF8
+          python $p
+          if($LASTEXITCODE -ne 0){throw 'Failed to patch FINAL-2'}
+
+      - name: Commit brand assets and trigger clean FINAL-2 rerun
+        shell: pwsh
+        run: |
+          git config user.name 'MerzoStream Release Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add merzostream/brand-assets/MerzoStreamSuite.ico merzostream/brand-assets/MerzoStreamSuite.png .github/workflows/merzostream-010h-final2.yml
+          git diff --cached --exit-code *> $null
+          if($LASTEXITCODE -eq 0){ Write-Host 'No cache changes required'; exit 0 }
+          git commit -m 'Cache verified MerzoStream brand assets for 0.1.0h release'
+          git push origin HEAD:merzostream-010h-release
+          if($LASTEXITCODE -ne 0){throw 'Failed to push brand cache'}
+          Write-Host 'BRAND CACHE PUSHED; FINAL-2 RERUN TRIGGERED'
