@@ -1,0 +1,15 @@
+build-release	Apply verified cumulative 0.1.0k patch	﻿2026-08-18T09:58:08.9259688Z ##[group]Run python merzostream/ci/apply_010k.py
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9260178Z ^[[36;1mpython merzostream/ci/apply_010k.py^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9260545Z ^[[36;1mif($LASTEXITCODE -ne 0){throw '0.1.0k patch failed'}^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9327416Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9327766Z env:
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9327967Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9328249Z   MERZO_SRC: D:\a\_temp\merzostream-010k-src
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9328513Z ##[endgroup]
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.2474413Z 0.1.0k patch part SHA mismatch: part00.b64 6b688b4b9f8861bdd9b68e5e3f0d34709a91421feb74a30ad998b26a135d046c
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4640713Z ^[[31;1mException: ^[[0mD:\a\_temp\fca61c68-b2a1-4edb-b3a8-69f507161c7b.ps1:3^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4641554Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4642311Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow '0.1.0k patch failed'^[[0m}^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4643382Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4644389Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1m0.1.0k patch failed^[[0m
+build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.5320930Z ##[error]Process completed with exit code 1.
