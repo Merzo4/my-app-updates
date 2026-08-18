@@ -19,10 +19,8 @@ $new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_proce
 if(($src.Split($old).Count-1)-ne1){throw 'R53 patch-chain anchor mismatch'}
 $src=$src.Replace($old,$new)
 
-$old="'R52_WINDOW_SCROLL_RELIABILITY.marker','R52_GAME_WOW.marker']:"
-$new="'R52_WINDOW_SCROLL_RELIABILITY.marker','R52_GAME_WOW.marker','R53_PROCESS_CLEAN_START.marker']:"
-if(($src.Split($old).Count-1)-ne1){throw 'R53 marker anchor mismatch'}
-$src=$src.Replace($old,$new)
+# R52/R51 keep their own marker checks. R53 has an explicit post-build marker
+# gate below, avoiding a brittle textual dependency on the inherited marker list.
 
 # Keep internal gate names unique so logs are easy to audit.
 $src=$src.Replace('R52_V2_GAME_UI_SOURCE_PASS','R53_BASE_GAME_UI_SOURCE_PASS')
