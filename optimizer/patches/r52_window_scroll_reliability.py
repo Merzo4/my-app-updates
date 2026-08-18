@@ -47,7 +47,6 @@ x=enrich_named_scroll(x,'BuildAdvancedScroll')
 if 'x:Name="OperationEventScroll"' in x:
     x=enrich_named_scroll(x,'OperationEventScroll')
 
-# Give the sidebar expander a stable runtime name for the regression probe.
 x=x.replace('<Expander Header="Экспертные инструменты" Style="{StaticResource MerzoExpanderStyle}"',
             '<Expander x:Name="SidebarExpertExpander" Header="Экспертные инструменты" Style="{StaticResource MerzoExpanderStyle}"',1)
 
@@ -127,10 +126,6 @@ if 'R52_WINDOW_SCROLL_BEGIN' not in c:
             }
             current = R52GetUiParent(current);
         }
-
-        // If the pointer is over a child that consumed layout space but the nearest
-        // viewer is currently at an edge, keep the event unhandled so an outer viewer
-        // can still process it normally.
         _ = firstScrollable;
     }
 
@@ -147,10 +142,10 @@ if 'R52_WINDOW_SCROLL_BEGIN' not in c:
         catch (InvalidOperationException) { return null; }
     }
 
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "MonitorFromWindow")]
     private static extern IntPtr R52MonitorFromWindow(IntPtr hwnd, uint flags);
 
-    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "GetMonitorInfoW", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
     [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
     private static extern bool R52GetMonitorInfo(IntPtr monitor, ref R52MonitorInfo info);
 
@@ -170,7 +165,7 @@ if 'R52_WINDOW_SCROLL_BEGIN' not in c:
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
     private struct R52Rect { public int left; public int top; public int right; public int bottom; }
 
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
     private struct R52MonitorInfo
     {
         public int cbSize;
@@ -185,7 +180,6 @@ if 'R52_WINDOW_SCROLL_BEGIN' not in c:
     c=c[:pos]+insert+'\n'+c[pos:]
 write(cp,c)
 
-# ---- consistent assembly/version identity ----
 for p in (root/'src').rglob('*.csproj'):
     s=read(p).replace('0.1.51.0','0.1.52.0').replace('0.1.51','0.1.52')
     write(p,s)
@@ -193,7 +187,6 @@ app=root/'src'/'MerzoOptimizer.App'/'App.xaml.cs'
 s=read(app).replace('0.1.51','0.1.52').replace('[Crash][R51]','[Crash][R52]').replace('Production R51','Production R52')
 write(app,s)
 
-# ---- release notes ----
 rp=root/'data'/'release_notes.json'
 try:
     data=json.loads(read(rp))
