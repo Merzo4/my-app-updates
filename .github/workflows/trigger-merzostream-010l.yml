@@ -1,5 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0l release
 
+# rerun: 2
 on:
   push:
     branches: [main]
