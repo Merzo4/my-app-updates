@@ -1,6 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0m release
 
-# rerun: 3 — compact chat designer static contract aligned
+# rerun: 4 — Streamer.bot viewer-name compiler collision fixed
 on:
   push:
     branches: [main]
@@ -27,14 +27,12 @@ jobs:
           echo "Target 0.1.0m SHA: $TARGET_SHA"
           gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$BRANCH"
           echo "0.1.0m release dispatched"
-
           RUN_ID=""
           for n in $(seq 1 40); do
             RUN_ID=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --branch "$BRANCH" --event workflow_dispatch --limit 20 --json databaseId,headSha,createdAt --jq ".[] | select(.headSha == \"$TARGET_SHA\") | .databaseId" | head -n1)
             if [ -n "$RUN_ID" ]; then break; fi
             sleep 5
           done
-
           if [ -z "$RUN_ID" ]; then
             printf '{"status":"monitor_error","targetSha":"%s","message":"exact release run not found"}\n' "$TARGET_SHA" > /tmp/010m-status.json
             : > /tmp/010m-last-failure.log
@@ -50,7 +48,6 @@ jobs:
               : > /tmp/010m-last-failure.log
             fi
           fi
-
           upload_file() {
             local local_path="$1" repo_path="$2" msg="$3"
             local content sha
@@ -62,7 +59,6 @@ jobs:
               gh api --method PUT "repos/$REPO/contents/$repo_path" -f message="$msg" -f content="$content" -f branch=main >/dev/null
             fi
           }
-
           upload_file /tmp/010m-status.json merzostream/ci/010m-ci-status.json "Record MerzoStream 0.1.0m CI status"
           upload_file /tmp/010m-last-failure.log merzostream/ci/010m-last-failure.log "Record MerzoStream 0.1.0m CI failure log"
           cat /tmp/010m-status.json
