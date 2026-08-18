@@ -1,5 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0m release
 
+# rerun: 2 — splash static contract aligned to 620x370
 on:
   push:
     branches: [main]
