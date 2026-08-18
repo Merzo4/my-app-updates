@@ -66,11 +66,17 @@ for source in app_dir.rglob('*.cs'):
 # -----------------------------------------------------------------------------
 vm = root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs'
 v = read(vm)
-old_args = 'Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",'
-new_args = 'Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /MERZOUPDATE=1",'
-if old_args not in v and new_args not in v:
-    raise SystemExit('R53 updater installer arguments anchor missing')
-v = v.replace(old_args, new_args, 1)
+
+# R24 used /SILENT; R26+ promoted this to /VERYSILENT and added restart flags.
+# Match the current ProcessStartInfo structurally and preserve all inherited flags.
+args_pattern = r'(Arguments\s*=\s*")(/(?:SILENT|VERYSILENT)[^"]*)("\s*,)'
+args_match = re.search(args_pattern, v)
+if not args_match:
+    raise SystemExit('R53 updater installer arguments block missing')
+args = args_match.group(2)
+if '/MERZOUPDATE=1' not in args:
+    args = args.rstrip() + ' /MERZOUPDATE=1'
+v = v[:args_match.start()] + args_match.group(1) + args + args_match.group(3) + v[args_match.end():]
 
 old_layout = '''        var baseDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);\n        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);'''
 new_layout = '''        var baseDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);\n        // Legacy installed builds may live outside Program Files. Presence of the Inno\n        // uninstaller distinguishes them from Portable/DEV and allows one-time migration.\n        if (File.Exists(Path.Combine(baseDir, "unins000.exe"))) return true;\n        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);'''
@@ -99,6 +105,16 @@ if filewrite_pos < 0:
 restart_body = '''        var escapedCurrentExe = currentExe.Replace("'", "''");\n        var escapedInstalledExe = installedExe.Replace("'", "''");\n        var script = $"$ErrorActionPreference='SilentlyContinue'`r`nWait-Process -Id {installer.Id}`r`nStart-Sleep -Milliseconds 1200`r`n$target='{escapedInstalledExe}'`r`nif (-not (Test-Path -LiteralPath $target)) {{ $target='{escapedCurrentExe}' }}`r`nif (Test-Path -LiteralPath $target) {{ Start-Process -FilePath $target }}`r`nRemove-Item -LiteralPath $PSCommandPath -Force`r`n";\n'''
 v = v[:restart_line_end] + restart_body + v[filewrite_pos:]
 write(vm, v)
+
+# Keep the configured installer policy aligned with the actual branded OTA mode.
+settings = root/'data'/'update_settings.json'
+if settings.exists():
+    cfg = json.loads(read(settings))
+    silent = str(cfg.get('installer_silent_args') or '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-')
+    if '/MERZOUPDATE=1' not in silent:
+        silent = silent.rstrip() + ' /MERZOUPDATE=1'
+    cfg['installer_silent_args'] = silent
+    write(settings, json.dumps(cfg, ensure_ascii=False, indent=2)+'\n')
 
 # -----------------------------------------------------------------------------
 # 3) Real Windows installation: machine-wide Program Files destination.
