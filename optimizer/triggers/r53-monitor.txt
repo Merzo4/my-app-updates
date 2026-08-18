@@ -1,4 +1,4 @@
 monitor R53 production
 2026-08-18
-Program Files + PrintScreen + branded visible installer/update + final notes
-rerun=16
+Process clean start + GAME compatibility + Program Files + PrintScreen + branded visible OTA
+rerun=17
