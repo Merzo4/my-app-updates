@@ -77,4 +77,18 @@ if not notes_src.exists():
     raise SystemExit("0.1.0j release notes source missing")
 notes_dst.write_text(notes_src.read_text(encoding="utf-8-sig"), encoding="utf-8", newline="\n")
 
+# CI/source selftest reads authority rules from concept.css, while the new chat designer
+# lives in styles.css. Make that distinction explicit in the canonical 0.1.0j source.
+selftest = root / "SELFTEST_PURE_DOTNET_STATIC.ps1"
+st = selftest.read_text(encoding="utf-8")
+concept_line = "$css=Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'ui\\web\\concept.css')"
+styles_line = "$styles=Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'ui\\web\\styles.css')"
+if styles_line not in st:
+    st = st.replace(concept_line, concept_line + "\n  " + styles_line)
+st = st.replace(
+    "Check ($css.Contains('chat-platform-check input[type=checkbox]')) 'white unchecked platform checkbox style missing'",
+    "Check ($styles.Contains('chat-platform-check input[type=checkbox]') -and $styles.Contains('background:#fff')) 'white unchecked platform checkbox style missing'",
+)
+selftest.write_text(st, encoding="utf-8", newline="\n")
+
 print("0.1.0j PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts))
