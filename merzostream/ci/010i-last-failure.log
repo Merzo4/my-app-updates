@@ -1,0 +1,15 @@
+build-release	Apply verified cumulative 0.1.0i patch	﻿2026-08-18T06:44:56.9850970Z ##[group]Run python merzostream/ci/apply_010i.py
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9851445Z ^[[36;1mpython merzostream/ci/apply_010i.py^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9851852Z ^[[36;1mif($LASTEXITCODE -ne 0){throw '0.1.0i patch failed'}^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9924386Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9924747Z env:
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9924935Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9925220Z   MERZO_SRC: D:\a\_temp\merzostream-010i-src
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:56.9925478Z ##[endgroup]
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.3142267Z 0.1.0i patch parts missing
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.5231723Z ^[[31;1mException: ^[[0mD:\a\_temp\3a671c88-fdd1-47e5-b609-907e12765795.ps1:3^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.5232605Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.5233674Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow '0.1.0i patch failed'^[[0m}^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.5234845Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.5235832Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1m0.1.0i patch failed^[[0m
+build-release	Apply verified cumulative 0.1.0i patch	2026-08-18T06:44:57.5740609Z ##[error]Process completed with exit code 1.
