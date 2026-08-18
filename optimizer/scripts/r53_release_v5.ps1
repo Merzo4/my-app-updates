@@ -33,7 +33,22 @@ try {
     if($m.Contains('requireAdministrator')){throw 'R53 main shell accidentally requires administrator'}
     if(-not$p.Contains('<ApplicationManifest>app.manifest</ApplicationManifest>')){throw 'R53 app project manifest link missing'}
     foreach($token in @('/MERZOUPDATE=1','unins000.exe','Merzo Windows Optimizer", "MerzoWindowsOptimizer.exe')){if(-not$v.Contains($token)){throw "R53 OTA migration contract missing: $token"}}
-    foreach($bad in @('RegisterHotKey(','SetWindowsHookEx','WH_KEYBOARD_LL','VK_SNAPSHOT','Key.PrintScreen')){if((Get-ChildItem (Join-Path $root 'src\MerzoOptimizer.App') -Recurse -Filter *.cs|Where-Object{$_.FullName-notmatch'\\(bin|obj)\\'}|ForEach-Object{Get-Content $_.FullName -Raw}) -match [regex]::Escape($bad)){throw "R53 screenshot hotkey regression: $bad"}}
+    $appSources=(Get-ChildItem (Join-Path $root 'src\MerzoOptimizer.App') -Recurse -Filter *.cs|Where-Object{$_.FullName-notmatch'\\(bin|obj)\\'}|ForEach-Object{Get-Content $_.FullName -Raw}) -join "`n"
+    foreach($bad in @('RegisterHotKey(','SetWindowsHookEx','WH_KEYBOARD_LL','VK_SNAPSHOT','Key.PrintScreen')){if($appSources.Contains($bad)){throw "R53 screenshot hotkey regression: $bad"}}
+
+    # Release notes shipped with the verified artifact must describe the real product changes.
+    $notes=Join-Path $root 'dist\R53_RELEASE_NOTES.md'
+    if(!(Test-Path $notes)){throw 'R53 release notes missing'}
+    @'
+
+## PRODUCT INSTALL / UPDATE EXPERIENCE
+
+- Установка теперь идёт как у обычной Windows-программы: `C:\Program Files\Merzo Windows Optimizer`. Старые Inno-установки из нестандартного каталога мигрируют при OTA-обновлении, а после установки запускается новый EXE из Program Files.
+- Главное окно Merzo Windows Optimizer закреплено как `asInvoker`; UAC используется только отдельным ElevatedHelper. Это сохраняет нормальную работу Print Screen / Snipping Tool даже когда окно программы активно.
+- Инсталлятор получил фирменный тёмный Merzo-дизайн. Тот же стиль используется в видимом окне обновления/замены файлов с отдельным режимом `MERZO UPDATE`.
+'@ | Add-Content $notes -Encoding UTF8
+
+    foreach($token in @('Program Files','Print Screen','Snipping Tool','MERZO UPDATE')){if(-not((Get-Content $notes -Raw).Contains($token))){throw "R53 release notes contract missing: $token"}}
     Write-Host 'R53_PROGRAMFILES_SCREENSHOT_BRANDING_PASS'
 } finally {
     Set-Content $base $original -Encoding UTF8
