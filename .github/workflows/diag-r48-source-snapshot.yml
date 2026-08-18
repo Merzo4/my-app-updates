@@ -5,7 +5,7 @@ on:
     branches: [merzo-windows-optimizer]
     paths: ['.github/workflows/diag-r48-source-snapshot.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   snapshot:
     runs-on: windows-latest
@@ -35,12 +35,31 @@ jobs:
           $patches=@('r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py','r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py','r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py','r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py','r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py','r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py','r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py','r40_network_binding_hotfix.py','r42_full_ui_rework.py','r42_window_contract_fix.py','r43_true_full_ui.py','r44_function_expansion.py','r44_finalize.py','r45_apply_selected_ux.py','r46_security_layout_hardening.py','r46_binding_finalize.py','r47_simple_builds.py','r47_finalize.py','r48_ota_reliability_wrapper.py')
           foreach($p in $patches){python (Join-Path 'optimizer/patches' $p);if($LASTEXITCODE-ne0){throw "Patch failed $p"}}
           "R48_DIAG_ROOT=$root" >> $env:GITHUB_ENV
+      - name: Commit compact source dump
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=$env:R48_DIAG_ROOT
+          $targets=@(
+            (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs'),
+            (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'),
+            (Join-Path $root 'src\MerzoOptimizer.App\App.xaml.cs'),
+            (Join-Path $root 'src\MerzoOptimizer.ElevatedHelper\Program.cs')
+          )
+          $targets += Get-ChildItem (Join-Path $root 'src\MerzoOptimizer.Core') -Recurse -Include *.cs,*.csproj -File | Select-Object -ExpandProperty FullName
+          $targets += Get-ChildItem (Join-Path $root 'src\MerzoOptimizer.Windows') -Recurse -Include *.cs,*.csproj -File | Select-Object -ExpandProperty FullName
+          $out='optimizer/diag-r48-source.txt'
+          "R48 EXACT SOURCE DIAGNOSTIC`n" | Set-Content $out -Encoding UTF8
+          foreach($f in $targets | Sort-Object -Unique){$rel=$f.Substring($root.Length).TrimStart('\');Add-Content $out "`n===== FILE: $rel =====`n" -Encoding UTF8;Get-Content $f -Raw | Add-Content $out -Encoding UTF8}
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $out
+          git commit -m 'DIAG capture exact R48 source nodes'
+          git push origin HEAD:merzo-windows-optimizer
       - uses: actions/upload-artifact@v4
         with:
           name: R48-exact-source-snapshot
           path: |
             ${{ env.R48_DIAG_ROOT }}/src
             ${{ env.R48_DIAG_ROOT }}/data
-            ${{ env.R48_DIAG_ROOT }}/build
-            ${{ env.R48_DIAG_ROOT }}/installer
           retention-days: 1
