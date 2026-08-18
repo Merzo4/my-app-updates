@@ -24,9 +24,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.13' }
 
-      - name: Build and run all R49 gates
+      - name: Build and run all R49 gates V2
         shell: pwsh
-        run: .\optimizer\scripts\r49_release.ps1
+        run: .\optimizer\scripts\r49_release_v2.ps1
 
       - name: Upload verified R49 build artifact
         uses: actions/upload-artifact@v4
