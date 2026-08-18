@@ -67,13 +67,13 @@ for source in app_dir.rglob('*.cs'):
 vm = root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs'
 v = read(vm)
 
-# R24 used /SILENT; R26+ promoted this to /VERYSILENT and added restart flags.
-# Match the current ProcessStartInfo structurally and preserve all inherited flags.
+# R26 used /VERYSILENT. R53 intentionally goes back to /SILENT so the user sees
+# the branded file-replacement progress window, while wizard pages stay hidden.
 args_pattern = r'(Arguments\s*=\s*")(/(?:SILENT|VERYSILENT)[^"]*)("\s*,)'
 args_match = re.search(args_pattern, v)
 if not args_match:
     raise SystemExit('R53 updater installer arguments block missing')
-args = args_match.group(2)
+args = args_match.group(2).replace('/VERYSILENT', '/SILENT')
 if '/MERZOUPDATE=1' not in args:
     args = args.rstrip() + ' /MERZOUPDATE=1'
 v = v[:args_match.start()] + args_match.group(1) + args + args_match.group(3) + v[args_match.end():]
@@ -106,11 +106,12 @@ restart_body = '''        var escapedCurrentExe = currentExe.Replace("'", "''");
 v = v[:restart_line_end] + restart_body + v[filewrite_pos:]
 write(vm, v)
 
-# Keep the configured installer policy aligned with the actual branded OTA mode.
+# Keep the configured installer policy aligned with the visible branded OTA mode.
 settings = root/'data'/'update_settings.json'
 if settings.exists():
     cfg = json.loads(read(settings))
-    silent = str(cfg.get('installer_silent_args') or '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-')
+    silent = str(cfg.get('installer_silent_args') or '/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-')
+    silent = silent.replace('/VERYSILENT', '/SILENT')
     if '/MERZOUPDATE=1' not in silent:
         silent = silent.rstrip() + ' /MERZOUPDATE=1'
     cfg['installer_silent_args'] = silent
@@ -235,6 +236,6 @@ if notes.exists():
         pass
 
 (root/'R53_PRODUCT_INSTALL_BRANDING.marker').write_text(
-    'R53 Program Files + asInvoker screenshot compatibility + branded install/update\n',
+    'R53 Program Files + asInvoker screenshot compatibility + branded visible install/update\n',
     encoding='utf-8')
 print('R53 product install/branding patch: OK')
