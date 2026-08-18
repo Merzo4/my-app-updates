@@ -1,6 +1,11 @@
 name: MerzoStream Suite 0.1.0n DARK Installer R2
 
 on:
+  push:
+    branches: [merzostream-010n-installer-r2]
+    paths:
+      - '.github/workflows/merzostream-010n-installer-r2.yml'
+      - 'merzostream/ci/apply_010n_installer_r2.py'
   workflow_dispatch:
 
 permissions:
@@ -165,3 +170,29 @@ jobs:
           gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file RELEASE_NOTES_0.1.0n.md
           if($LASTEXITCODE -ne 0){throw 'Release notes update failed'}
           Write-Host 'v0.1.0n DARK INSTALLER R2 PUBLISHED'
+
+      - name: Record installer R2 result on main
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          $repo=$env:GITHUB_REPOSITORY
+          $payload=[ordered]@{
+            status='completed'
+            conclusion=$env:JOB_STATUS
+            headSha=$env:GITHUB_SHA
+            databaseId=$env:GITHUB_RUN_ID
+            url="https://github.com/$repo/actions/runs/$env:GITHUB_RUN_ID"
+            workflowName='MerzoStream Suite 0.1.0n DARK Installer R2'
+          } | ConvertTo-Json -Compress
+          $tmp=Join-Path $env:RUNNER_TEMP '010n-installer-r2-status.json'
+          Set-Content $tmp $payload -Encoding utf8
+          $content=[Convert]::ToBase64String([IO.File]::ReadAllBytes($tmp))
+          $path='merzostream/ci/010n-installer-r2-status.json'
+          $sha=''
+          try { $sha=(gh api "repos/$repo/contents/$path?ref=main" --jq '.sha') } catch { }
+          if($sha){ gh api --method PUT "repos/$repo/contents/$path" -f message='Record MerzoStream installer R2 CI status' -f content=$content -f branch=main -f sha=$sha | Out-Null }
+          else { gh api --method PUT "repos/$repo/contents/$path" -f message='Record MerzoStream installer R2 CI status' -f content=$content -f branch=main | Out-Null }
+          Write-Host $payload
