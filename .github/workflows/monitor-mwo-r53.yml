@@ -1,0 +1,48 @@
+name: Monitor MWO R53
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - 'optimizer/triggers/r53-monitor.txt'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for R53 production run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 90); do
+            row=$(gh run list --workflow build-mwo-r53-process-clean-start.yml --branch merzo-windows-optimizer --limit 1 --json databaseId,status,conclusion,headSha,createdAt,url | jq -c '.[0] // empty')
+            if [ -n "$row" ]; then
+              status=$(echo "$row" | jq -r '.status')
+              if [ "$status" = "completed" ]; then
+                echo "$row" > optimizer/R53_CI_STATUS.json
+                conclusion=$(echo "$row" | jq -r '.conclusion')
+                runid=$(echo "$row" | jq -r '.databaseId')
+                if [ "$conclusion" != "success" ]; then
+                  gh run view "$runid" --log-failed > optimizer/R53_CI_FAILED.log 2>&1 || true
+                else
+                  rm -f optimizer/R53_CI_FAILED.log
+                fi
+                git config user.name github-actions[bot]
+                git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+                git add optimizer/R53_CI_STATUS.json optimizer/R53_CI_FAILED.log 2>/dev/null || true
+                git commit -m 'diag: record R53 production result' || true
+                git push
+                exit 0
+              fi
+            fi
+            sleep 20
+          done
+          echo 'R53 run did not complete in monitor window' >&2
+          exit 1
