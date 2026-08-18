@@ -3,7 +3,9 @@ name: Monitor MWO R51
 on:
   push:
     branches: [merzo-windows-optimizer]
-    paths: ['.github/workflows/monitor-mwo-r51.yml']
+    paths:
+      - '.github/workflows/monitor-mwo-r51.yml'
+      - 'optimizer/triggers/r51-monitor.txt'
 
 permissions:
   contents: write
@@ -15,15 +17,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Wait and record latest R51 build V2
+      - name: Wait and record latest R51 build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          sleep 10
+          sleep 8
           id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-mwo-r51-stability-readability.yml --branch merzo-windows-optimizer --limit 1 --json databaseId --jq '.[0].databaseId // empty')
           [ -n "$id" ] || { echo 'R51 build run not found'; exit 1; }
-          for i in $(seq 1 100); do
+          for i in $(seq 1 110); do
             status=$(gh run view "$id" --repo "$GITHUB_REPOSITORY" --json status --jq '.status')
             [ "$status" = "completed" ] && break
             sleep 10
