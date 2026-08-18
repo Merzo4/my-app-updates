@@ -1,15 +1,33 @@
-build-release	Static Pure .NET selftest	﻿2026-08-18T12:49:10.6683207Z ##[group]Run ./SELFTEST_PURE_DOTNET_STATIC.ps1
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6683913Z ^[[36;1m./SELFTEST_PURE_DOTNET_STATIC.ps1^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6684288Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'Static selftest failed'}^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6750422Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6750781Z env:
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6750979Z   DOTNET_ROOT: C:\Program Files\dotnet
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6751267Z   MERZO_SRC: D:\a\_temp\merzostream-010m-src
-build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6751531Z ##[endgroup]
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.2378742Z PURE DOTNET 0.1.0m STATIC SELFTEST FAIL: compact chat stats/designer layer missing
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3559269Z ^[[31;1mException: ^[[0mD:\a\_temp\1e754059-0aa3-4729-bb13-f195d51ebe35.ps1:3^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3560044Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3560836Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow 'Static selftest failed'^[[0m}^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3561914Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3562992Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mStatic selftest failed^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:49:11.4163819Z ##[error]Process completed with exit code 1.
+build-release	Restore and compile full solution	﻿2026-08-18T12:52:24.3322816Z ##[group]Run dotnet restore MerzoStream.NetHost.sln
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3323817Z ^[[36;1mdotnet restore MerzoStream.NetHost.sln^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3324390Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'dotnet restore failed'}^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3325048Z ^[[36;1mdotnet build MerzoStream.NetHost.sln -c Release --no-restore^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3325702Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'dotnet build failed'}^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3403015Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3403365Z env:
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3403558Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3403837Z   MERZO_SRC: D:\a\_temp\merzostream-010m-src
+build-release	Restore and compile full solution	2026-08-18T12:52:24.3404565Z ##[endgroup]
+build-release	Restore and compile full solution	2026-08-18T12:52:25.9385293Z   Determining projects to restore...
+build-release	Restore and compile full solution	2026-08-18T12:52:26.5110842Z   Restored D:\a\_temp\merzostream-010m-src\src\MerzoStream.Setup\MerzoStream.Setup.csproj (in 159 ms).
+build-release	Restore and compile full solution	2026-08-18T12:52:26.5114373Z   Restored D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\MerzoStream.Foundation.csproj (in 159 ms).
+build-release	Restore and compile full solution	2026-08-18T12:52:26.5116062Z   Restored D:\a\_temp\merzostream-010m-src\tools\MerzoStream.Foundation.SelfTest\MerzoStream.Foundation.SelfTest.csproj (in 159 ms).
+build-release	Restore and compile full solution	2026-08-18T12:52:27.8956239Z   Restored D:\a\_temp\merzostream-010m-src\src\MerzoStream.Host\MerzoStream.Host.csproj (in 1.58 sec).
+build-release	Restore and compile full solution	2026-08-18T12:52:33.4115146Z   MerzoStream.Setup -> D:\a\_temp\merzostream-010m-src\src\MerzoStream.Setup\bin\Release\net10.0-windows\MerzoStreamSuite.Setup.dll
+build-release	Restore and compile full solution	2026-08-18T12:52:33.4176897Z ##[error]D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\Services\StreamerBotService.cs(321,62): error CS0136: A local or parameter named 's' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\MerzoStream.Foundation.csproj]
+build-release	Restore and compile full solution	2026-08-18T12:52:33.4206045Z ##[warning]D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\Services\UpdateService.cs(429,24): warning CA1416: This call site is reachable on all platforms. 'Type.GetTypeFromProgID(string)' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\MerzoStream.Foundation.csproj]
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5160405Z 
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5169310Z Build FAILED.
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5169615Z 
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5174107Z ##[warning]D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\Services\UpdateService.cs(429,24): warning CA1416: This call site is reachable on all platforms. 'Type.GetTypeFromProgID(string)' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\MerzoStream.Foundation.csproj]
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5181446Z ##[error]D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\Services\StreamerBotService.cs(321,62): error CS0136: A local or parameter named 's' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter [D:\a\_temp\merzostream-010m-src\src\MerzoStream.Foundation\MerzoStream.Foundation.csproj]
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5184659Z     1 Warning(s)
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5184962Z     1 Error(s)
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5185124Z 
+build-release	Restore and compile full solution	2026-08-18T12:52:33.5185305Z Time Elapsed 00:00:05.24
+build-release	Restore and compile full solution	2026-08-18T12:52:33.9128364Z ^[[31;1mException: ^[[0mD:\a\_temp\62c4cef0-adf9-42a3-aead-f8ce1a619ae1.ps1:5^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:33.9245145Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:33.9360368Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   5 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow 'dotnet build failed'^[[0m}^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:33.9613657Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:33.9724429Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mdotnet build failed^[[0m
+build-release	Restore and compile full solution	2026-08-18T12:52:34.3841485Z ##[error]Process completed with exit code 1.
