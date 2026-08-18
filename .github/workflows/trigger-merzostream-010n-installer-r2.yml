@@ -1,6 +1,6 @@
 name: Trigger MerzoStream 0.1.0n dark installer R2
 
-# rerun current installer R2 branch head after icon gate correction
+# rerun current head after WinForms WFO1000 correction
 on:
   push:
     branches: [main]
