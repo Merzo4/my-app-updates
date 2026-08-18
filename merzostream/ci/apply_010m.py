@@ -48,4 +48,15 @@ out = pathlib.Path(os.environ.get("RUNNER_TEMP", str(root.parent))) / "merzostre
 out.write_bytes(patch)
 subprocess.run(["git", "apply", "--check", str(out)], cwd=root, check=True)
 subprocess.run(["git", "apply", str(out)], cwd=root, check=True)
-print("0.1.0m PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts))
+
+# The frameless splash was intentionally resized to 620x370 in 0.1.0m.
+# Keep the static contract aligned with the actual MainForm instead of the older 600x330 value.
+selftest = root / "SELFTEST_PURE_DOTNET_STATIC.ps1"
+text = selftest.read_text(encoding="utf-8-sig")
+old = "ClientSize = new Size(600, 330)"
+new = "ClientSize = new Size(620, 370)"
+if old not in text:
+    raise SystemExit("0.1.0m selftest splash-size marker missing")
+selftest.write_text(text.replace(old, new), encoding="utf-8", newline="\n")
+
+print("0.1.0m PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts), "splash-contract=620x370")
