@@ -1,0 +1,15 @@
+build-release	Static Pure .NET selftest	﻿2026-08-18T07:58:17.7566952Z ##[group]Run ./SELFTEST_PURE_DOTNET_STATIC.ps1
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7567417Z ^[[36;1m./SELFTEST_PURE_DOTNET_STATIC.ps1^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7567796Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'Static selftest failed'}^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7640958Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7641473Z env:
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7641682Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7642004Z   MERZO_SRC: D:\a\_temp\merzostream-010j-src
+build-release	Static Pure .NET selftest	2026-08-18T07:58:17.7642299Z ##[endgroup]
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.3564143Z PURE DOTNET 0.1.0j STATIC SELFTEST FAIL: white unchecked platform checkbox style missing
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.4974444Z ^[[31;1mException: ^[[0mD:\a\_temp\06ce49af-7384-4933-9477-c9d18f2c0db1.ps1:3^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.4975378Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.4976291Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow 'Static selftest failed'^[[0m}^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.4977566Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.4978813Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mStatic selftest failed^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T07:58:18.5658310Z ##[error]Process completed with exit code 1.
