@@ -6,6 +6,7 @@ on:
     paths:
       - 'optimizer/triggers/r53-process-clean-start.txt'
       - 'optimizer/patches/r53_process_start_debloat.py'
+      - 'optimizer/patches/r53_game_compat_guard.py'
       - 'optimizer/patches/r53_product_install_branding.py'
       - 'optimizer/patches/r53_version_finalize.py'
       - 'optimizer/patches/r52_game_wow_debloat_v3.py'
