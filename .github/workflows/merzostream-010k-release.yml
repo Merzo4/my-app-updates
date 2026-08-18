@@ -72,7 +72,7 @@ jobs:
           if(-not $state.Contains('SafeMediaAction')){throw 'Music routing state missing'}
           if(-not $html.Contains('value="continue"')){throw 'Continue background music choice missing'}
           if(-not $html.Contains('chat-compact-summary')){throw 'Compact Chat summary missing'}
-          if(-not $css.Contains('.chat-platform-pill')){throw 'Rounded platform pill CSS missing'}
+          if(-not $css.Contains('.chat-platform-check')){throw 'Rounded platform control CSS missing'}
           node --check "$env:MERZO_SRC\ui\web\app.js"
           if($LASTEXITCODE -ne 0){throw 'app.js syntax failed'}
           node --check "$env:MERZO_SRC\ui\web\concept.js"
