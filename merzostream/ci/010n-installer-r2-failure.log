@@ -1,0 +1,25 @@
+build-release	Verify installer R2 contract	﻿2026-08-18T16:26:41.1966495Z ##[group]Run $setup=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\Program.cs" -Raw
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1967245Z ^[[36;1m$setup=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\Program.cs" -Raw^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1967804Z ^[[36;1m$manifest=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\app.manifest" -Raw^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1968427Z ^[[36;1m$update=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\UpdateService.cs" -Raw^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1969093Z ^[[36;1mif(-not $setup.Contains('FormBorderStyle.None')){throw 'dark borderless installer missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1970004Z ^[[36;1mif(-not $setup.Contains('SpecialFolder.ProgramFiles')){throw 'Program Files install root missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1970665Z ^[[36;1mif(-not $setup.Contains('WebView2BootstrapUrl')){throw 'WebView2 bootstrapper missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1971262Z ^[[36;1mif(-not $setup.Contains('/silent /install')){throw 'silent WebView2 install missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1971842Z ^[[36;1mif(-not $setup.Contains('DarkMessageForm')){throw 'dark message dialog missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1972443Z ^[[36;1mif(-not $manifest.Contains('requireAdministrator')){throw 'UAC manifest missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1973041Z ^[[36;1mif(-not $update.Contains('stable-launcher.json')){throw 'stable launcher OTA bridge missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1973746Z ^[[36;1mif((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.png").Length -lt 10000){throw 'new brand PNG missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1974484Z ^[[36;1mif((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.ico").Length -lt 10000){throw 'new brand ICO missing'}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.1975010Z ^[[36;1mWrite-Host 'INSTALLER R2 CONTRACT PASS'^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.2042721Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.2043062Z env:
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.2043252Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.2043572Z   MERZO_SRC: D:\a\_temp\merzostream-010n-installer-r2-src
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.2043889Z ##[endgroup]
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.7271307Z ^[[31;1mException: ^[[0mD:\a\_temp\961bd279-8814-4a50-8dec-68d38ad8db6b.ps1:12^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.7272384Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.7273933Z ^[[31;1m^[[0m^[[36;1m^[[36;1m  12 | ^[[0m … rzoStreamSuite.png").Length -lt 10000){^[[36;1mthrow 'new brand PNG missing'^[[0m}^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.7275185Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.7276169Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mnew brand PNG missing^[[0m
+build-release	Verify installer R2 contract	2026-08-18T16:26:41.7823336Z ##[error]Process completed with exit code 1.
