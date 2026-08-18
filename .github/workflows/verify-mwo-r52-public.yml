@@ -1,0 +1,46 @@
+name: Verify MWO R52 Public
+
+on:
+  push:
+    branches: [mwo-r52-window-scroll-test]
+    paths:
+      - '.github/workflows/verify-mwo-r52-public.yml'
+      - 'optimizer/triggers/r52-verify-public.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify public release metadata
+        id: verify
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view mwo-v0.1.52 --repo "$GITHUB_REPOSITORY" --json databaseId,tagName,name,isDraft,isPrerelease,publishedAt,targetCommitish > /tmp/r.json
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.52" > /tmp/full.json
+          jq '{verified:true,id:.id,tag_name:.tag_name,name:.name,draft:.draft,prerelease:.prerelease,published_at:.published_at,target_commitish:.target_commitish,assets:[.assets[]|{name,size,digest}]}' /tmp/full.json > optimizer/R52_PUBLIC_RELEASE_STATUS.json
+          test "$(jq -r '.draft' optimizer/R52_PUBLIC_RELEASE_STATUS.json)" = false
+          test "$(jq -r '.prerelease' optimizer/R52_PUBLIC_RELEASE_STATUS.json)" = false
+          for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+            jq -e --arg n "$n" '.assets[]|select(.name==$n)' optimizer/R52_PUBLIC_RELEASE_STATUS.json >/dev/null
+          done
+          test "$(jq -r '.assets[]|select(.name=="MerzoWindowsOptimizerSetup-win-x64.exe")|.digest' optimizer/R52_PUBLIC_RELEASE_STATUS.json)" = 'sha256:da2845ed1aa14899b21ae845e2a1591ec4d21c9dac4ed90ec9e0cd1d053af214'
+          test "$(jq -r '.assets[]|select(.name=="MerzoWindowsOptimizer-portable-win-x64.zip")|.digest' optimizer/R52_PUBLIC_RELEASE_STATUS.json)" = 'sha256:709c3bede53bdb3210b799c626bb59f5a8fcaa3a442e491aeb7206f072f76bce'
+      - name: Record verification result
+        if: always()
+        env:
+          OUTCOME: ${{ steps.verify.outcome }}
+        run: |
+          if [ ! -f optimizer/R52_PUBLIC_RELEASE_STATUS.json ]; then echo "{\"verified\":false,\"outcome\":\"$OUTCOME\"}" > optimizer/R52_PUBLIC_RELEASE_STATUS.json; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R52_PUBLIC_RELEASE_STATUS.json
+          git commit -m 'release: record R52 public verification' || true
+          git push
+          test "$OUTCOME" = success
