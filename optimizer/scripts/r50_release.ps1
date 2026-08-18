@@ -48,8 +48,9 @@ Set-Content $tmp $src -Encoding UTF8
 & $tmp
 if($LASTEXITCODE-ne0){throw "R50 expanded release script failed: $LASTEXITCODE"}
 
-# Replace inherited R49 notes with the actual R50 changes after all gates succeed.
-$notes=Join-Path $env:R49_ROOT 'dist\R50_RELEASE_NOTES.md'
+# SOURCE_ROOT is set by the child production script in this same PowerShell process.
+if([string]::IsNullOrWhiteSpace($env:SOURCE_ROOT)){throw 'R50 SOURCE_ROOT missing after production build'}
+$notes=Join-Path $env:SOURCE_ROOT 'dist\R50_RELEASE_NOTES.md'
 @'
 # R50 UI RELIABILITY
 
