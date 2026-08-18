@@ -66,28 +66,38 @@ for source in app_dir.rglob('*.cs'):
 # -----------------------------------------------------------------------------
 vm = root/'src'/'MerzoOptimizer.App'/'ViewModels'/'MainWindowViewModel.cs'
 v = read(vm)
-v = v.replace(
-    'Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",',
-    'Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /MERZOUPDATE=1",',
-    1)
+old_args = 'Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS",'
+new_args = 'Arguments = "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /MERZOUPDATE=1",'
+if old_args not in v and new_args not in v:
+    raise SystemExit('R53 updater installer arguments anchor missing')
+v = v.replace(old_args, new_args, 1)
 
 old_layout = '''        var baseDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);\n        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);'''
 new_layout = '''        var baseDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);\n        // Legacy installed builds may live outside Program Files. Presence of the Inno\n        // uninstaller distinguishes them from Portable/DEV and allows one-time migration.\n        if (File.Exists(Path.Combine(baseDir, "unins000.exe"))) return true;\n        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);'''
-if old_layout not in v:
+if old_layout not in v and 'unins000.exe' not in v:
     raise SystemExit('R53 installed-layout migration anchor missing')
 v = v.replace(old_layout, new_layout, 1)
 
 old_restart = '''        var currentExe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "MerzoWindowsOptimizer.exe");\n        var installer = Process.Start(new ProcessStartInfo'''
 new_restart = '''        var currentExe = Environment.ProcessPath ?? Path.Combine(AppContext.BaseDirectory, "MerzoWindowsOptimizer.exe");\n        var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);\n        var installedExe = string.IsNullOrWhiteSpace(programFiles)\n            ? currentExe\n            : Path.Combine(programFiles, "Merzo Windows Optimizer", "MerzoWindowsOptimizer.exe");\n        var installer = Process.Start(new ProcessStartInfo'''
-if old_restart not in v:
+if old_restart not in v and 'var installedExe = string.IsNullOrWhiteSpace(programFiles)' not in v:
     raise SystemExit('R53 updater restart anchor missing')
 v = v.replace(old_restart, new_restart, 1)
 
-old_escape = '''        var escapedExe = currentExe.Replace("'", "''");\n        var script = $"$ErrorActionPreference='SilentlyContinue'`r`nWait-Process -Id {installer.Id}`r`nStart-Sleep -Milliseconds 1200`r`nif (Test-Path -LiteralPath '{escapedExe}') {{ Start-Process -FilePath '{escapedExe}' }}`r`nRemove-Item -LiteralPath $PSCommandPath -Force`r`n";'''
-new_escape = '''        var escapedCurrentExe = currentExe.Replace("'", "''");\n        var escapedInstalledExe = installedExe.Replace("'", "''");\n        var script = $"$ErrorActionPreference='SilentlyContinue'`r`nWait-Process -Id {installer.Id}`r`nStart-Sleep -Milliseconds 1200`r`n$target='{escapedInstalledExe}'`r`nif (-not (Test-Path -LiteralPath $target)) {{ $target='{escapedCurrentExe}' }}`r`nif (Test-Path -LiteralPath $target) {{ Start-Process -FilePath $target }}`r`nRemove-Item -LiteralPath $PSCommandPath -Force`r`n";'''
-if old_escape not in v:
-    raise SystemExit('R53 updater target script anchor missing')
-v = v.replace(old_escape, new_escape, 1)
+# Replace the inherited restart-script body without depending on its historical
+# escaping details. The new install path is preferred; old path is fallback only.
+restart_pos = v.find('        var restartScript = Path.Combine(')
+if restart_pos < 0:
+    raise SystemExit('R53 restartScript declaration missing')
+restart_line_end = v.find('\n', restart_pos)
+if restart_line_end < 0:
+    raise SystemExit('R53 restartScript line malformed')
+restart_line_end += 1
+filewrite_pos = v.find('        File.WriteAllText(restartScript, script);', restart_line_end)
+if filewrite_pos < 0:
+    raise SystemExit('R53 restartScript File.WriteAllText missing')
+restart_body = '''        var escapedCurrentExe = currentExe.Replace("'", "''");\n        var escapedInstalledExe = installedExe.Replace("'", "''");\n        var script = $"$ErrorActionPreference='SilentlyContinue'`r`nWait-Process -Id {installer.Id}`r`nStart-Sleep -Milliseconds 1200`r`n$target='{escapedInstalledExe}'`r`nif (-not (Test-Path -LiteralPath $target)) {{ $target='{escapedCurrentExe}' }}`r`nif (Test-Path -LiteralPath $target) {{ Start-Process -FilePath $target }}`r`nRemove-Item -LiteralPath $PSCommandPath -Force`r`n";\n'''
+v = v[:restart_line_end] + restart_body + v[filewrite_pos:]
 write(vm, v)
 
 # -----------------------------------------------------------------------------
