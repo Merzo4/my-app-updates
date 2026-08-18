@@ -1,15 +1,29 @@
-build-release	Apply verified cumulative 0.1.0k patch	﻿2026-08-18T09:58:08.9259688Z ##[group]Run python merzostream/ci/apply_010k.py
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9260178Z ^[[36;1mpython merzostream/ci/apply_010k.py^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9260545Z ^[[36;1mif($LASTEXITCODE -ne 0){throw '0.1.0k patch failed'}^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9327416Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9327766Z env:
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9327967Z   DOTNET_ROOT: C:\Program Files\dotnet
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9328249Z   MERZO_SRC: D:\a\_temp\merzostream-010k-src
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:08.9328513Z ##[endgroup]
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.2474413Z 0.1.0k patch part SHA mismatch: part00.b64 6b688b4b9f8861bdd9b68e5e3f0d34709a91421feb74a30ad998b26a135d046c
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4640713Z ^[[31;1mException: ^[[0mD:\a\_temp\fca61c68-b2a1-4edb-b3a8-69f507161c7b.ps1:3^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4641554Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4642311Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow '0.1.0k patch failed'^[[0m}^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4643382Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.4644389Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1m0.1.0k patch failed^[[0m
-build-release	Apply verified cumulative 0.1.0k patch	2026-08-18T09:58:09.5320930Z ##[error]Process completed with exit code 1.
+build-release	Verify source identity and JavaScript	﻿2026-08-18T10:01:33.4943463Z ##[group]Run $info=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4944075Z ^[[36;1m$info=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4944511Z ^[[36;1mif($info.version -ne '0.1.0k'){throw "Wrong version $($info.version)"}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4944952Z ^[[36;1m$sb=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\StreamerBotService.cs" -Raw^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4945425Z ^[[36;1m$state=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\State\AppSettings.cs" -Raw^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4945812Z ^[[36;1m$html=Get-Content "$env:MERZO_SRC\ui\web\index.html" -Raw^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4946126Z ^[[36;1m$css=Get-Content "$env:MERZO_SRC\ui\web\styles.css" -Raw^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4946505Z ^[[36;1mif(-not $sb.Contains('GetBroadcaster')){throw 'GetBroadcaster account status missing'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4946974Z ^[[36;1mif(-not $sb.Contains('BuildChatSubscriptions')){throw 'Dynamic chat subscription missing'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4947552Z ^[[36;1mif(-not $state.Contains('SafeMediaAction')){throw 'Music routing state missing'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4948185Z ^[[36;1mif(-not $html.Contains('value="continue"')){throw 'Continue background music choice missing'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4948637Z ^[[36;1mif(-not $html.Contains('chat-compact-summary')){throw 'Compact Chat summary missing'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4949080Z ^[[36;1mif(-not $css.Contains('.chat-platform-pill')){throw 'Rounded platform pill CSS missing'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4949435Z ^[[36;1mnode --check "$env:MERZO_SRC\ui\web\app.js"^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4949702Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'app.js syntax failed'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4949973Z ^[[36;1mnode --check "$env:MERZO_SRC\ui\web\concept.js"^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4950250Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'concept.js syntax failed'}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.4950576Z ^[[36;1mWrite-Host 'SOURCE + MULTI-CHAT + MUSIC ROUTING + COMPACT UI PASS'^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.5006507Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.5006777Z env:
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.5006940Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.5007161Z   MERZO_SRC: D:\a\_temp\merzostream-010k-src
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.5007361Z ##[endgroup]
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.9478254Z ^[[31;1mException: ^[[0mD:\a\_temp\ddb66e74-6a19-4c53-8998-c6aea55e3637.ps1:13^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.9478837Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.9479398Z ^[[31;1m^[[0m^[[36;1m^[[36;1m  13 | ^[[0m … ns('.chat-platform-pill')){^[[36;1mthrow 'Rounded platform pill CSS missing'^[[0m}^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.9480011Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.9480532Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mRounded platform pill CSS missing^[[0m
+build-release	Verify source identity and JavaScript	2026-08-18T10:01:33.9924031Z ##[error]Process completed with exit code 1.
