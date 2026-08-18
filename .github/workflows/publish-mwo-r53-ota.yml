@@ -1,0 +1,140 @@
+name: Publish MWO R53 OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - 'optimizer/triggers/r53-publish.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve exact green R53 production run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=optimizer/R53_CI_STATUS.json
+          test -f "$status"
+          conclusion=$(jq -r '.conclusion' "$status")
+          runid=$(jq -r '.databaseId' "$status")
+          head=$(jq -r '.headSha' "$status")
+          test "$conclusion" = success
+          test -n "$runid" && test "$runid" != null
+          test -n "$head" && test "$head" != null
+
+          live=$(gh run view "$runid" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,workflowName)
+          test "$(echo "$live" | jq -r '.status')" = completed
+          test "$(echo "$live" | jq -r '.conclusion')" = success
+          test "$(echo "$live" | jq -r '.headSha')" = "$head"
+          test "$(echo "$live" | jq -r '.workflowName')" = 'Merzo Windows Optimizer R53 PROCESS CLEAN START'
+          echo "runid=$runid" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo R53_EXACT_GREEN_RUN_PASS
+
+      - name: Download exact verified R53 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.source.outputs.runid }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r53-release
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name MerzoWindowsOptimizer-0.1.53-R53-PROCESS-CLEAN-START \
+            --dir r53-release
+          for f in \
+            MerzoWindowsOptimizerSetup-win-x64.exe \
+            MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+            MerzoWindowsOptimizer-portable-win-x64.zip \
+            MerzoWindowsOptimizer-portable-win-x64.zip.sha256 \
+            R53_RELEASE_NOTES.md; do
+            test -f "r53-release/$f"
+          done
+
+      - name: Verify artifact SHA-256 sidecars
+        id: hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd r53-release
+          installer=$(sha256sum MerzoWindowsOptimizerSetup-win-x64.exe | awk '{print $1}')
+          portable=$(sha256sum MerzoWindowsOptimizer-portable-win-x64.zip | awk '{print $1}')
+          grep -qi "$installer" MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          grep -qi "$portable" MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          echo "installer=$installer" >> "$GITHUB_OUTPUT"
+          echo "portable=$portable" >> "$GITHUB_OUTPUT"
+          echo R53_ARTIFACT_SHA_PASS
+
+      - name: Create exact R53 release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          git cat-file -e "$TARGET^{commit}"
+          if git ls-remote --exit-code --tags origin refs/tags/mwo-v0.1.53 >/dev/null 2>&1; then
+            remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.53 | awk '{print $1}')
+            test "$remote" = "$TARGET"
+          else
+            git tag mwo-v0.1.53 "$TARGET"
+            git push origin refs/tags/mwo-v0.1.53
+          fi
+          echo R53_TAG_PASS
+
+      - name: Publish stable R53 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view mwo-v0.1.53 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'R53 release already exists; refusing to replace a published release'
+          else
+            gh release create mwo-v0.1.53 \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title 'Merzo Windows Optimizer 0.1.53 (R53 PROCESS + CLEAN START)' \
+              --notes-file r53-release/R53_RELEASE_NOTES.md \
+              r53-release/MerzoWindowsOptimizerSetup-win-x64.exe \
+              r53-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+              r53-release/MerzoWindowsOptimizer-portable-win-x64.zip \
+              r53-release/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          fi
+
+      - name: Verify public OTA release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_SHA: ${{ steps.hashes.outputs.installer }}
+          PORTABLE_SHA: ${{ steps.hashes.outputs.portable }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.53")
+          echo "$json" | jq -e '.draft == false and .prerelease == false and .tag_name == "mwo-v0.1.53"' >/dev/null
+          for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+            echo "$json" | jq -e --arg n "$n" '.assets[] | select(.name == $n)' >/dev/null
+          done
+          installer=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizerSetup-win-x64.exe") | .digest')
+          portable=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizer-portable-win-x64.zip") | .digest')
+          test "$installer" = "sha256:$INSTALLER_SHA"
+          test "$portable" = "sha256:$PORTABLE_SHA"
+          remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.53 | awk '{print $1}')
+          test "$remote" = "$TARGET"
+          echo R53_PUBLIC_OTA_RELEASE_PASS
