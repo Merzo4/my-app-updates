@@ -1,6 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0n release
 
-# rerun: 1
+# rerun: 2 — Streamer.bot alert subscription compiler scope fixed
 on:
   push:
     branches: [main]
