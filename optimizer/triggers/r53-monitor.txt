@@ -1,4 +1,4 @@
 monitor R53 production
 2026-08-18
-Program Files + PrintScreen + branded installer/update + final notes
-rerun=14
+Program Files + PrintScreen + branded visible installer/update + final notes
+rerun=15
