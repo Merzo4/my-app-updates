@@ -2,11 +2,10 @@ import base64, hashlib, lzma, os, pathlib, subprocess
 
 PATCH_SHA = "a89506c6028496514400803f9c5d5605f4fef69b09cacf4e8c276ceece43cd34"
 XZ_SHA = "9623499da6245ea757a6378d7a80501753f517ed7bbfb9ed36f32f70adb2c33a"
-repo = pathlib.Path(__file__).resolve().parents[2]
-parts_dir = repo / "ci" / "010i-patch"
+parts_dir = pathlib.Path(__file__).resolve().parent / "010i-patch"
 parts = sorted(parts_dir.glob("part*.b64"))
 if not parts:
-    raise SystemExit("0.1.0i patch parts missing")
+    raise SystemExit(f"0.1.0i patch parts missing: {parts_dir}")
 encoded = "".join(p.read_text(encoding="ascii").strip() for p in parts)
 xz = base64.b64decode(encoded)
 if hashlib.sha256(xz).hexdigest() != XZ_SHA:
