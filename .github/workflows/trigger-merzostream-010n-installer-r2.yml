@@ -31,9 +31,30 @@ jobs:
             sleep 5
           done
           if [ -z "$RUN_ID" ]; then
-            echo "Could not find exact installer R2 run" >&2
-            exit 1
+            printf '{"status":"monitor_error","targetSha":"%s","message":"exact installer R2 run not found"}\n' "$TARGET_SHA" > /tmp/status.json
+          else
+            set +e
+            gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 5
+            WATCH_RC=$?
+            set -e
+            gh run view "$RUN_ID" --repo "$REPO" --json databaseId,status,conclusion,headSha,url,workflowName > /tmp/status.json
+            if [ "$WATCH_RC" -ne 0 ]; then
+              gh run view "$RUN_ID" --repo "$REPO" --log-failed > /tmp/failure.log || true
+            else
+              : > /tmp/failure.log
+            fi
           fi
-          gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 5
-          gh run view "$RUN_ID" --repo "$REPO" --json databaseId,status,conclusion,headSha,url,workflowName > /tmp/010n-installer-r2-status.json
-          cat /tmp/010n-installer-r2-status.json
+          upload_file() {
+            local local_path="$1" repo_path="$2" msg="$3"
+            local content sha
+            content=$(base64 -w0 "$local_path")
+            sha=$(gh api "repos/$REPO/contents/$repo_path?ref=main" --jq '.sha' 2>/dev/null || true)
+            if [ -n "$sha" ]; then
+              gh api --method PUT "repos/$REPO/contents/$repo_path" -f message="$msg" -f content="$content" -f branch=main -f sha="$sha" >/dev/null
+            else
+              gh api --method PUT "repos/$REPO/contents/$repo_path" -f message="$msg" -f content="$content" -f branch=main >/dev/null
+            fi
+          }
+          upload_file /tmp/status.json merzostream/ci/010n-installer-r2-status.json "Record MerzoStream 0.1.0n installer R2 CI status"
+          if [ -f /tmp/failure.log ]; then upload_file /tmp/failure.log merzostream/ci/010n-installer-r2-failure.log "Record MerzoStream 0.1.0n installer R2 failure log"; fi
+          cat /tmp/status.json
