@@ -1,15 +1,15 @@
-build-release	Static Pure .NET selftest	﻿2026-08-18T12:44:52.2933312Z ##[group]Run ./SELFTEST_PURE_DOTNET_STATIC.ps1
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.2933741Z ^[[36;1m./SELFTEST_PURE_DOTNET_STATIC.ps1^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.2934109Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'Static selftest failed'}^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.3003335Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.3003677Z env:
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.3003858Z   DOTNET_ROOT: C:\Program Files\dotnet
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.3004125Z   MERZO_SRC: D:\a\_temp\merzostream-010m-src
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.3004374Z ##[endgroup]
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.8453592Z PURE DOTNET 0.1.0m STATIC SELFTEST FAIL: compact splash size contract missing
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.9551161Z ^[[31;1mException: ^[[0mD:\a\_temp\682f316f-ab95-4b0b-af3a-e4ea37b2ef2b.ps1:3^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.9552321Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.9553273Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow 'Static selftest failed'^[[0m}^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.9554111Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:52.9554938Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mStatic selftest failed^[[0m
-build-release	Static Pure .NET selftest	2026-08-18T12:44:53.0133721Z ##[error]Process completed with exit code 1.
+build-release	Static Pure .NET selftest	﻿2026-08-18T12:49:10.6683207Z ##[group]Run ./SELFTEST_PURE_DOTNET_STATIC.ps1
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6683913Z ^[[36;1m./SELFTEST_PURE_DOTNET_STATIC.ps1^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6684288Z ^[[36;1mif($LASTEXITCODE -ne 0){throw 'Static selftest failed'}^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6750422Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6750781Z env:
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6750979Z   DOTNET_ROOT: C:\Program Files\dotnet
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6751267Z   MERZO_SRC: D:\a\_temp\merzostream-010m-src
+build-release	Static Pure .NET selftest	2026-08-18T12:49:10.6751531Z ##[endgroup]
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.2378742Z PURE DOTNET 0.1.0m STATIC SELFTEST FAIL: compact chat stats/designer layer missing
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3559269Z ^[[31;1mException: ^[[0mD:\a\_temp\1e754059-0aa3-4729-bb13-f195d51ebe35.ps1:3^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3560044Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3560836Z ^[[31;1m^[[0m^[[36;1m^[[36;1m   3 | ^[[0m if($LASTEXITCODE -ne 0){^[[36;1mthrow 'Static selftest failed'^[[0m}^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3561914Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.3562992Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mStatic selftest failed^[[0m
+build-release	Static Pure .NET selftest	2026-08-18T12:49:11.4163819Z ##[error]Process completed with exit code 1.
