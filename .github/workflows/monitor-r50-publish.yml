@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for latest R50 publish workflow and save result
+      - name: Wait for newest R50 release-carrier publish and save result
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -38,5 +38,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add optimizer/R50_PUBLISH_STATUS.json optimizer/R50_PUBLISH_FAILED.log 2>/dev/null || true
-          git commit -m 'diag: record latest R50 publish result' || true
+          git commit -m 'diag: record newest R50 release-carrier publish result' || true
           git push || true
