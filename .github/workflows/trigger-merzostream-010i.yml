@@ -1,0 +1,21 @@
+name: Trigger MerzoStream 0.1.0i release
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/trigger-merzostream-010i.yml']
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch 0.1.0i release from release branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run merzostream-010i-release.yml --repo "$GITHUB_REPOSITORY" --ref merzostream-010i-release
+          echo "MerzoStream 0.1.0i release dispatched"
