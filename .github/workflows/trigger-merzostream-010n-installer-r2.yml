@@ -1,0 +1,39 @@
+name: Trigger MerzoStream 0.1.0n dark installer R2
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/trigger-merzostream-010n-installer-r2.yml']
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch installer R2 branch workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          BRANCH="merzostream-010n-installer-r2"
+          WORKFLOW="merzostream-010n-installer-r2.yml"
+          TARGET_SHA=$(gh api "repos/$REPO/branches/$BRANCH" --jq '.commit.sha')
+          echo "Target installer R2 SHA: $TARGET_SHA"
+          gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$BRANCH"
+          RUN_ID=""
+          for n in $(seq 1 50); do
+            RUN_ID=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --branch "$BRANCH" --event workflow_dispatch --limit 20 --json databaseId,headSha --jq ".[] | select(.headSha == \"$TARGET_SHA\") | .databaseId" | head -n1)
+            if [ -n "$RUN_ID" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "$RUN_ID" ]; then
+            echo "Could not find exact installer R2 run" >&2
+            exit 1
+          fi
+          gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 5
+          gh run view "$RUN_ID" --repo "$REPO" --json databaseId,status,conclusion,headSha,url,workflowName > /tmp/010n-installer-r2-status.json
+          cat /tmp/010n-installer-r2-status.json
