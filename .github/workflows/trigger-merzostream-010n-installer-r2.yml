@@ -1,6 +1,6 @@
 name: Trigger MerzoStream 0.1.0n dark installer R2
 
-# rerun after workflow registration on default branch
+# rerun current installer R2 branch head after icon gate correction
 on:
   push:
     branches: [main]
