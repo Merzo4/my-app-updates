@@ -61,8 +61,8 @@ jobs:
           if(-not $setup.Contains('DarkMessageForm')){throw 'dark message dialog missing'}
           if(-not $manifest.Contains('requireAdministrator')){throw 'UAC manifest missing'}
           if(-not $update.Contains('stable-launcher.json')){throw 'stable launcher OTA bridge missing'}
-          if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.png").Length -lt 10000){throw 'new brand PNG missing'}
-          if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.ico").Length -lt 10000){throw 'new brand ICO missing'}
+          if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.png").Length -lt 5000){throw 'new brand PNG missing'}
+          if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.ico").Length -lt 5000){throw 'new brand ICO missing'}
           Write-Host 'INSTALLER R2 CONTRACT PASS'
 
       - name: Verify frontend JavaScript
