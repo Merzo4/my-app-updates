@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [merzo-windows-optimizer]
-    paths: ['.github/workflows/build-mwo-r51-stability-readability.yml']
+    paths:
+      - '.github/workflows/build-mwo-r51-stability-readability.yml'
+      - 'optimizer/triggers/r51-production.txt'
 
 permissions:
   contents: write
