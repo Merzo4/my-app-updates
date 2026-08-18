@@ -1,6 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0m release
 
-# rerun: 4 — Streamer.bot viewer-name compiler collision fixed
+# rerun: 5 — distinct string/object viewer locals
 on:
   push:
     branches: [main]
