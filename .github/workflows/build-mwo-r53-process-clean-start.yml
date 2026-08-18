@@ -1,0 +1,41 @@
+name: Merzo Windows Optimizer R53 PROCESS CLEAN START
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - 'optimizer/triggers/r53-process-clean-start.txt'
+      - 'optimizer/patches/r53_process_start_debloat.py'
+      - 'optimizer/patches/r52_game_wow_debloat_v3.py'
+      - 'optimizer/scripts/r53_release_v1.ps1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run complete R53 production gates
+        shell: pwsh
+        run: .\optimizer\scripts\r53_release_v1.ps1
+      - name: Upload verified R53 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.53-R53-PROCESS-CLEAN-START
+          path: |
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+            ${{ env.SOURCE_ROOT }}/dist/R53_RELEASE_NOTES.md
+          if-no-files-found: error
