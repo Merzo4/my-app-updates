@@ -1,0 +1,95 @@
+name: Publish verified MWO R52
+
+on:
+  push:
+    branches: [mwo-r52-window-scroll-test]
+    paths:
+      - '.github/workflows/publish-mwo-r52-verified.yml'
+      - 'optimizer/triggers/r52-publish.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download exact verified PASS artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:RUNNER_TEMP 'r52pub'
+          New-Item -ItemType Directory -Force $dir|Out-Null
+          gh run download 32137868498 --repo $env:GITHUB_REPOSITORY --name 'MerzoWindowsOptimizer-0.1.52-R52-WINDOW-SCROLL-TEST' --dir $dir
+          if($LASTEXITCODE-ne0){throw 'Could not download verified R52 artifact'}
+          "R52_PUB_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify exact binaries and sidecars before release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=$env:R52_PUB_DIR
+          $installer=Join-Path $dir 'MerzoWindowsOptimizerSetup-win-x64.exe'
+          $portable=Join-Path $dir 'MerzoWindowsOptimizer-portable-win-x64.zip'
+          $installerSide=Join-Path $dir 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'
+          $portableSide=Join-Path $dir 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256'
+          foreach($p in @($installer,$portable,$installerSide,$portableSide,(Join-Path $dir 'R52_RELEASE_NOTES.md'))){if(!(Test-Path $p)){throw "Missing verified artifact file: $p"}}
+          $i=(Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $p=(Get-FileHash $portable -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($i-ne'da2845ed1aa14899b21ae845e2a1591ec4d21c9dac4ed90ec9e0cd1d053af214'){throw "Installer SHA changed: $i"}
+          if($p-ne'709c3bede53bdb3210b799c626bb59f5a8fcaa3a442e491aeb7206f072f76bce'){throw "Portable SHA changed: $p"}
+          $is=(Get-Content $installerSide -Raw).Trim().Split(' ')[0].ToLowerInvariant()
+          $ps=(Get-Content $portableSide -Raw).Trim().Split(' ')[0].ToLowerInvariant()
+          if($is-ne$i-or$ps-ne$p){throw 'Sidecar SHA mismatch'}
+          $check=Join-Path $env:RUNNER_TEMP 'r52portable';Expand-Archive $portable $check -Force
+          $dll=Get-ChildItem $check -Recurse -Filter MerzoWindowsOptimizer.dll|Select-Object -First 1
+          if(-not$dll){throw 'Main portable DLL missing'}
+          $v=[Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version.ToString()
+          if($v-ne'0.1.52.0'){throw "Portable assembly version mismatch: $v"}
+          Write-Host "R52_PREPUBLISH_VERIFIED installer=$i portable=$p version=$v"
+
+      - name: Publish stable mwo-v0.1.52
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          gh release view mwo-v0.1.52 --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE-eq0){throw 'mwo-v0.1.52 already exists; refusing to overwrite'}
+          $global:LASTEXITCODE=0
+          $dir=$env:R52_PUB_DIR
+          $files=@(
+            (Join-Path $dir 'MerzoWindowsOptimizerSetup-win-x64.exe'),
+            (Join-Path $dir 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'),
+            (Join-Path $dir 'MerzoWindowsOptimizer-portable-win-x64.zip'),
+            (Join-Path $dir 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256')
+          )
+          gh release create mwo-v0.1.52 --repo $env:GITHUB_REPOSITORY --target b388311adaf1124c0ce779b31a61cfc3be490be9 --title 'Merzo Windows Optimizer 0.1.52 (R52 WINDOW + SCROLL RELIABILITY)' --notes-file (Join-Path $dir 'R52_RELEASE_NOTES.md') @files
+          if($LASTEXITCODE-ne0){throw 'R52 stable release publication failed'}
+
+      - name: Verify public release and record status
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=(gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/mwo-v0.1.52")|ConvertFrom-Json
+          if($r.draft-or$r.prerelease){throw 'R52 is not stable'}
+          $assets=@($r.assets)
+          foreach($n in @('MerzoWindowsOptimizerSetup-win-x64.exe','MerzoWindowsOptimizerSetup-win-x64.exe.sha256','MerzoWindowsOptimizer-portable-win-x64.zip','MerzoWindowsOptimizer-portable-win-x64.zip.sha256')){if($n-notin$assets.name){throw "Release asset missing: $n"}}
+          $i=$assets|Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+          $p=$assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          if($i.digest-ne'sha256:da2845ed1aa14899b21ae845e2a1591ec4d21c9dac4ed90ec9e0cd1d053af214'){throw "Published installer digest mismatch: $($i.digest)"}
+          if($p.digest-ne'sha256:709c3bede53bdb3210b799c626bb59f5a8fcaa3a442e491aeb7206f072f76bce'){throw "Published portable digest mismatch: $($p.digest)"}
+          [ordered]@{verified=$true;release_id=$r.id;tag=$r.tag_name;name=$r.name;draft=$r.draft;prerelease=$r.prerelease;published_at=$r.published_at;installer_digest=$i.digest;portable_digest=$p.digest;verified_build_run=32137868498}|ConvertTo-Json|Set-Content optimizer/R52_PUBLIC_RELEASE_STATUS.json -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R52_PUBLIC_RELEASE_STATUS.json
+          git commit -m 'release: record verified R52 public status' || echo no-change
+          git push
