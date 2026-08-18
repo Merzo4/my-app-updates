@@ -1,6 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0i release
 
-# rerun: 2
+# rerun: 3 - monitor exact release-branch SHA
 on:
   push:
     branches: [main]
@@ -23,19 +23,22 @@ jobs:
           REPO="$GITHUB_REPOSITORY"
           WORKFLOW="merzostream-010i-release.yml"
           BRANCH="merzostream-010i-release"
+          EXPECTED_SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha')
+          echo "Expected release SHA: $EXPECTED_SHA"
 
           gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$BRANCH"
           echo "0.1.0i release dispatched"
 
           RUN_ID=""
-          for n in $(seq 1 24); do
-            RUN_ID=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --branch "$BRANCH" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          for n in $(seq 1 36); do
+            RUN_ID=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --branch "$BRANCH" --event workflow_dispatch --limit 10 --json databaseId,headSha --jq ".[] | select(.headSha == \"$EXPECTED_SHA\") | .databaseId" | head -n 1)
             if [ -n "$RUN_ID" ]; then break; fi
             sleep 5
           done
           if [ -z "$RUN_ID" ]; then
-            echo '{"status":"monitor_error","message":"release run not found"}' > /tmp/010i-status.json
+            printf '{"status":"monitor_error","message":"release run not found","headSha":"%s"}\n' "$EXPECTED_SHA" > /tmp/010i-status.json
           else
+            echo "Watching run $RUN_ID for $EXPECTED_SHA"
             set +e
             gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 5
             WATCH_RC=$?
