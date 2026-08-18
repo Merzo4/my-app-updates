@@ -16,13 +16,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Recheck latest R50 V4 and save exact status
+      - name: Wait for final R50 V5 and save exact status
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          sleep 15
+          sleep 10
           id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-mwo-r50-ui-reliability.yml --branch merzo-windows-optimizer --limit 1 --json databaseId --jq '.[0].databaseId // empty')
           [ -n "$id" ] || { echo 'R50 run not found'; exit 1; }
           for i in $(seq 1 80); do
