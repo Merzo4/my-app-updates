@@ -43,10 +43,11 @@ $newLayout='t.SelectedIndex=2;w.UpdateLayout();var bar=N(w,"OptimizationApplyBar
 if(($src.Split($oldLayout).Count-1)-ne1){throw 'R50 advanced-scroll gate anchor mismatch'}
 $src=$src.Replace($oldLayout,$newLayout)
 
-# Source-level fail closed checks for the exact fixes.
-$needle="for t in ['Width=\"1000\" Height=\"600\"','MinWidth=\"920\" MinHeight=\"560\"','Production 0.1.50','Production R50','Сборки Windows'"
-if(-not $src.Contains($needle)){throw 'R50 production identity gate anchor missing'}
-$src=$src.Replace("'Сборки Windows','Экспертные инструменты','Установить сборку','OptimizationApplyBar','Recovery Package','OneDrive']:","'Сборки Windows','Экспертные инструменты','Установить сборку','OptimizationApplyBar','Recovery Package','OneDrive','BuildAdvancedExpander','BuildAdvancedScroll','MerzoExpanderStyle']:")
+# Extend the existing production source gate with the exact R50 controls.
+$oldTokens="'Сборки Windows','Экспертные инструменты','Установить сборку','OptimizationApplyBar','Recovery Package','OneDrive']:\"
+$newTokens="'Сборки Windows','Экспертные инструменты','Установить сборку','OptimizationApplyBar','Recovery Package','OneDrive','BuildAdvancedExpander','BuildAdvancedScroll','MerzoExpanderStyle']:\"
+if(($src.Split($oldTokens).Count-1)-ne1){throw 'R50 source token gate anchor mismatch'}
+$src=$src.Replace($oldTokens,$newTokens)
 
 $tmp=Join-Path $env:RUNNER_TEMP 'r50_release_expanded.ps1'
 Set-Content $tmp $src -Encoding UTF8
