@@ -36,10 +36,10 @@ $newOta='<Nullable>enable</Nullable><AssemblyVersion>0.1.49.0</AssemblyVersion><
 if(($src.Split($oldOta).Count-1)-ne1){throw 'R50 OTA previous-client anchor mismatch'}
 $src=$src.Replace($oldOta,$newOta)
 
-# Add a regression gate for the exact screenshot bug: open Advanced on Builds,
-# require a real viewport and require scrollable content at both supported sizes.
+# Regression gate for the exact screenshot bug. The ScrollViewer is inside collapsed
+# Expander content, so first resolve/open the Expander, update layout, then resolve scroll.
 $oldLayout='t.SelectedIndex=2;w.UpdateLayout();var bar=N(w,"OptimizationApplyBar");if(bar is null||!Inside(bar,w))throw new Exception("build action bar overflow");w.Close();'
-$newLayout='t.SelectedIndex=2;w.UpdateLayout();var bar=N(w,"OptimizationApplyBar");if(bar is null||!Inside(bar,w))throw new Exception("build action bar overflow");var exp=N(w,"BuildAdvancedExpander") as Expander;var scroll=N(w,"BuildAdvancedScroll") as ScrollViewer;if(exp is null||scroll is null)throw new Exception("build advanced controls missing");exp.IsExpanded=true;w.UpdateLayout();if(!Inside(exp,w)||scroll.ActualHeight<20||scroll.ViewportHeight<=0||scroll.ScrollableHeight<=0)throw new Exception($"build advanced scroll broken at {s}: h={scroll.ActualHeight} viewport={scroll.ViewportHeight} scroll={scroll.ScrollableHeight}");w.Close();'
+$newLayout='t.SelectedIndex=2;w.UpdateLayout();var bar=N(w,"OptimizationApplyBar");if(bar is null||!Inside(bar,w))throw new Exception("build action bar overflow");var exp=N(w,"BuildAdvancedExpander") as Expander;if(exp is null)throw new Exception("build advanced expander missing");exp.IsExpanded=true;w.UpdateLayout();var scroll=N(w,"BuildAdvancedScroll") as ScrollViewer;if(scroll is null)throw new Exception("build advanced scroll missing after expand");if(!Inside(exp,w)||scroll.ActualHeight<20||scroll.ViewportHeight<=0||scroll.ScrollableHeight<=0)throw new Exception($"build advanced scroll broken at {s}: h={scroll.ActualHeight} viewport={scroll.ViewportHeight} scroll={scroll.ScrollableHeight}");w.Close();'
 if(($src.Split($oldLayout).Count-1)-ne1){throw 'R50 advanced-scroll gate anchor mismatch'}
 $src=$src.Replace($oldLayout,$newLayout)
 
