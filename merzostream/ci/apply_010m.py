@@ -32,16 +32,13 @@ for i, part in enumerate(parts):
     actual = hashlib.sha256(part.read_bytes()).hexdigest()
     if actual != PART_SHA[i]:
         raise SystemExit(f"0.1.0m patch part SHA mismatch: {part.name} {actual}")
-
 encoded = "".join(p.read_text(encoding="ascii").strip() for p in parts)
 xz = base64.b64decode(encoded)
-actual_xz = hashlib.sha256(xz).hexdigest()
-if actual_xz != XZ_SHA:
-    raise SystemExit(f"0.1.0m xz SHA mismatch: {actual_xz}")
+if hashlib.sha256(xz).hexdigest() != XZ_SHA:
+    raise SystemExit("0.1.0m xz SHA mismatch")
 patch = lzma.decompress(xz)
-actual_patch = hashlib.sha256(patch).hexdigest()
-if actual_patch != PATCH_SHA:
-    raise SystemExit(f"0.1.0m patch SHA mismatch: {actual_patch}")
+if hashlib.sha256(patch).hexdigest() != PATCH_SHA:
+    raise SystemExit("0.1.0m patch SHA mismatch")
 
 root = pathlib.Path(os.environ["MERZO_SRC"])
 out = pathlib.Path(os.environ.get("RUNNER_TEMP", str(root.parent))) / "merzostream-010m.patch"
@@ -49,7 +46,7 @@ out.write_bytes(patch)
 subprocess.run(["git", "apply", "--check", str(out)], cwd=root, check=True)
 subprocess.run(["git", "apply", str(out)], cwd=root, check=True)
 
-# Keep legacy static checks aligned with the intentional 0.1.0m UI refactor.
+# Align legacy static checks with the intentional 0.1.0m UI refactor.
 selftest = root / "SELFTEST_PURE_DOTNET_STATIC.ps1"
 text = selftest.read_text(encoding="utf-8-sig")
 fixes = {
@@ -62,11 +59,11 @@ for old, new in fixes.items():
     text = text.replace(old, new)
 selftest.write_text(text, encoding="utf-8", newline="\n")
 
-# C# compiler fix: do not shadow the viewer-name local inside PresentViewerNames.
+# C# compiler fix: use distinct locals for string/object viewer rows.
 sb = root / "src" / "MerzoStream.Foundation" / "Services" / "StreamerBotService.cs"
 sb_text = sb.read_text(encoding="utf-8-sig")
 old_sb = '''            if (row.ValueKind == JsonValueKind.String) { var s=row.GetString(); if(!string.IsNullOrWhiteSpace(s)) result.Add(s); continue; }\n            if (row.ValueKind != JsonValueKind.Object) continue;\n            var s = FirstString(row, "displayName", "userName", "username", "name", "login");\n            if (!string.IsNullOrWhiteSpace(s)) result.Add(s);'''
-new_sb = '''            if (row.ValueKind == JsonValueKind.String) { var viewerName=row.GetString(); if(!string.IsNullOrWhiteSpace(viewerName)) result.Add(viewerName); continue; }\n            if (row.ValueKind != JsonValueKind.Object) continue;\n            var viewerName = FirstString(row, "displayName", "userName", "username", "name", "login");\n            if (!string.IsNullOrWhiteSpace(viewerName)) result.Add(viewerName);'''
+new_sb = '''            if (row.ValueKind == JsonValueKind.String) { var stringViewer=row.GetString(); if(!string.IsNullOrWhiteSpace(stringViewer)) result.Add(stringViewer); continue; }\n            if (row.ValueKind != JsonValueKind.Object) continue;\n            var objectViewer = FirstString(row, "displayName", "userName", "username", "name", "login");\n            if (!string.IsNullOrWhiteSpace(objectViewer)) result.Add(objectViewer);'''
 if old_sb not in sb_text:
     raise SystemExit("0.1.0m Streamer.bot viewer-name compiler marker missing")
 sb.write_text(sb_text.replace(old_sb, new_sb), encoding="utf-8", newline="\n")
