@@ -1,0 +1,53 @@
+name: Verify MWO R51 public OTA
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/probe-mwo-r51-release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Wait for exact public R51 release and record verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ok=0
+          for i in $(seq 1 60); do
+            if gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.51" > /tmp/r51-release.json 2>/dev/null; then
+              ok=1
+              break
+            fi
+            sleep 10
+          done
+          git fetch origin mwo-r51-status:mwo-r51-status
+          git checkout mwo-r51-status
+          if [ "$ok" != 1 ]; then
+            printf '%s\n' '{"verified":false,"reason":"public release not found before timeout"}' > optimizer/R51_PUBLIC_RELEASE_STATUS.json
+          else
+            jq -e '.draft == false and .prerelease == false and .tag_name == "mwo-v0.1.51"' /tmp/r51-release.json >/dev/null
+            for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+              jq -e --arg n "$n" '.assets[] | select(.name == $n)' /tmp/r51-release.json >/dev/null
+            done
+            installer=$(jq -r '.assets[] | select(.name=="MerzoWindowsOptimizerSetup-win-x64.exe") | .digest' /tmp/r51-release.json)
+            portable=$(jq -r '.assets[] | select(.name=="MerzoWindowsOptimizer-portable-win-x64.zip") | .digest' /tmp/r51-release.json)
+            test "$installer" = "sha256:b5386a8a616ccf395fd66e1e2cee1d2dd63b79954893f2902fba353090b7ee2d"
+            test "$portable" = "sha256:5216c44f26ba2b337e6b153c09c2af89a32f45e94a4101b0eb6093299e509b2a"
+            jq '{verified:true,id:.id,tag_name:.tag_name,name:.name,draft:.draft,prerelease:.prerelease,published_at:.published_at,target_commitish:.target_commitish,assets:[.assets[]|{name,size,digest}]}' /tmp/r51-release.json > optimizer/R51_PUBLIC_RELEASE_STATUS.json
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R51_PUBLIC_RELEASE_STATUS.json
+          git commit -m 'verify: record R51 public OTA release' || true
+          git push origin HEAD:mwo-r51-status
+          test "$ok" = 1
+          echo R51_PUBLIC_RELEASE_INDEPENDENTLY_VERIFIED
