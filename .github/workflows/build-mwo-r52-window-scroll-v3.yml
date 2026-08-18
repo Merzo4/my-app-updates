@@ -1,15 +1,14 @@
-name: Merzo Windows Optimizer R52 WINDOW SCROLL V3
+name: Merzo Windows Optimizer R52 WINDOW SCROLL TEST
 
 on:
-  workflow_dispatch:
   push:
-    branches: [merzo-windows-optimizer]
+    branches: [mwo-r52-window-scroll-test]
     paths:
       - '.github/workflows/build-mwo-r52-window-scroll-v3.yml'
-      - 'optimizer/triggers/r52-v3-production.txt'
+      - 'optimizer/triggers/r52-window-test.txt'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -21,13 +20,13 @@ jobs:
         with: { dotnet-version: '10.0.x' }
       - uses: actions/setup-python@v5
         with: { python-version: '3.13' }
-      - name: Run complete R52 V3 production gates
+      - name: Run complete R52 window/scroll gates
         shell: pwsh
         run: .\optimizer\scripts\r52_release_v3.ps1
-      - name: Upload verified R52 artifact
+      - name: Upload verified test artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MerzoWindowsOptimizer-0.1.52-R52-WINDOW-SCROLL
+          name: MerzoWindowsOptimizer-0.1.52-R52-WINDOW-SCROLL-TEST
           path: |
             ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe
             ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
