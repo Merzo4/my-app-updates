@@ -62,4 +62,13 @@ for old, new in fixes.items():
     text = text.replace(old, new)
 selftest.write_text(text, encoding="utf-8", newline="\n")
 
-print("0.1.0m PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts), "legacy-selftest-aligned")
+# C# compiler fix: do not shadow the viewer-name local inside PresentViewerNames.
+sb = root / "src" / "MerzoStream.Foundation" / "Services" / "StreamerBotService.cs"
+sb_text = sb.read_text(encoding="utf-8-sig")
+old_sb = '''            if (row.ValueKind == JsonValueKind.String) { var s=row.GetString(); if(!string.IsNullOrWhiteSpace(s)) result.Add(s); continue; }\n            if (row.ValueKind != JsonValueKind.Object) continue;\n            var s = FirstString(row, "displayName", "userName", "username", "name", "login");\n            if (!string.IsNullOrWhiteSpace(s)) result.Add(s);'''
+new_sb = '''            if (row.ValueKind == JsonValueKind.String) { var viewerName=row.GetString(); if(!string.IsNullOrWhiteSpace(viewerName)) result.Add(viewerName); continue; }\n            if (row.ValueKind != JsonValueKind.Object) continue;\n            var viewerName = FirstString(row, "displayName", "userName", "username", "name", "login");\n            if (!string.IsNullOrWhiteSpace(viewerName)) result.Add(viewerName);'''
+if old_sb not in sb_text:
+    raise SystemExit("0.1.0m Streamer.bot viewer-name compiler marker missing")
+sb.write_text(sb_text.replace(old_sb, new_sb), encoding="utf-8", newline="\n")
+
+print("0.1.0m PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts), "static+compiler-fixes=aligned")
