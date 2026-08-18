@@ -10,7 +10,7 @@ def setup_directive(text, key, value):
     pattern = rf'(?mi)^{re.escape(key)}\s*=.*$'
     replacement = f'{key}={value}'
     if re.search(pattern, text):
-        return re.sub(pattern, replacement, text, count=1)
+        return re.sub(pattern, lambda _m: replacement, text, count=1)
     m = re.search(r'(?mi)^\[Setup\]\s*$', text)
     if not m:
         raise SystemExit(f'R53 installer missing [Setup] for {key}')
