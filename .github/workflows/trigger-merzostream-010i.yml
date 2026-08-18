@@ -1,4 +1,4 @@
-name: Trigger MerzoStream 0.1.0i release
+name: Trigger and monitor MerzoStream 0.1.0i release
 
 on:
   push:
@@ -7,15 +7,63 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
-  trigger:
+  trigger-monitor:
     runs-on: ubuntu-latest
+    timeout-minutes: 55
     steps:
-      - name: Dispatch 0.1.0i release from release branch
+      - name: Dispatch release and capture result
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run merzostream-010i-release.yml --repo "$GITHUB_REPOSITORY" --ref merzostream-010i-release
-          echo "MerzoStream 0.1.0i release dispatched"
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          WORKFLOW="merzostream-010i-release.yml"
+          BRANCH="merzostream-010i-release"
+
+          gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$BRANCH"
+          echo "0.1.0i release dispatched"
+
+          RUN_ID=""
+          for n in $(seq 1 24); do
+            RUN_ID=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --branch "$BRANCH" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+            if [ -n "$RUN_ID" ]; then break; fi
+            sleep 5
+          done
+          if [ -z "$RUN_ID" ]; then
+            echo '{"status":"monitor_error","message":"release run not found"}' > /tmp/010i-status.json
+          else
+            set +e
+            gh run watch "$RUN_ID" --repo "$REPO" --exit-status --interval 5
+            WATCH_RC=$?
+            set -e
+            gh run view "$RUN_ID" --repo "$REPO" --json databaseId,status,conclusion,headSha,url,workflowName > /tmp/010i-status.json
+            if [ "$WATCH_RC" -ne 0 ]; then
+              gh run view "$RUN_ID" --repo "$REPO" --log-failed > /tmp/010i-last-failure.log || true
+            else
+              : > /tmp/010i-last-failure.log
+            fi
+          fi
+
+          upload_file() {
+            local local_path="$1"
+            local repo_path="$2"
+            local msg="$3"
+            local content sha
+            content=$(base64 -w0 "$local_path")
+            sha=$(gh api "repos/$REPO/contents/$repo_path?ref=main" --jq '.sha' 2>/dev/null || true)
+            if [ -n "$sha" ]; then
+              gh api --method PUT "repos/$REPO/contents/$repo_path" -f message="$msg" -f content="$content" -f branch=main -f sha="$sha" >/dev/null
+            else
+              gh api --method PUT "repos/$REPO/contents/$repo_path" -f message="$msg" -f content="$content" -f branch=main >/dev/null
+            fi
+          }
+
+          upload_file /tmp/010i-status.json merzostream/ci/010i-ci-status.json "Record MerzoStream 0.1.0i CI status"
+          if [ -s /tmp/010i-last-failure.log ]; then
+            upload_file /tmp/010i-last-failure.log merzostream/ci/010i-last-failure.log "Record MerzoStream 0.1.0i failed CI log"
+          fi
+
+          cat /tmp/010i-status.json
