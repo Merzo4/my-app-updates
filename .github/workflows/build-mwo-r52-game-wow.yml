@@ -3,7 +3,9 @@ name: Merzo Windows Optimizer R52 GAME WOW
 on:
   push:
     branches: [merzo-windows-optimizer]
-    paths: ['.github/workflows/build-mwo-r52-game-wow.yml']
+    paths:
+      - '.github/workflows/build-mwo-r52-game-wow.yml'
+      - 'optimizer/triggers/r52-game-wow-v2.txt'
   workflow_dispatch:
 
 permissions:
@@ -23,9 +25,9 @@ jobs:
         with: { dotnet-version: '10.0.x' }
       - uses: actions/setup-python@v5
         with: { python-version: '3.13' }
-      - name: Run complete R52 GAME WOW production gates
+      - name: Run complete R52 GAME WOW V2 production gates
         shell: pwsh
-        run: .\optimizer\scripts\r52_game_release.ps1
+        run: .\optimizer\scripts\r52_game_release_v2.ps1
       - name: Upload verified R52 artifact
         uses: actions/upload-artifact@v4
         with:
