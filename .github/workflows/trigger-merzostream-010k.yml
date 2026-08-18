@@ -1,6 +1,6 @@
 name: Trigger and monitor MerzoStream 0.1.0k release
 
-# rerun: 2
+# rerun: 3
 on:
   push:
     branches: [main]
@@ -25,17 +25,14 @@ jobs:
           BRANCH="merzostream-010k-release"
           TARGET_SHA=$(gh api "repos/$REPO/branches/$BRANCH" --jq '.commit.sha')
           echo "Target 0.1.0k SHA: $TARGET_SHA"
-
           gh workflow run "$WORKFLOW" --repo "$REPO" --ref "$BRANCH"
           echo "0.1.0k release dispatched"
-
           RUN_ID=""
           for n in $(seq 1 36); do
             RUN_ID=$(gh run list --repo "$REPO" --workflow "$WORKFLOW" --branch "$BRANCH" --event workflow_dispatch --limit 20 --json databaseId,headSha,createdAt --jq ".[] | select(.headSha == \"$TARGET_SHA\") | .databaseId" | head -n1)
             if [ -n "$RUN_ID" ]; then break; fi
             sleep 5
           done
-
           if [ -z "$RUN_ID" ]; then
             printf '{"status":"monitor_error","targetSha":"%s","message":"exact release run not found"}\n' "$TARGET_SHA" > /tmp/010k-status.json
             : > /tmp/010k-last-failure.log
@@ -51,7 +48,6 @@ jobs:
               : > /tmp/010k-last-failure.log
             fi
           fi
-
           upload_file() {
             local local_path="$1"
             local repo_path="$2"
@@ -65,7 +61,6 @@ jobs:
               gh api --method PUT "repos/$REPO/contents/$repo_path" -f message="$msg" -f content="$content" -f branch=main >/dev/null
             fi
           }
-
           upload_file /tmp/010k-status.json merzostream/ci/010k-ci-status.json "Record MerzoStream 0.1.0k CI status"
           upload_file /tmp/010k-last-failure.log merzostream/ci/010k-last-failure.log "Record MerzoStream 0.1.0k CI failure log"
           cat /tmp/010k-status.json
