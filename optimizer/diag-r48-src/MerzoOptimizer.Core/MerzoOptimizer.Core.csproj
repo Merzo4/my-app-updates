@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>MerzoOptimizer.Core</RootNamespace>
+    <AssemblyName>MerzoOptimizer.Core</AssemblyName>
+  </PropertyGroup>
+
+  <!-- MERZO_R31_VERSION_BEGIN -->
+  <PropertyGroup>
+    <Version>0.1.48</Version>
+    <VersionPrefix>0.1.48</VersionPrefix>
+    <AssemblyVersion>0.1.48.0</AssemblyVersion>
+    <FileVersion>0.1.48.0</FileVersion>
+    <InformationalVersion>0.1.48</InformationalVersion>
+  </PropertyGroup>
+  <!-- MERZO_R31_VERSION_END -->
+</Project>
