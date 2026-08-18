@@ -1,0 +1,32 @@
+{
+  "verified": true,
+  "id": 372340007,
+  "tag_name": "mwo-v0.1.52",
+  "name": "Merzo Windows Optimizer 0.1.52 (R52 WINDOW + SCROLL RELIABILITY)",
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2026-08-18T12:46:11Z",
+  "target_commitish": "b388311adaf1124c0ce779b31a61cfc3be490be9",
+  "assets": [
+    {
+      "name": "MerzoWindowsOptimizer-portable-win-x64.zip",
+      "size": 65471444,
+      "digest": "sha256:709c3bede53bdb3210b799c626bb59f5a8fcaa3a442e491aeb7206f072f76bce"
+    },
+    {
+      "name": "MerzoWindowsOptimizer-portable-win-x64.zip.sha256",
+      "size": 110,
+      "digest": "sha256:4ef5d72029daf34059719747fc95ce32ded1e90f9c7b7b517b8fb29cff932444"
+    },
+    {
+      "name": "MerzoWindowsOptimizerSetup-win-x64.exe",
+      "size": 45755870,
+      "digest": "sha256:da2845ed1aa14899b21ae845e2a1591ec4d21c9dac4ed90ec9e0cd1d053af214"
+    },
+    {
+      "name": "MerzoWindowsOptimizerSetup-win-x64.exe.sha256",
+      "size": 106,
+      "digest": "sha256:236b1ae1e1ecf3ae1eb2bafd0c6afb7826257ec6b6a42058a3384536e36a86cd"
+    }
+  ]
+}
