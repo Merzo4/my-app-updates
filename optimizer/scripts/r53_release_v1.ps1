@@ -14,6 +14,15 @@ $src=$src.Replace('R52_RELEASE_NOTES.md','R53_RELEASE_NOTES.md')
 $src=$src.Replace('R52 GAME WOW + UI RELIABILITY','R53 PROCESS + CLEAN START')
 $src=$src.Replace('90–120','80–100')
 
+# R46 hardened ElevatedOperationBroker from one string to three string arguments.
+# R52's read-only probe predates that constructor. It never executes an elevated
+# operation, so three local probe directories are sufficient and keep the old
+# regression gate meaningful without weakening production broker validation.
+$oldProbe='new ElevatedOperationBroker(AppContext.BaseDirectory)'
+$newProbe='new ElevatedOperationBroker(AppContext.BaseDirectory, AppContext.BaseDirectory, AppContext.BaseDirectory)'
+if(($src.Split($oldProbe).Count-1)-ne1){throw 'R53 inherited broker probe anchor mismatch'}
+$src=$src.Replace($oldProbe,$newProbe)
+
 $old="'r52_window_scroll_reliability.py','r52_game_wow_debloat.py')"
 $new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py')"
 if(($src.Split($old).Count-1)-ne1){throw 'R53 patch-chain anchor mismatch'}
