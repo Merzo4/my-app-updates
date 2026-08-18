@@ -1,0 +1,171 @@
+name: MerzoStream Suite 0.1.0n CUMULATIVE Release
+
+on:
+  push:
+    branches: [merzostream-010n-release]
+    paths:
+      - '.github/workflows/merzostream-010n-release.yml'
+      - 'merzostream/ci/apply_010n.py'
+      - 'merzostream/ci/010n-patch/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout source history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Reconstruct canonical source through 0.1.0m
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:RUNNER_TEMP 'merzostream-010n-src'
+          New-Item -ItemType Directory -Force $src | Out-Null
+          "MERZO_SRC=$src" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:MERZO_SRC=$src
+          python merzostream/ci/rebuild_010h.py
+          if($LASTEXITCODE -ne 0){throw '0.1.0h source reconstruction failed'}
+          & .\merzostream\ci\make_brand.ps1
+          if($LASTEXITCODE -ne 0){throw 'brand restore failed'}
+          foreach($v in @('010i','010j','010k','010l','010m')) {
+            python "merzostream/ci/apply_$v.py"
+            if($LASTEXITCODE -ne 0){throw "$v patch failed"}
+          }
+
+      - name: Apply cumulative 0.1.0n patch
+        shell: pwsh
+        run: |
+          python merzostream/ci/apply_010n.py
+          if($LASTEXITCODE -ne 0){throw '0.1.0n patch failed'}
+
+      - name: Verify 0.1.0n identity and frontend
+        shell: pwsh
+        run: |
+          $info=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json
+          if($info.version -ne '0.1.0n'){throw "Wrong version $($info.version)"}
+          $backend=Get-Content "$env:MERZO_SRC\src\MerzoStream.Host\DotNetBackend.cs" -Raw
+          $obs=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\ObsWebSocketService.cs" -Raw
+          $sb=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\StreamerBotService.cs" -Raw
+          $player=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\LocalPlayerServer.cs" -Raw
+          if(-not(Test-Path "$env:MERZO_SRC\src\MerzoStream.Host\GitHubOAuthService.cs")){throw 'GitHub OAuth service missing'}
+          if(-not(Test-Path "$env:MERZO_SRC\src\MerzoStream.Host\GitHubCloudService.cs")){throw 'GitHub Cloud service missing'}
+          if(-not $backend.Contains('case "alerts_snapshot"')){throw 'alerts backend missing'}
+          if(-not $obs.Contains('SetInputVolume')){throw 'OBS mixer setter missing'}
+          if(-not $sb.Contains('PlatformAlert')){throw 'Streamer.bot alerts missing'}
+          if(-not $player.Contains('path == "/alerts"')){throw 'alerts OBS source missing'}
+          node --check "$env:MERZO_SRC\ui\web\app.js"
+          if($LASTEXITCODE -ne 0){throw 'app.js syntax failed'}
+          node --check "$env:MERZO_SRC\ui\web\concept.js"
+          if($LASTEXITCODE -ne 0){throw 'concept.js syntax failed'}
+          Write-Host '0.1.0n SOURCE IDENTITY + JS PASS'
+
+      - name: Static Pure .NET selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./SELFTEST_PURE_DOTNET_STATIC.ps1
+          if($LASTEXITCODE -ne 0){throw 'Static selftest failed'}
+
+      - name: Restore and compile full solution
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet restore MerzoStream.NetHost.sln
+          if($LASTEXITCODE -ne 0){throw 'dotnet restore failed'}
+          dotnet build MerzoStream.NetHost.sln -c Release --no-restore
+          if($LASTEXITCODE -ne 0){throw 'dotnet build failed'}
+
+      - name: Foundation selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet run --project tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj -c Release --no-restore
+          if($LASTEXITCODE -ne 0){throw 'Foundation selftest failed'}
+
+      - name: Build self-contained runtime
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./06_BUILD_RUNTIME_RELEASE.ps1 -Version '0.1.0n' -Runtime 'win-x64'
+          if($LASTEXITCODE -ne 0){throw 'Runtime build failed'}
+          if(-not(Test-Path 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip')){throw 'Runtime ZIP missing'}
+
+      - name: Build single-file installer
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./08_BUILD_BRANDED_SETUP.ps1 -Version '0.1.0n' -RuntimeZip 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip'
+          if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
+          $exe='artifacts/branded-setup/MerzoStreamSuite_Setup.exe'
+          if(-not(Test-Path $exe)){throw 'Installer EXE missing'}
+          $sha=(Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content "$exe.sha256" "$sha  MerzoStreamSuite_Setup.exe" -Encoding ascii
+          Write-Host "INSTALLER PASS SHA=$sha SIZE=$((Get-Item $exe).Length)"
+
+      - name: Verify runtime package
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          $check=Join-Path $env:RUNNER_TEMP 'runtime-check-n'
+          Expand-Archive 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip' $check -Force
+          $exe=Get-ChildItem $check -Recurse -File -Filter 'MerzoStream.Host.exe' | Select-Object -First 1
+          if(-not $exe){throw 'MerzoStream.Host.exe missing'}
+          $info=Get-ChildItem $check -Recurse -File -Filter 'app_info.json' | Select-Object -First 1
+          if(-not $info){throw 'app_info.json missing'}
+          $j=Get-Content $info.FullName -Raw | ConvertFrom-Json
+          if($j.version -ne '0.1.0n'){throw "Runtime version mismatch $($j.version)"}
+          Write-Host 'RUNTIME CONTENT PASS'
+
+      - name: Create canonical source ZIP
+        shell: pwsh
+        run: |
+          $dst=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_0.1.0n_SOURCE.zip'
+          $stage=Join-Path $env:RUNNER_TEMP 'source-stage-n'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Get-ChildItem $env:MERZO_SRC -Force | Where-Object { $_.Name -notin @('bin','obj','artifacts') } | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
+          Get-ChildItem $stage -Recurse -Directory | Where-Object { $_.Name -in @('bin','obj','artifacts') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path "$stage\*" -DestinationPath $dst -CompressionLevel Optimal -Force
+          if(-not(Test-Path $dst)){throw 'Source ZIP missing'}
+          "SOURCE_ZIP=$dst" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload verified CI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoStreamSuite-0.1.0n-READY
+          path: |
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.sha256
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256
+            ${{ env.MERZO_SRC }}/RELEASE_NOTES_0.1.0n.md
+            ${{ env.SOURCE_ZIP }}
+          if-no-files-found: error
+
+      - name: Publish GitHub Release v0.1.0n
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          $tag='v0.1.0n'
+          $zip='artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip'
+          $sha='artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.sha256'
+          $setup='artifacts/branded-setup/MerzoStreamSuite_Setup.exe'
+          $setupSha='artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE -ne 0){ gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'MerzoStream Suite 0.1.0n' --notes-file RELEASE_NOTES_0.1.0n.md }
+          if($LASTEXITCODE -ne 0){throw 'Release create failed'}
+          gh release upload $tag $zip $sha $setup $setupSha $env:SOURCE_ZIP RELEASE_NOTES_0.1.0n.md --repo $env:GITHUB_REPOSITORY --clobber
+          if($LASTEXITCODE -ne 0){throw 'Release upload failed'}
+          Write-Host 'GITHUB RELEASE v0.1.0n PUBLISHED'
