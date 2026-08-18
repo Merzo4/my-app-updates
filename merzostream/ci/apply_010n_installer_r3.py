@@ -1,3 +1,4 @@
+# CI rerun marker: WebView2 profile must live in writable LocalAppData
 import os, pathlib
 root = pathlib.Path(os.environ["MERZO_SRC"])
 main = root / "src" / "MerzoStream.Host" / "MainForm.cs"
