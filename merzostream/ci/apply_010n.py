@@ -35,4 +35,21 @@ out = pathlib.Path(os.environ.get("RUNNER_TEMP", str(root.parent))) / "merzostre
 out.write_bytes(patch)
 subprocess.run(["git", "apply", "--check", "--ignore-space-change", str(out)], cwd=root, check=True)
 subprocess.run(["git", "apply", "--ignore-space-change", str(out)], cwd=root, check=True)
-print("0.1.0n PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts))
+
+# C# compiler fix: foreach iteration variables in the chained if/else subscription block
+# must have distinct names because the statements share the enclosing scope.
+sb = root / "src" / "MerzoStream.Foundation" / "Services" / "StreamerBotService.cs"
+sb_text = sb.read_text(encoding="utf-8-sig")
+fixes = [
+    ('foreach (var name in new[] { "ChatMessage", "PresentViewers", "ViewerCountUpdate" }) if (names.Contains(name)) wanted.Add(name);', 'foreach (var twitchEvent in new[] { "ChatMessage", "PresentViewers", "ViewerCountUpdate" }) if (names.Contains(twitchEvent)) wanted.Add(twitchEvent);'),
+    ('foreach (var name in new[] { "Message", "PresentViewers", "StatisticsUpdated" }) if (names.Contains(name)) wanted.Add(name);', 'foreach (var youtubeEvent in new[] { "Message", "PresentViewers", "StatisticsUpdated" }) if (names.Contains(youtubeEvent)) wanted.Add(youtubeEvent);'),
+    ('foreach (var name in new[] { "ChatMessage", "PresentViewers", "ViewerCountUpdate" }) if (names.Contains(name)) wanted.Add(name);', 'foreach (var kickEvent in new[] { "ChatMessage", "PresentViewers", "ViewerCountUpdate" }) if (names.Contains(kickEvent)) wanted.Add(kickEvent);'),
+    ('foreach (var name in names)\n                if (AlertEventTokens.Any(token => name.Contains(token, StringComparison.OrdinalIgnoreCase))) wanted.Add(name);', 'foreach (var eventName in names)\n                if (AlertEventTokens.Any(token => eventName.Contains(token, StringComparison.OrdinalIgnoreCase))) wanted.Add(eventName);'),
+]
+for old, new in fixes:
+    if old not in sb_text:
+        raise SystemExit(f"0.1.0n Streamer.bot compiler marker missing: {old[:50]}")
+    sb_text = sb_text.replace(old, new, 1)
+sb.write_text(sb_text, encoding="utf-8", newline="\n")
+
+print("0.1.0n PATCH PASS", PATCH_SHA, "xz", XZ_SHA, "parts", len(parts), "compiler-fix=aligned")
