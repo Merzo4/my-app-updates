@@ -2,4 +2,5 @@ monitor R53 production
 2026-08-18
 Process clean start + GAME compatibility + Program Files + PrintScreen + branded visible OTA
 broker-probe-fix=1
-rerun=18
+ascii-targets=1
+rerun=19
