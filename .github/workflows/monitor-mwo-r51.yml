@@ -1,0 +1,42 @@
+name: Monitor MWO R51
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/monitor-mwo-r51.yml']
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait and record R51 build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sleep 8
+          id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-mwo-r51-stability-readability.yml --branch merzo-windows-optimizer --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          [ -n "$id" ] || { echo 'R51 build run not found'; exit 1; }
+          for i in $(seq 1 100); do
+            status=$(gh run view "$id" --repo "$GITHUB_REPOSITORY" --json status --jq '.status')
+            [ "$status" = "completed" ] && break
+            sleep 10
+          done
+          gh run view "$id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > optimizer/R51_BUILD_STATUS.json
+          conclusion=$(jq -r '.conclusion' optimizer/R51_BUILD_STATUS.json)
+          if [ "$conclusion" != success ]; then
+            gh run view "$id" --repo "$GITHUB_REPOSITORY" --log-failed > optimizer/R51_BUILD_FAILED.log || true
+          else
+            rm -f optimizer/R51_BUILD_FAILED.log
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R51_BUILD_STATUS.json optimizer/R51_BUILD_FAILED.log 2>/dev/null || true
+          git commit -m 'diag: record R51 production result' || true
+          git push || true
