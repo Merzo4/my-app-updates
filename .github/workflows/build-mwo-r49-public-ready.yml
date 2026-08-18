@@ -1,0 +1,77 @@
+name: Merzo Windows Optimizer R49 PUBLIC READY
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/build-mwo-r49-public-ready.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r49-public-ready
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: Build and run all R49 gates
+        shell: pwsh
+        run: .\optimizer\scripts\r49_release.ps1
+
+      - name: Upload verified R49 build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.49-R49-PUBLIC-READY
+          path: |
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+            ${{ env.R49_ROOT }}/dist/R49_RELEASE_NOTES.md
+          if-no-files-found: error
+
+      - name: Publish stable mwo-v0.1.49
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          gh release view mwo-v0.1.49 --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE-eq0){throw 'mwo-v0.1.49 already exists; refusing to replace an existing stable release'}
+          $global:LASTEXITCODE=0
+          $root=$env:R49_ROOT
+          $files=@(
+            (Join-Path $root 'dist\MerzoWindowsOptimizerSetup-win-x64.exe'),
+            (Join-Path $root 'dist\MerzoWindowsOptimizerSetup-win-x64.exe.sha256'),
+            (Join-Path $root 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'),
+            (Join-Path $root 'dist\MerzoWindowsOptimizer-portable-win-x64.zip.sha256')
+          )
+          gh release create mwo-v0.1.49 --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.49 (R49 PUBLIC READY)' --notes-file (Join-Path $root 'dist\R49_RELEASE_NOTES.md') @files
+          if($LASTEXITCODE-ne0){throw 'R49 release publish failed'}
+
+      - name: Verify published release assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $json=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/mwo-v0.1.49"
+          if($LASTEXITCODE-ne0){throw 'Could not read R49 release'}
+          $r=$json|ConvertFrom-Json
+          if($r.draft-or$r.prerelease){throw 'R49 was not published as stable'}
+          $names=@($r.assets|ForEach-Object{$_.name})
+          foreach($n in @('MerzoWindowsOptimizerSetup-win-x64.exe','MerzoWindowsOptimizerSetup-win-x64.exe.sha256','MerzoWindowsOptimizer-portable-win-x64.zip','MerzoWindowsOptimizer-portable-win-x64.zip.sha256')){if($names-notcontains$n){throw "Missing release asset $n"}}
+          $installer=$r.assets|Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+          $portable=$r.assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          if($installer.size-lt40000000-or$portable.size-lt50000000){throw 'R49 release asset size is implausible'}
+          Write-Host "R49_RELEASE_VERIFIED installer=$($installer.digest) portable=$($portable.digest)"
