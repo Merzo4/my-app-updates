@@ -1,0 +1,167 @@
+name: MerzoStream Suite 0.1.0n DARK Installer R2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout source history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Reconstruct canonical source through 0.1.0n
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:RUNNER_TEMP 'merzostream-010n-installer-r2-src'
+          New-Item -ItemType Directory -Force $src | Out-Null
+          "MERZO_SRC=$src" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:MERZO_SRC=$src
+          python merzostream/ci/rebuild_010h.py
+          if($LASTEXITCODE -ne 0){throw '0.1.0h source reconstruction failed'}
+          & .\merzostream\ci\make_brand.ps1
+          if($LASTEXITCODE -ne 0){throw 'brand restore failed'}
+          foreach($v in @('010i','010j','010k','010l','010m','010n')) {
+            python "merzostream/ci/apply_$v.py"
+            if($LASTEXITCODE -ne 0){throw "$v patch failed"}
+          }
+
+      - name: Apply dark Program Files installer R2
+        shell: pwsh
+        run: |
+          python merzostream/ci/apply_010n_installer_r2.py
+          if($LASTEXITCODE -ne 0){throw 'installer R2 transform failed'}
+
+      - name: Verify installer R2 contract
+        shell: pwsh
+        run: |
+          $setup=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\Program.cs" -Raw
+          $manifest=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\app.manifest" -Raw
+          $update=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\UpdateService.cs" -Raw
+          if(-not $setup.Contains('FormBorderStyle.None')){throw 'dark borderless installer missing'}
+          if(-not $setup.Contains('SpecialFolder.ProgramFiles')){throw 'Program Files install root missing'}
+          if(-not $setup.Contains('WebView2BootstrapUrl')){throw 'WebView2 bootstrapper missing'}
+          if(-not $setup.Contains('/silent /install')){throw 'silent WebView2 install missing'}
+          if(-not $setup.Contains('DarkMessageForm')){throw 'dark message dialog missing'}
+          if(-not $manifest.Contains('requireAdministrator')){throw 'UAC manifest missing'}
+          if(-not $update.Contains('stable-launcher.json')){throw 'stable launcher OTA bridge missing'}
+          if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.png").Length -lt 10000){throw 'new brand PNG missing'}
+          if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.ico").Length -lt 10000){throw 'new brand ICO missing'}
+          Write-Host 'INSTALLER R2 CONTRACT PASS'
+
+      - name: Verify frontend JavaScript
+        shell: pwsh
+        run: |
+          node --check "$env:MERZO_SRC\ui\web\app.js"
+          if($LASTEXITCODE -ne 0){throw 'app.js syntax failed'}
+          node --check "$env:MERZO_SRC\ui\web\concept.js"
+          if($LASTEXITCODE -ne 0){throw 'concept.js syntax failed'}
+
+      - name: Static Pure .NET selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./SELFTEST_PURE_DOTNET_STATIC.ps1
+          if($LASTEXITCODE -ne 0){throw 'Static selftest failed'}
+
+      - name: Restore and compile full solution
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet restore MerzoStream.NetHost.sln
+          if($LASTEXITCODE -ne 0){throw 'dotnet restore failed'}
+          dotnet build MerzoStream.NetHost.sln -c Release --no-restore
+          if($LASTEXITCODE -ne 0){throw 'dotnet build failed'}
+
+      - name: Foundation selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet run --project tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj -c Release --no-restore
+          if($LASTEXITCODE -ne 0){throw 'Foundation selftest failed'}
+
+      - name: Build self-contained runtime
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./06_BUILD_RUNTIME_RELEASE.ps1 -Version '0.1.0n' -Runtime 'win-x64'
+          if($LASTEXITCODE -ne 0){throw 'Runtime build failed'}
+
+      - name: Build dark single-file installer
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./08_BUILD_BRANDED_SETUP.ps1 -Version '0.1.0n' -RuntimeZip 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip'
+          if($LASTEXITCODE -ne 0){throw 'Installer build failed'}
+          $exe='artifacts/branded-setup/MerzoStreamSuite_Setup.exe'
+          if(-not(Test-Path $exe)){throw 'Installer EXE missing'}
+          $sha=(Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content "$exe.sha256" "$sha  MerzoStreamSuite_Setup.exe" -Encoding ascii
+          Write-Host "DARK INSTALLER R2 PASS SHA=$sha SIZE=$((Get-Item $exe).Length)"
+
+      - name: Verify runtime package
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          $check=Join-Path $env:RUNNER_TEMP 'runtime-check-n-r2'
+          Expand-Archive 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip' $check -Force
+          $exe=Get-ChildItem $check -Recurse -File -Filter 'MerzoStream.Host.exe' | Select-Object -First 1
+          if(-not $exe){throw 'MerzoStream.Host.exe missing'}
+          $info=Get-ChildItem $check -Recurse -File -Filter 'app_info.json' | Select-Object -First 1
+          $j=Get-Content $info.FullName -Raw | ConvertFrom-Json
+          if($j.version -ne '0.1.0n'){throw "Runtime version mismatch $($j.version)"}
+          Write-Host 'RUNTIME R2 CONTENT PASS'
+
+      - name: Create canonical R2 source ZIP
+        shell: pwsh
+        run: |
+          $dst=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_0.1.0n_SOURCE.zip'
+          $stage=Join-Path $env:RUNNER_TEMP 'source-stage-n-r2'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Get-ChildItem $env:MERZO_SRC -Force | Where-Object { $_.Name -notin @('bin','obj','artifacts') } | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
+          Get-ChildItem $stage -Recurse -Directory | Where-Object { $_.Name -in @('bin','obj','artifacts') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path "$stage\*" -DestinationPath $dst -CompressionLevel Optimal -Force
+          "SOURCE_ZIP=$dst" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload verified installer R2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoStreamSuite-0.1.0n-DARK-INSTALLER-R2-READY
+          path: |
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.sha256
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256
+            ${{ env.MERZO_SRC }}/RELEASE_NOTES_0.1.0n.md
+            ${{ env.SOURCE_ZIP }}
+          if-no-files-found: error
+
+      - name: Replace v0.1.0n release assets with installer R2
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          $tag='v0.1.0n'
+          $zip='artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.zip'
+          $sha='artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0n.sha256'
+          $setup='artifacts/branded-setup/MerzoStreamSuite_Setup.exe'
+          $setupSha='artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE -ne 0){throw 'Existing v0.1.0n release not found'}
+          gh release upload $tag $zip $sha $setup $setupSha $env:SOURCE_ZIP RELEASE_NOTES_0.1.0n.md --repo $env:GITHUB_REPOSITORY --clobber
+          if($LASTEXITCODE -ne 0){throw 'Release asset replacement failed'}
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --notes-file RELEASE_NOTES_0.1.0n.md
+          if($LASTEXITCODE -ne 0){throw 'Release notes update failed'}
+          Write-Host 'v0.1.0n DARK INSTALLER R2 PUBLISHED'
