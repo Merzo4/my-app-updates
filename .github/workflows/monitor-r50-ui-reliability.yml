@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for R50 and save exact status
+      - name: Wait for latest R50 V2 and save exact status
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
