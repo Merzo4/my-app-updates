@@ -24,10 +24,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.13' }
 
-      - name: Run complete R51 production gates
+      - name: Run complete R51 production gates V2
         id: gates
         shell: pwsh
-        run: .\optimizer\scripts\r51_release.ps1
+        run: .\optimizer\scripts\r51_release_v2.ps1
 
       - name: Upload verified R51 artifact
         uses: actions/upload-artifact@v4
