@@ -18,13 +18,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download exact verified R50 artifact
+      - name: Download exact verified R50 artifact by immutable artifact id
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           mkdir -p r50-release
-          gh run download 32109002252 --repo "$GITHUB_REPOSITORY" --name MerzoWindowsOptimizer-0.1.50-R50-UI-RELIABILITY --dir r50-release
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/9314244097/zip" > r50-artifact.zip
+          unzip -q r50-artifact.zip -d r50-release
           test -f r50-release/MerzoWindowsOptimizerSetup-win-x64.exe
           test -f r50-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
           test -f r50-release/MerzoWindowsOptimizer-portable-win-x64.zip
@@ -37,6 +38,8 @@ jobs:
           cd r50-release
           installer=$(sha256sum MerzoWindowsOptimizerSetup-win-x64.exe | awk '{print $1}')
           portable=$(sha256sum MerzoWindowsOptimizer-portable-win-x64.zip | awk '{print $1}')
+          echo "installer=$installer"
+          echo "portable=$portable"
           test "$installer" = "0a5101d45885af82997d91f310cae97f96270c5522e5b4d82ab97adef5eb3f26"
           test "$portable" = "106e4ab75b585dfebb354c41d30519490dd21b04a6b74596ffb7caaa7fbaa170"
           grep -qi "0a5101d45885af82997d91f310cae97f96270c5522e5b4d82ab97adef5eb3f26" MerzoWindowsOptimizerSetup-win-x64.exe.sha256
@@ -84,7 +87,6 @@ jobs:
           set -euo pipefail
           json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.50")
           echo "$json" | jq -e '.draft == false and .prerelease == false' >/dev/null
-          echo "$json" | jq -e '.target_commitish == "b0c0abfba1e66d92fad727ed4f91939eb08637e1" or .tag_name == "mwo-v0.1.50"' >/dev/null
           for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
             echo "$json" | jq -e --arg n "$n" '.assets[] | select(.name == $n)' >/dev/null
           done
