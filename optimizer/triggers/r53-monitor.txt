@@ -3,4 +3,4 @@ monitor R53 production
 Process clean start + GAME compatibility + Program Files + PrintScreen + branded visible OTA
 broker-probe-fix=1
 ascii-targets=1
-rerun=19
+rerun=20
