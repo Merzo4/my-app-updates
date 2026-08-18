@@ -1,0 +1,32 @@
+{
+  "verified": true,
+  "id": 372309161,
+  "tag_name": "mwo-v0.1.51",
+  "name": "Merzo Windows Optimizer 0.1.51 (R51 STABILITY + READABILITY)",
+  "draft": false,
+  "prerelease": false,
+  "published_at": "2026-08-18T11:56:17Z",
+  "target_commitish": "main",
+  "assets": [
+    {
+      "name": "MerzoWindowsOptimizer-portable-win-x64.zip",
+      "size": 65469940,
+      "digest": "sha256:5216c44f26ba2b337e6b153c09c2af89a32f45e94a4101b0eb6093299e509b2a"
+    },
+    {
+      "name": "MerzoWindowsOptimizer-portable-win-x64.zip.sha256",
+      "size": 110,
+      "digest": "sha256:556eea1889dcb5d1776dae27affc8f39001887aec58b8322992de7e17a56db11"
+    },
+    {
+      "name": "MerzoWindowsOptimizerSetup-win-x64.exe",
+      "size": 45756724,
+      "digest": "sha256:b5386a8a616ccf395fd66e1e2cee1d2dd63b79954893f2902fba353090b7ee2d"
+    },
+    {
+      "name": "MerzoWindowsOptimizerSetup-win-x64.exe.sha256",
+      "size": 106,
+      "digest": "sha256:7351a1733036a4f8239777734792d4fa1457a21f2ff3ee5092368601ca5d6a5a"
+    }
+  ]
+}
