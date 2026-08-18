@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [merzo-windows-optimizer]
-    paths: ['.github/workflows/build-mwo-r52-window-scroll-v3.yml']
+    paths:
+      - '.github/workflows/build-mwo-r52-window-scroll-v3.yml'
+      - 'optimizer/triggers/r52-v3-production.txt'
 
 permissions:
   contents: write
