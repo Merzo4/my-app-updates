@@ -1,2 +1,3 @@
 R52 isolated window/scroll regression
 2026-08-18
+rerun after self-record workflow registration
