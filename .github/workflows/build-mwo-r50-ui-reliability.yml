@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.13' }
 
-      - name: Build and run all R50 gates V2
+      - name: Build and run all R50 gates V3
         shell: pwsh
         run: .\optimizer\scripts\r50_release.ps1
 
