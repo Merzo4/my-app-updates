@@ -1,0 +1,18 @@
+{
+  "version": "0.1.51",
+  "title": "R51 STABILITY + READABILITY",
+  "verified_build_run": 32133401958,
+  "verified_build_head": "6dad4cecdd3393af615fb91299a1f26e478444e4",
+  "artifact_id": 9323114808,
+  "artifact_digest": "sha256:47427982ecc4d188b1c19f83e10f58fb430a831dbdabb21b5c7a4ec9d7ace532",
+  "runtime_patch_blob": "af3cd65c622cc8243c61a7c082464edeb6472585",
+  "runtime_patch_path": "optimizer/patches/r51_widgets_operation_readability.py",
+  "installer_sha256": "b5386a8a616ccf395fd66e1e2cee1d2dd63b79954893f2902fba353090b7ee2d",
+  "portable_sha256": "5216c44f26ba2b337e6b153c09c2af89a32f45e94a4101b0eb6093299e509b2a",
+  "notes": [
+    "Automatic LIGHT/GAME/EXTREME Widgets rule uses HKCU TaskbarDa=0 and no longer depends on protected HKLM Dsh ACL.",
+    "Strict machine Widgets policy remains expert/LAB only.",
+    "Operation Center readability was redesigned with larger high-contrast current operation and event log.",
+    "R46 security, R48 OTA, R49 Recovery/OneDrive and R50 UI reliability are preserved."
+  ]
+}
