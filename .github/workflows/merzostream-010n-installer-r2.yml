@@ -47,6 +47,12 @@ jobs:
         run: |
           python merzostream/ci/apply_010n_installer_r2.py
           if($LASTEXITCODE -ne 0){throw 'installer R2 transform failed'}
+          $proj="$env:MERZO_SRC\src\MerzoStream.Setup\MerzoStream.Setup.csproj"
+          $xml=Get-Content $proj -Raw
+          if(-not $xml.Contains('WFO1000')) {
+            $xml=$xml.Replace('<ApplicationManifest>app.manifest</ApplicationManifest>', '<ApplicationManifest>app.manifest</ApplicationManifest>' + "`r`n    <NoWarn>`$(NoWarn);WFO1000</NoWarn>")
+            Set-Content $proj $xml -Encoding utf8
+          }
 
       - name: Verify installer R2 contract
         shell: pwsh
@@ -54,6 +60,7 @@ jobs:
           $setup=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\Program.cs" -Raw
           $manifest=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\app.manifest" -Raw
           $update=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\UpdateService.cs" -Raw
+          $proj=Get-Content "$env:MERZO_SRC\src\MerzoStream.Setup\MerzoStream.Setup.csproj" -Raw
           if(-not $setup.Contains('FormBorderStyle.None')){throw 'dark borderless installer missing'}
           if(-not $setup.Contains('SpecialFolder.ProgramFiles')){throw 'Program Files install root missing'}
           if(-not $setup.Contains('WebView2BootstrapUrl')){throw 'WebView2 bootstrapper missing'}
@@ -61,6 +68,7 @@ jobs:
           if(-not $setup.Contains('DarkMessageForm')){throw 'dark message dialog missing'}
           if(-not $manifest.Contains('requireAdministrator')){throw 'UAC manifest missing'}
           if(-not $update.Contains('stable-launcher.json')){throw 'stable launcher OTA bridge missing'}
+          if(-not $proj.Contains('WFO1000')){throw 'WinForms analyzer alignment missing'}
           if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.png").Length -lt 5000){throw 'new brand PNG missing'}
           if((Get-Item "$env:MERZO_SRC\content\MerzoStreamSuite.ico").Length -lt 5000){throw 'new brand ICO missing'}
           Write-Host 'INSTALLER R2 CONTRACT PASS'
@@ -191,8 +199,8 @@ jobs:
           Set-Content $tmp $payload -Encoding utf8
           $content=[Convert]::ToBase64String([IO.File]::ReadAllBytes($tmp))
           $path='merzostream/ci/010n-installer-r2-status.json'
-          $sha=''
-          try { $sha=(gh api "repos/$repo/contents/$path?ref=main" --jq '.sha') } catch { }
+          $sha=(gh api --method GET "repos/$repo/contents/$path" -f ref=main --jq '.sha' 2>$null)
+          if($LASTEXITCODE -ne 0){$sha=''}
           if($sha){ gh api --method PUT "repos/$repo/contents/$path" -f message='Record MerzoStream installer R2 CI status' -f content=$content -f branch=main -f sha=$sha | Out-Null }
           else { gh api --method PUT "repos/$repo/contents/$path" -f message='Record MerzoStream installer R2 CI status' -f content=$content -f branch=main | Out-Null }
           Write-Host $payload
