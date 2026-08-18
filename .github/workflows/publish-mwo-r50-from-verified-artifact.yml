@@ -46,17 +46,32 @@ jobs:
           grep -qi "106e4ab75b585dfebb354c41d30519490dd21b04a6b74596ffb7caaa7fbaa170" MerzoWindowsOptimizer-portable-win-x64.zip.sha256
           echo "R50_ARTIFACT_SHA_VERIFIED"
 
-      - name: Create exact release tag first
+      - name: Build release-carrier commit with no workflow delta and push exact tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          target="b0c0abfba1e66d92fad727ed4f91939eb08637e1"
+          build="b0c0abfba1e66d92fad727ed4f91939eb08637e1"
+          base="mwo-v0.1.49"
+          git fetch origin "$build" "$base" --tags
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
           if git ls-remote --exit-code --tags origin refs/tags/mwo-v0.1.50 >/dev/null 2>&1; then
-            remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.50 | awk '{print $1}')
-            test "$remote" = "$target"
+            echo "R50 tag already exists"
           else
-            git tag mwo-v0.1.50 "$target"
+            git checkout -B r50-release-carrier "$base"
+            git diff --binary "$base" "$build" -- . ':(exclude).github/workflows/**' > /tmp/r50-nonworkflow.patch
+            test -s /tmp/r50-nonworkflow.patch
+            git apply --index /tmp/r50-nonworkflow.patch
+            git commit -m 'release: R50 source carrier from verified build without workflow delta'
+            carrier=$(git rev-parse HEAD)
+            echo "carrier=$carrier"
+            if git diff --name-only "$base" "$carrier" | grep -E '^\.github/workflows/' ; then
+              echo 'workflow delta detected in carrier' >&2
+              exit 1
+            fi
+            git tag mwo-v0.1.50 "$carrier"
             git push origin refs/tags/mwo-v0.1.50
           fi
           echo "R50_TAG_READY"
