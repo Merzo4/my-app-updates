@@ -1,0 +1,41 @@
+name: DIAG R49 CI MONITOR V3
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/diag-r49-ci-monitor-v3.yml']
+permissions:
+  actions: read
+  contents: write
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for latest R49 V3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="d0cff1fbc05777d545010509bae018f55b299471"
+          id=""
+          for i in $(seq 1 60); do
+            row=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build-mwo-r49-public-ready.yml --branch merzo-windows-optimizer --limit 1 --json databaseId,status,conclusion,headSha --jq '.[0] // empty')
+            if [ -n "$row" ]; then
+              id=$(echo "$row" | python -c 'import json,sys; print(json.load(sys.stdin)["databaseId"])')
+              sha=$(echo "$row" | python -c 'import json,sys; print(json.load(sys.stdin)["headSha"])')
+              status=$(echo "$row" | python -c 'import json,sys; print(json.load(sys.stdin)["status"])')
+              echo "R49 V3 run=$id sha=$sha status=$status"
+              if [ "$sha" = "$target" ] && [ "$status" = "completed" ]; then break; fi
+            fi
+            sleep 20
+          done
+          gh run view "$id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > optimizer/R49_CI_STATUS_V3.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin merzo-windows-optimizer
+          git add optimizer/R49_CI_STATUS_V3.json
+          git commit -m 'DIAG capture R49 V3 CI result' || true
+          git push origin HEAD:merzo-windows-optimizer
