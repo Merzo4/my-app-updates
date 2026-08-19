@@ -165,3 +165,17 @@ jobs:
           gh release upload $tag 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.zip' 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe' 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256' $env:SOURCE_ZIP RELEASE_NOTES_0.1.0r.md --repo $env:GITHUB_REPOSITORY --clobber
           if($LASTEXITCODE){throw 'release upload failed'}
           gh release edit $tag --repo $env:GITHUB_REPOSITORY --title 'MerzoStream Suite 0.1.0r RECOVERY R3' --notes-file RELEASE_NOTES_0.1.0r.md
+
+      - name: Record R3 CI status
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          $payload=[ordered]@{status='completed';conclusion=$env:JOB_STATUS;sourceHead=$env:SOURCE_HEAD;databaseId=$env:GITHUB_RUN_ID;url="https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID";recovery='R3'}|ConvertTo-Json -Compress
+          $tmp=Join-Path $env:RUNNER_TEMP '010r-r3-ci.json'; Set-Content $tmp $payload -Encoding utf8
+          $b64=[Convert]::ToBase64String([IO.File]::ReadAllBytes($tmp)); $path='merzostream/ci/010r-r3-ci-status.json'
+          $old=(gh api --method GET "repos/$env:GITHUB_REPOSITORY/contents/$path" -f ref=main --jq '.sha' 2>$null); if($LASTEXITCODE){$old=''}
+          if($old){gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0r R3 CI status' -f content=$b64 -f branch=main -f sha=$old | Out-Null}else{gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0r R3 CI status' -f content=$b64 -f branch=main | Out-Null}
+          Write-Host $payload
