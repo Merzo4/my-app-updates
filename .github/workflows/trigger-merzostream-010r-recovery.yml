@@ -74,7 +74,7 @@ jobs:
           $html=Get-Content "$env:MERZO_SRC\ui\web\index.html" -Raw
 
           $resolveStart=$media.IndexOf('ResolveAsync')
-          $resolveEnd=$media.IndexOf('OEmbedAsync',$resolveStart)
+          $resolveEnd=$media.IndexOf('private async Task<(string title, string channel)> OEmbedAsync',$resolveStart)
           if($resolveStart -lt 0 -or $resolveEnd -le $resolveStart){throw 'R2 ResolveAsync contract block missing'}
           $resolveBlock=$media.Substring($resolveStart,$resolveEnd-$resolveStart)
           if($resolveBlock.Contains('officialCandidates')){throw 'R2 hidden second YouTube search returned'}
