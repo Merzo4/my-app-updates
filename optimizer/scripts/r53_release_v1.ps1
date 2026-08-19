@@ -60,7 +60,9 @@ items=json.loads((r/'data/tweaks.json').read_text(encoding='utf-8-sig'))
 services=json.loads((r/'data/service_rules.json').read_text(encoding='utf-8-sig'))
 byid={z.get('id'):z for z in items}
 
-for t in ['Production R53 · 0.1.53','R53 PROCESS + CLEAN START','80-100','60-80','BuildAdvancedScroll','SidebarNavScroll']:
+# UI identity/layout belongs in XAML. Process target text is runtime/reporting
+# state and is validated in the ViewModel plus the dedicated R53 ASCII gate.
+for t in ['Production R53 · 0.1.53','R53 PROCESS + CLEAN START','BuildAdvancedScroll','SidebarNavScroll']:
     assert t in x,t
 for t in ['processTargetText','80-100','60-80','gamingDebloatRemoved','processCountBefore','processCountAfter','WalletService','TrkWks','WSearch','SysMain']:
     assert t in vm,t
