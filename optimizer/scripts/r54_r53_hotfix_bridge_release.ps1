@@ -1,8 +1,10 @@
 $ErrorActionPreference='Stop'
 
 $v1='.\optimizer\scripts\r53_release_v1.ps1'
+$v2='.\optimizer\scripts\r53_release_v2.ps1'
 $v5='.\optimizer\scripts\r53_release_v5.ps1'
 $originalV1=Get-Content $v1 -Raw
+$originalV2=Get-Content $v2 -Raw
 $originalV5=Get-Content $v5 -Raw
 
 function Convert-R53ScriptToR54Bridge([string]$text) {
@@ -28,6 +30,14 @@ try {
     if(-not$patchedV1.Contains("`$src=`$src.Replace('0.1.52','0.1.54')")){throw 'R54 bridge source-promotion anchor missing'}
     if(-not$patchedV1.Contains("if(`$v-ne'0.1.54.0')")){throw 'R54 bridge DLL version gate missing'}
     Set-Content $v1 $patchedV1 -Encoding UTF8
+
+    # R53 V2 wraps V1 and has its own literal production-identity anchor. It is
+    # an inherited build check, not product code. Adapt only the runner copy so
+    # it validates R54 while the canonical R53 V2 script remains unchanged.
+    $patchedV2=Convert-R53ScriptToR54Bridge $originalV2
+    if(-not$patchedV2.Contains("`$src=`$src.Replace('Production R52','Production R54')")){throw 'R54 bridge V2 identity anchor missing after conversion'}
+    if(-not$patchedV2.Contains("'Production R54 · 0.1.54'")){throw 'R54 bridge V2 exact title anchor missing after conversion'}
+    Set-Content $v2 $patchedV2 -Encoding UTF8
 
     $patchedV5=Convert-R53ScriptToR54Bridge $originalV5
     $oldChain="'r53_game_apply_hotfix.py','r53_version_finalize.py')"
@@ -125,5 +135,6 @@ finally {Pop-Location}
 }
 finally {
     Set-Content $v1 $originalV1 -Encoding UTF8
+    Set-Content $v2 $originalV2 -Encoding UTF8
     Set-Content $v5 $originalV5 -Encoding UTF8
 }
