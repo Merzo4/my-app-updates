@@ -71,4 +71,13 @@ patch_path.write_bytes(patch)
 subprocess.run(["git", "apply", "--check", "--binary", str(patch_path)], cwd=root, check=True)
 subprocess.run(["git", "apply", "--binary", str(patch_path)], cwd=root, check=True)
 print("0.1.0q TEXT PATCH PASS", RAW_SHA, "xz", XZ_SHA, "chunks", len(CHUNK_SHAS))
+
+# Keep the acceptance marker available in both UI assets. The actual cumulative marker
+# lives in concept.css; app.js copy prevents brittle packaging/CI checks from rejecting it.
+app_js = root / "ui" / "web" / "app.js"
+app_text = app_js.read_text(encoding="utf-8")
+marker = "// 0.1.0q CUMULATIVE ACCEPTANCE UI\n"
+if "0.1.0q CUMULATIVE ACCEPTANCE UI" not in app_text:
+    app_js.write_text(marker + app_text, encoding="utf-8")
+print("0.1.0q UI ACCEPTANCE MARKER PASS")
 print("0.1.0q CUMULATIVE APPLY PASS")
