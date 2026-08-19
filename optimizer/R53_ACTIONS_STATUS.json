@@ -1,0 +1,98 @@
+{
+  "production": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-08-19T03:57:27Z",
+      "databaseId": 32213986328,
+      "headSha": "57c0894d6db2a42b9ec1949f9dabd37f399ee737",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32213986328",
+      "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T03:56:13Z",
+      "databaseId": 32213914707,
+      "headSha": "b2e5363e2211037c8a9656683e70712bd022ce55",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32213914707",
+      "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T03:51:28Z",
+      "databaseId": 32213630452,
+      "headSha": "d4325adafd95a474c5def0edae83567eed19b4ca",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32213630452",
+      "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
+    }
+  ],
+  "publish": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T04:16:04Z",
+      "databaseId": 32215134272,
+      "headSha": "c9378d523679f190ede74f708068f1b9d407a0ef",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32215134272",
+      "workflowName": "Publish MWO R53 OTA"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T04:15:53Z",
+      "databaseId": 32215123001,
+      "headSha": "ac27b3da179f165cfffaa5e1e021f748ca8a3aaf",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32215123001",
+      "workflowName": "Publish MWO R53 OTA"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-08-19T04:01:30Z",
+      "databaseId": 32214231307,
+      "headSha": "c0b4c7ff9d96e9816e9d5d682855641a32d9701f",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32214231307",
+      "workflowName": "Publish MWO R53 OTA"
+    }
+  ],
+  "verify": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T04:11:06Z",
+      "databaseId": 32214815183,
+      "headSha": "8b159752d95095fa7a20f0a6347167e7efe079c3",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32214815183",
+      "workflowName": "Verify MWO R53 Public OTA + R52 Upgrade"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T04:10:55Z",
+      "databaseId": 32214804090,
+      "headSha": "e9f5c61a50a3e93bc8fc23c6b9181bbff059d8fc",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32214804090",
+      "workflowName": "Verify MWO R53 Public OTA + R52 Upgrade"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T04:06:19Z",
+      "databaseId": 32214526253,
+      "headSha": "e53de2032bbc57074c948152451d57000f53dd4d",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32214526253",
+      "workflowName": "Verify MWO R53 Public OTA + R52 Upgrade"
+    },
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T04:06:11Z",
+      "databaseId": 32214517766,
+      "headSha": "812f9d6add9e08d9a6cde9f5edae31306e1030e5",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32214517766",
+      "workflowName": "Verify MWO R53 Public OTA + R52 Upgrade"
+    }
+  ]
+}
