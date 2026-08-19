@@ -1,0 +1,21 @@
+name: Dispatch MerzoStream 0.1.0o rerun
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/dispatch-merzostream-010o-rerun.yml']
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch current 0.1.0o build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run trigger-merzostream-010o-build.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "0.1.0o build dispatched"
