@@ -6,6 +6,7 @@ on:
     branches: [merzo-windows-optimizer]
     paths:
       - '.github/workflows/verify-mwo-r54-public-ota-v2.yml'
+      - 'optimizer/scripts/r54_acceptance_v2_runner.ps1'
       - 'optimizer/triggers/r54-verify-v2.txt'
 
 permissions:
@@ -33,31 +34,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          $source='.\optimizer\scripts\r54_public_ota_acceptance.ps1'
-          $runtime='.\optimizer\scripts\r54_public_ota_acceptance_runtime.ps1'
-          $text=Get-Content $source -Raw
-          $old=@'
-  $json=Get-Content $Catalog -Raw
-  $items=[System.Text.Json.JsonSerializer]::Deserialize($json,$listType)
-'@
-          $new=@'
-  $json=Get-Content $Catalog -Raw
-  $options=[System.Text.Json.JsonSerializerOptions]::new()
-  $options.PropertyNamingPolicy=[System.Text.Json.JsonNamingPolicy]::SnakeCaseLower
-  $options.PropertyNameCaseInsensitive=$true
-  $options.Converters.Add([System.Text.Json.Serialization.JsonStringEnumConverter]::new())
-  $items=[System.Text.Json.JsonSerializer]::Deserialize($json,$listType,$options)
-'@
-          if(($text.Split($old).Count-1)-ne1){throw 'R54 acceptance JSON-options patch anchor mismatch'}
-          Set-Content $runtime ($text.Replace($old,$new)) -Encoding UTF8
-          try {
-            & $runtime
-            if($LASTEXITCODE-ne0){throw "R54 runtime acceptance failed: $LASTEXITCODE"}
-          }
-          finally {
-            Remove-Item $runtime -Force -ErrorAction SilentlyContinue
-          }
+        run: .\optimizer\scripts\r54_acceptance_v2_runner.ps1
 
       - name: Record R54 v2 acceptance status
         if: always()
