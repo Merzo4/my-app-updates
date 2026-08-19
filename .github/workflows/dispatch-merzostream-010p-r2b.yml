@@ -1,0 +1,22 @@
+name: Dispatch MerzoStream 0.1.0p R2B
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/dispatch-merzostream-010p-r2b.yml']
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch complete 0.1.0p build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run trigger-merzostream-010p-build-r2.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "0.1.0p R2B dispatched"
