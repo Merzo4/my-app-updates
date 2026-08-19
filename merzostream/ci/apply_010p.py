@@ -60,13 +60,13 @@ apply_patch(base_patch, "merzostream-010p-base.patch", "0.1.0p BASE")
 final_patch = load_payload(
     "010p-final4k",
     [
-        "adc87a74d2237f9b4f4706ab3bbb2b91f9d34e20f718afe25a85740760c31d9b",
-        "24a126261d0e4e439989e14606f775f5de4377525c3fcadab619a294c83b70c3",
-        "fbd166f51f5ad2380141cbbead486ba33845682e496fc7e955c13cc4720c610c",
-        "d04b916df423ac2db0f410266ad878bcfdbf8bb0276f86dca2e2186508d9ebc5",
+        "49e30e67083c3b8f9b39e5f30f4626da51e5fc1f108363f38c14234ba94506d9",
+        "fcca28599bb888a65e1605f293e14f93f9f00b7ca5c699ee02ac13bb9134faad",
+        "0cd8925b833f5e174042b515e093ea526fb8b4edceacb31fbc0ea5806fdaa19a",
+        "f7316a440b2ef8b4860888346835b046c792149496016369e84427bdb282a8a9",
     ],
-    "8110a63f2cd821927ab3baab90917ce77190364ae50ee430a70f9f1fb7cd05bc",
-    "af502e9380053471a48b8c5fcaee06ec5f89aa82229b4d618b57ff7a2fa8dd14",
+    "54785429cd0ab6e3f90644ca5476662b6aa336198d7ce4245f0349fe179f3639",
+    "b857903e76f2ee11092fb69ae13e9670a20c6660cebadd40be2330533bdf583f",
     "0.1.0p FINAL",
 )
 apply_patch(final_patch, "merzostream-010p-final.patch", "0.1.0p FINAL")
