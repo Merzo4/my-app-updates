@@ -5,7 +5,7 @@ $old=@'
 $new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py')"
 '@.Trim()
 $new=@'
-$new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py','r53_catalog_probe.py','r53_game_compat_guard.py','r53_ascii_targets.py','r53_product_install_branding.py','r53_game_apply_diag.py','r53_version_finalize.py')"
+$new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py','r53_catalog_probe.py','r53_game_compat_guard.py','r53_ascii_targets.py','r53_product_install_branding.py','r53_game_apply_hotfix.py','r53_version_finalize.py')"
 '@.Trim()
 if(($original.Split($old).Count-1)-ne1){throw 'R53 V5 patch-chain anchor mismatch'}
 $patched=$original.Replace($old,$new)
@@ -23,16 +23,24 @@ try {
     $manifest=Join-Path $root 'src\MerzoOptimizer.App\app.manifest'
     $appProj=Join-Path $root 'src\MerzoOptimizer.App\MerzoOptimizer.App.csproj'
     $vm=Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs'
+    $safety=Join-Path $root 'src\MerzoOptimizer.Core\Safety\SafetyEngine.cs'
+    $selftest=Join-Path $root 'src\MerzoOptimizer.SelfTest\Program.cs'
+    $xaml=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'
     if(!(Test-Path $iss)){throw 'R53 branded installer source missing'}
     if(!(Test-Path $manifest)){throw 'R53 asInvoker manifest missing'}
     if(!(Test-Path (Join-Path $root 'R53_PRODUCT_INSTALL_BRANDING.marker'))){throw 'R53 product branding marker missing'}
     if(!(Test-Path (Join-Path $root 'R53_GAME_COMPAT_GUARD.marker'))){throw 'R53 GAME compatibility marker missing'}
     if(!(Test-Path (Join-Path $root 'R53_ASCII_TARGETS.marker'))){throw 'R53 ASCII target marker missing'}
+    if(!(Test-Path (Join-Path $root 'R53_GAME_APPLY_HOTFIX.marker'))){throw 'R53 GAME apply hotfix marker missing'}
     $i=Get-Content $iss -Raw
     $m=Get-Content $manifest -Raw
     $p=Get-Content $appProj -Raw
     $v=Get-Content $vm -Raw
+    $se=Get-Content $safety -Raw
+    $st=Get-Content $selftest -Raw
+    $ui=Get-Content $xaml -Raw
     foreach($token in @('DefaultDirName={autopf}\Merzo Windows Optimizer','PrivilegesRequired=admin','UsePreviousAppDir=no','WizardStyle=modern','R53 MERZO PRODUCT INSTALLER THEME','MERZO UPDATE · БЕЗОПАСНО ОБНОВЛЯЕМ ФАЙЛЫ')){if(-not$i.Contains($token)){throw "R53 installer contract missing: $token"}}
+    if(-not$i.Contains('AppVersion=0.1.53.1')){throw 'R53 HF1 installer version missing'}
     if(-not$m.Contains('requestedExecutionLevel level="asInvoker" uiAccess="false"')){throw 'R53 main shell is not asInvoker'}
     if($m.Contains('requireAdministrator')){throw 'R53 main shell accidentally requires administrator'}
     if(-not$p.Contains('<ApplicationManifest>app.manifest</ApplicationManifest>')){throw 'R53 app project manifest link missing'}
@@ -42,6 +50,15 @@ try {
     foreach($badTarget in @('80–100','60–80')){if($v.Contains($badTarget)){throw "R53 Unicode target regression: $badTarget"}}
     $appSources=(Get-ChildItem (Join-Path $root 'src\MerzoOptimizer.App') -Recurse -Filter *.cs|Where-Object{$_.FullName-notmatch'\\(bin|obj)\\'}|ForEach-Object{Get-Content $_.FullName -Raw}) -join "`n"
     foreach($bad in @('RegisterHotKey(','SetWindowsHookEx','WH_KEYBOARD_LL','VK_SNAPSHOT','Key.PrintScreen')){if($appSources.Contains($bad)){throw "R53 screenshot hotkey regression: $bad"}}
+
+    # R53 HF1: generic ADVANCED/EXPERT remains blocked, only the exact managed
+    # Service Host Density contract can pass automated GAME/EXTREME execution.
+    foreach($token in @('isR53ManagedServiceHostDensity','r53.process.service_host_density','SvcHostSplitThresholdInKB','67108864','if (!isR53ManagedServiceHostDensity)')){if(-not$se.Contains($token)){throw "R53 HF1 safety contract missing: $token"}}
+    if(-not$se.Contains('tweak.Risk is TweakRisk.Advanced or TweakRisk.Expert')){throw 'R53 HF1 generic Advanced/Expert guard removed'}
+    if(-not$st.Contains('probe.advanced') -or -not$st.Contains('r53ManagedAdvanced')){throw 'R53 HF1 SelfTest must prove generic deny + exact managed allow'}
+    if(-not$ui.Contains('Production R53.1 · 0.1.53.1')){throw 'R53 HF1 visible version text missing'}
+    if(-not$ui.Contains('Text="R53.1"')){throw 'R53 HF1 navigation badge missing'}
+    if($ui.Contains('Text="R52" Foreground="{StaticResource Accent}" FontSize="9.2"')){throw 'R53 HF1 stale R52 navigation badge remains'}
 
     # GAME should remain compatible with Xbox/Game Bar; optional removal belongs to EXTREME only.
     $debloat=Get-Content (Join-Path $root 'src\MerzoOptimizer.Windows\Gaming\WindowsGamingDebloatService.cs') -Raw
@@ -62,6 +79,13 @@ try {
     Set-Content $notes $noteText -Encoding UTF8
     @'
 
+## R53 HOTFIX 1 — GAME APPLY FIX
+
+- Исправлен откат GAME на «компактной группировке Service Host»: общий запрет ADVANCED/EXPERT не снят; разрешено только точное встроенное действие `r53.process.service_host_density` с проверкой ID, профилей и Registry-контракта.
+- Generic ADVANCED/EXPERT по-прежнему fail-closed и не применяются автоматически.
+- Исправлены оставшиеся подписи R52 в заголовке/навигации R53.
+- Версия hotfix: 0.1.53.1.
+
 ## PRODUCT INSTALL / UPDATE EXPERIENCE
 
 - Установка теперь идёт как у обычной Windows-программы: `C:\Program Files\Merzo Windows Optimizer`. Старые Inno-установки из нестандартного каталога мигрируют при OTA-обновлении, а после установки запускается новый EXE из Program Files.
@@ -70,7 +94,8 @@ try {
 - GAME сохраняет Xbox/Game Bar/Identity-компоненты ради совместимости с играми; их условное удаление допускается только в EXTREME при отсутствии Xbox/Game Pass.
 '@ | Add-Content $notes -Encoding UTF8
 
-    foreach($token in @('Program Files','Print Screen','Snipping Tool','MERZO UPDATE','Xbox/Game Bar')){if(-not((Get-Content $notes -Raw).Contains($token))){throw "R53 release notes contract missing: $token"}}
+    foreach($token in @('R53 HOTFIX 1','0.1.53.1','Program Files','Print Screen','Snipping Tool','MERZO UPDATE','Xbox/Game Bar')){if(-not((Get-Content $notes -Raw).Contains($token))){throw "R53 release notes contract missing: $token"}}
+    Write-Host 'R53_HF1_GAME_APPLY_SAFETY_PASS'
     Write-Host 'R53_PROGRAMFILES_SCREENSHOT_BRANDING_PASS'
 } finally {
     Set-Content $base $original -Encoding UTF8
