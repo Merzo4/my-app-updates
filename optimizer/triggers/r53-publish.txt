@@ -3,3 +3,4 @@ MWO R53 OTA publication trigger
 source-run=32213986328
 source-head=57c0894d6db2a42b9ec1949f9dabd37f399ee737
 artifact=MerzoWindowsOptimizer-0.1.53-R53-PROCESS-CLEAN-START
+acceptance=2
