@@ -1,0 +1,1 @@
+{"fileVersion":"0.1.54.1","purpose":"R54 service apply+snapshot Undo via shared SCM; TrkWks registry ACL fix; strengthened SelfTest","publicVersion":"0.1.54.1","createdAt":"2026-08-19T08:33:14.1684682Z","artifact":"success","headSha":"c8ed6d8bdaca6ef7178f8876379821bc3c16ed23","gates":"success","databaseId":32232868999,"conclusion":"success"}
