@@ -59,27 +59,29 @@ for old_x, new_x in replacements:
 write(xaml, x)
 
 # Hotfix needs a newer OTA version for already-installed 0.1.53 clients.
-# The Inno source uses #define MyAppVersion and AppVersion={#MyAppVersion}.
+# The inherited installer definition is still historically stamped 0.1.21 and
+# references it through {#MyAppVersion}; R53 HF1 deliberately normalizes it.
 iss = root/'installer'/'MerzoWindowsOptimizer.iss'
 i = read(iss)
 app_version = re.search(r'(?mi)^AppVersion\s*=\s*([^\r\n]+)\s*$', i)
 if not app_version:
     raise SystemExit('R53 HF1 installer AppVersion directive missing')
 current_app_version = app_version.group(1).strip()
+known_versions = {'0.1.21','0.1.51','0.1.52','0.1.53'}
 if current_app_version == '{#MyAppVersion}':
     define = re.search(r'(?mi)^(\s*#define\s+MyAppVersion\s+")([^"]+)("\s*)$', i)
     if not define:
         raise SystemExit('R53 HF1 MyAppVersion define missing')
     current_define = define.group(2).strip()
-    if current_define not in {'0.1.51','0.1.52','0.1.53'}:
+    if current_define not in known_versions:
         raise SystemExit('R53 HF1 unknown MyAppVersion: ' + current_define)
     i = i[:define.start()] + define.group(1) + '0.1.53.1' + define.group(3) + i[define.end():]
-elif current_app_version in {'0.1.51','0.1.52','0.1.53'}:
+elif current_app_version in known_versions:
     i = i[:app_version.start()] + 'AppVersion=0.1.53.1' + i[app_version.end():]
 else:
     raise SystemExit('R53 HF1 unknown installer AppVersion: ' + current_app_version)
 # Keep explicit AppVerName in sync when it embeds a literal lineage version.
-i = re.sub(r'(?mi)^(AppVerName=.*?)(0\.1\.(?:51|52|53))(.*)$', lambda m: m.group(1)+'0.1.53.1'+m.group(3), i, count=1)
+i = re.sub(r'(?mi)^(AppVerName=.*?)(0\.1\.(?:21|51|52|53))(.*)$', lambda m: m.group(1)+'0.1.53.1'+m.group(3), i, count=1)
 write(iss, i)
 
 # User-facing changelog entry.
