@@ -1,1 +1,1 @@
-{"conclusion":"failure","createdAt":"2026-08-18T16:50:17Z","databaseId":32162419829,"headSha":"c586a26deda6c4efe0ac7b841ab959f7d85ed093","status":"completed","url":"https://github.com/Merzo4/my-app-updates/actions/runs/32162419829"}
+{"createdAt":"2026-08-19T01:38:54.6474823Z","status":"completed","url":"https://github.com/Merzo4/my-app-updates/actions/runs/32205630339","artifact":"skipped","conclusion":"failure","databaseId":32205630339,"headSha":"ba9ed5d36c614ada9ede19a2c84368c9f083fff2","gates":"failure"}
