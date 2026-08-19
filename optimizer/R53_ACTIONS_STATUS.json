@@ -2,10 +2,19 @@
   "production": [
     {
       "conclusion": "",
+      "createdAt": "2026-08-19T05:38:14Z",
+      "databaseId": 32220169645,
+      "headSha": "b1705b34031d6d1a18c716a42b1c37b4867d9c76",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32220169645",
+      "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
+    },
+    {
+      "conclusion": "failure",
       "createdAt": "2026-08-19T05:33:34Z",
       "databaseId": 32219872625,
       "headSha": "1706bceca36258ca6c68f8f445e3a26f50e32cdc",
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32219872625",
       "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
     },
@@ -16,15 +25,6 @@
       "headSha": "f099fa918a34876157c2a2820cdee4633715a5ed",
       "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32219831635",
-      "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
-    },
-    {
-      "conclusion": "failure",
-      "createdAt": "2026-08-19T05:27:04Z",
-      "databaseId": 32219461012,
-      "headSha": "d13f5f177cec73b2c30d5d17d4707eb1c6516a29",
-      "status": "completed",
-      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32219461012",
       "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
     }
   ],
