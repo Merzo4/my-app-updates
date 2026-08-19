@@ -8,7 +8,9 @@ pairs=[
 ("  Check ($localPlayer.Contains('setInterval(tick,250)') -and -not $localPlayer.Contains('onReady:()=>{if(last)player.playVideo()}')) '0.1.0r R2 player timing/event path is not restored to 0.1.0m'",
  "  Check ($localPlayer.Contains('setInterval(tick,300)') -and $localPlayer.Contains('actual 0.1.0e player transport restored') -and -not $localPlayer.Contains('body.idle #p')) '0.1.0r R3 actual 0.1.0e player timing/lifecycle missing'"),
 ("  Check (-not $localPlayer.Contains('startup-timeout') -and -not $localPlayer.Contains('youtube-nocookie.com') -and $localPlayer.Contains('protected 0.1.0e player transport restored')) '0.1.0r protected Media player transport regressed'",
- "  Check (-not $localPlayer.Contains('startup-timeout') -and -not $localPlayer.Contains('youtube-nocookie.com') -and $localPlayer.Contains('actual 0.1.0e player transport restored')) '0.1.0r R3 Media player transport regressed'")]
+ "  Check (-not $localPlayer.Contains('startup-timeout') -and -not $localPlayer.Contains('youtube-nocookie.com') -and $localPlayer.Contains('actual 0.1.0e player transport restored')) '0.1.0r R3 Media player transport regressed'"),
+("  Check ($localPlayer.Contains('background:transparent!important') -and $localPlayer.Contains('function blank()')) 'Media transparent stop/blank contract missing'",
+ "  Check ($localPlayer.Contains('background:#000') -and $localPlayer.Contains('player.clearVideo?.();last=') -and $localPlayer.Contains('actual 0.1.0e player transport restored')) '0.1.0r R3 actual 0.1.0e stop/clear contract missing'")]
 for old,new in pairs:
     if old in t: t=t.replace(old,new,1)
     elif new not in t: raise SystemExit('R3 selftest migration anchor missing: '+old[:90])
