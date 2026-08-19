@@ -1,4 +1,4 @@
-name: Dispatch MerzoStream 0.1.0r RECOVERY
+name: Dispatch MerzoStream 0.1.0r RECOVERY R2
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch recovery and record run
+      - name: Dispatch recovery R2 and record run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -24,5 +24,5 @@ jobs:
           content=$(base64 -w0 current.json)
           path='merzostream/ci/010r-current-run.json'
           old=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=main" --jq '.sha' 2>/dev/null || true)
-          if [ -n "$old" ]; then gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current 0.1.0r recovery run' -f content="$content" -f branch=main -f sha="$old" >/dev/null; else gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current 0.1.0r recovery run' -f content="$content" -f branch=main >/dev/null; fi
+          if [ -n "$old" ]; then gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current 0.1.0r recovery R2 run' -f content="$content" -f branch=main -f sha="$old" >/dev/null; else gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current 0.1.0r recovery R2 run' -f content="$content" -f branch=main >/dev/null; fi
           cat current.json
