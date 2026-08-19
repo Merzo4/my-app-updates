@@ -3,6 +3,7 @@ import hashlib
 import lzma
 import os
 import pathlib
+import shutil
 import subprocess
 
 repo = pathlib.Path(__file__).resolve().parents[2]
@@ -88,4 +89,9 @@ final_patch = load_payload(
     "0.1.0p FINAL",
 )
 apply_patch(final_patch, "merzostream-010p-final.patch", "0.1.0p FINAL")
+notes = repo / "merzostream" / "ci" / "RELEASE_NOTES_0.1.0p.md"
+if not notes.exists():
+    raise SystemExit("0.1.0p release notes source missing")
+shutil.copyfile(notes, root / "RELEASE_NOTES_0.1.0p.md")
+print("0.1.0p RELEASE NOTES PASS")
 print("0.1.0p TWO-STAGE CUMULATIVE PATCH PASS")
