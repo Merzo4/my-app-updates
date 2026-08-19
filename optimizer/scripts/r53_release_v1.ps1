@@ -48,7 +48,7 @@ Set-Content $tmp $src -Encoding UTF8
 if($LASTEXITCODE-ne0){throw "R53 expanded production pipeline failed: $LASTEXITCODE"}
 if([string]::IsNullOrWhiteSpace($env:SOURCE_ROOT)){throw 'R53 SOURCE_ROOT missing'}
 
-# Exact R53 source/security gates.
+# Exact R53/R53.1 source/security gates.
 @'
 import json, os, pathlib, re
 r=pathlib.Path(os.environ['SOURCE_ROOT'])
@@ -62,7 +62,7 @@ byid={z.get('id'):z for z in items}
 
 # UI identity/layout belongs in XAML. Process target text is runtime/reporting
 # state and is validated in the ViewModel plus the dedicated R53 ASCII gate.
-for t in ['Production R53 · 0.1.53','R53 PROCESS + CLEAN START','BuildAdvancedScroll','SidebarNavScroll']:
+for t in ['Production R53.1 · 0.1.53.1','R53 PROCESS + CLEAN START','BuildAdvancedScroll','SidebarNavScroll']:
     assert t in x,t
 for t in ['processTargetText','80-100','60-80','gamingDebloatRemoved','processCountBefore','processCountAfter','WalletService','TrkWks','WSearch','SysMain']:
     assert t in vm,t
@@ -93,6 +93,7 @@ for fid in ['performance.keep_defender_advisory','performance.keep_windows_updat
     z=byid.get(fid)
     if z: assert not ({'merzo_light','merzo_game','merzo_extreme'} & set(z.get('profile_tags') or [])),fid
 assert (r/'R53_PROCESS_CLEAN_START.marker').exists()
+assert (r/'R53_GAME_APPLY_HOTFIX.marker').exists()
 print('R53_PROCESS_START_DEBLOAT_SOURCE_PASS')
 '@ | python -
 if($LASTEXITCODE-ne0){throw 'R53 source/security gate failed'}
@@ -121,7 +122,7 @@ foreach($n in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOpti
     $p=Join-Path $dist $n
     if(!(Test-Path $p)){throw "R53 missing $n"}
     $v=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString()
-    if($v-ne'0.1.53.0'){throw "R53 $n version=$v"}
+    if($v-ne'0.1.53.1'){throw "R53 HF1 $n version=$v"}
 }
 
 $notes=Join-Path $env:SOURCE_ROOT 'dist\R53_RELEASE_NOTES.md'
