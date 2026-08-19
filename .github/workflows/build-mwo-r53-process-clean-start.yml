@@ -11,6 +11,7 @@ on:
       - 'optimizer/patches/r53_game_compat_guard.py'
       - 'optimizer/patches/r53_ascii_targets.py'
       - 'optimizer/patches/r53_product_install_branding.py'
+      - 'optimizer/patches/r53_game_apply_hotfix.py'
       - 'optimizer/patches/r53_version_finalize.py'
       - 'optimizer/patches/r52_game_wow_debloat_v3.py'
       - 'optimizer/scripts/r53_release_v1.ps1'
@@ -22,6 +23,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: mwo-r53-production
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -45,7 +50,7 @@ jobs:
         if: steps.gates.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: MerzoWindowsOptimizer-0.1.53-R53-PROCESS-CLEAN-START
+          name: MerzoWindowsOptimizer-0.1.53.1-R53-HOTFIX1
           path: |
             r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe
             r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
@@ -72,9 +77,15 @@ jobs:
             gates = $env:GATES_OUTCOME
             artifact = $env:ARTIFACT_OUTCOME
           } | ConvertTo-Json -Compress
-          Set-Content '.\optimizer\R53_CI_STATUS.json' $payload -Encoding UTF8
+
+          # Status recording must never fail because another diagnostic/status
+          # commit landed while the long Windows build was running. Rebase onto
+          # the current branch tip first, then write only this generated status.
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Set-Content '.\optimizer\R53_CI_STATUS.json' $payload -Encoding UTF8
           git add optimizer/R53_CI_STATUS.json
           git diff --cached --quiet
           if ($LASTEXITCODE -ne 0) {
