@@ -7,8 +7,9 @@ $approvedHead='c8ed6d8bdaca6ef7178f8876379821bc3c16ed23'
 $approvedArtifact='MerzoWindowsOptimizer-0.1.54.1-SERVICE-CONTROL-HOTFIX'
 
 $run=gh api "repos/$repo/actions/runs/$approvedRun" | ConvertFrom-Json
-if($run.status -ne 'completed' -or $run.conclusion -ne 'success' -or $run.head_sha -ne $approvedHead){throw "Approved R54.1 Actions run is not exact-green: status=$($run.status) conclusion=$($run.conclusion) head=$($run.head_sha)"}
+if($LASTEXITCODE -ne 0 -or $run.status -ne 'completed' -or $run.conclusion -ne 'success' -or $run.head_sha -ne $approvedHead){throw "Approved R54.1 Actions run is not exact-green: status=$($run.status) conclusion=$($run.conclusion) head=$($run.head_sha)"}
 $artifacts=gh api "repos/$repo/actions/runs/$approvedRun/artifacts" | ConvertFrom-Json
+if($LASTEXITCODE -ne 0){throw 'Cannot read approved R54.1 artifact metadata'}
 $approved=$artifacts.artifacts | Where-Object {$_.name -eq $approvedArtifact -and -not $_.expired} | Select-Object -First 1
 if(!$approved){throw 'Approved R54.1 artifact is missing or expired'}
 $runtime=Get-Content '.\optimizer\R54_1_TRKWKS_RUNTIME_STATUS.json' -Raw | ConvertFrom-Json
@@ -27,15 +28,26 @@ $zipSha=Assert-Sha $zip $zipSide
 Write-Host "R54_1_PUBLISH_SHA_PASS setup=$setupSha zip=$zipSha artifactId=$($approved.id)"
 
 $release=$null
-try{$release=gh api "repos/$repo/releases/tags/mwo-v0.1.54.1" 2>$null | ConvertFrom-Json}catch{}
+$raw=& gh api "repos/$repo/releases/tags/mwo-v0.1.54.1" 2>$null
+$lookupExit=$LASTEXITCODE
+if($lookupExit -eq 0 -and $raw){
+  $release=($raw -join "`n") | ConvertFrom-Json
+  if(!$release -or [string]::IsNullOrWhiteSpace([string]$release.tag_name)){throw 'R54.1 release lookup returned unusable JSON'}
+}
 $reused=$false
-if(!$release){
-  gh release create mwo-v0.1.54.1 --repo $repo --target $approvedHead --title 'Merzo Windows Optimizer 0.1.54.1 — Service Control Hotfix' --notes-file $notes.FullName $setup.FullName $setupSide.FullName $zip.FullName $zipSide.FullName
+if($null -eq $release){
+  Write-Host "R54_1_RELEASE_NOT_FOUND_CREATE lookupExit=$lookupExit"
+  & gh release create mwo-v0.1.54.1 --repo $repo --target $approvedHead --title 'Merzo Windows Optimizer 0.1.54.1 — Service Control Hotfix' --notes-file $notes.FullName $setup.FullName $setupSide.FullName $zip.FullName $zipSide.FullName
   if($LASTEXITCODE -ne 0){throw 'gh release create R54.1 failed'}
-  $release=gh api "repos/$repo/releases/tags/mwo-v0.1.54.1" | ConvertFrom-Json
-}else{$reused=$true;Write-Host "R54_1_EXISTING_RELEASE_VERIFY id=$($release.id) target=$($release.target_commitish)"}
+  $raw=& gh api "repos/$repo/releases/tags/mwo-v0.1.54.1" 2>$null
+  if($LASTEXITCODE -ne 0 -or !$raw){throw 'Public R54.1 release missing immediately after create'}
+  $release=($raw -join "`n") | ConvertFrom-Json
+}else{
+  $reused=$true
+  Write-Host "R54_1_EXISTING_RELEASE_VERIFY id=$($release.id) target=$($release.target_commitish)"
+}
 
-if($release.draft -or $release.prerelease -or $release.tag_name -ne 'mwo-v0.1.54.1'){throw 'Public R54.1 release metadata invalid'}
+if(!$release -or $release.draft -or $release.prerelease -or $release.tag_name -ne 'mwo-v0.1.54.1'){throw 'Public R54.1 release metadata invalid'}
 if($release.target_commitish -ne $approvedHead){throw "Public R54.1 release target mismatch: $($release.target_commitish) != $approvedHead"}
 $pubSetup=$release.assets | Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe' | Select-Object -First 1
 $pubSetupSide=$release.assets | Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256' | Select-Object -First 1
