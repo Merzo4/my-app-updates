@@ -17,27 +17,27 @@ $newLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py''
 if(($patched.Split($oldLiteral).Count-1)-ne1){throw 'R54.2 patch-chain anchor mismatch'}
 $patched=$patched.Replace($oldLiteral,$newLiteral)
 
-# The initial patch contained a gate that matched unrelated helper processes.
 $legacyGate="    'if (process.ExitCode != 0)\n            throw',"
 $scopedGate="    'OneDriveSetup /uninstall завершился с кодом',"
 if(($onePatchPatched.Split($legacyGate).Count-1)-ne1){throw 'R54.2 OneDrive gate-scope anchor mismatch'}
 $onePatchPatched=$onePatchPatched.Replace($legacyGate,$scopedGate)
 
 # Deep R52 V2 source/security gate is generated before later R53/R54 wrappers.
-# Change ONLY the suffix token in its exact gate list. Product title promotion
-# still follows the normal R52 -> R53 -> R54.1 -> R54.2 chain.
-$r52GateOld="'Production R52 · 0.1.52','SourceInitialized=\"OnMainWindowSourceInitialized\"','PreviewMouseWheel=\"OnGlobalPreviewMouseWheel\"','BuildAdvancedScroll','SidebarExpertExpander','OperationEventScroll','R52 GAME WOW + UI RELIABILITY'"
-$r52GateNew="'Production R52 · 0.1.52','SourceInitialized=\"OnMainWindowSourceInitialized\"','PreviewMouseWheel=\"OnGlobalPreviewMouseWheel\"','BuildAdvancedScroll','SidebarExpertExpander','OperationEventScroll','R54.2 ONEDRIVE + GAME RELIABILITY'"
+# Change ONLY the suffix token in its exact gate list.
+$r52GateOld=@'
+'Production R52 · 0.1.52','SourceInitialized="OnMainWindowSourceInitialized"','PreviewMouseWheel="OnGlobalPreviewMouseWheel"','BuildAdvancedScroll','SidebarExpertExpander','OperationEventScroll','R52 GAME WOW + UI RELIABILITY'
+'@.Trim()
+$r52GateNew=@'
+'Production R52 · 0.1.52','SourceInitialized="OnMainWindowSourceInitialized"','PreviewMouseWheel="OnGlobalPreviewMouseWheel"','BuildAdvancedScroll','SidebarExpertExpander','OperationEventScroll','R54.2 ONEDRIVE + GAME RELIABILITY'
+'@.Trim()
 if(($r52v2Patched.Split($r52GateOld).Count-1)-ne1){throw 'R54.2 deep R52 suffix-gate anchor mismatch'}
 $r52v2Patched=$r52v2Patched.Replace($r52GateOld,$r52GateNew)
 
-# R53 outer source gate also carries the old suffix independently.
 $gateOld="'Production R53.1 · 0.1.53.1','R53 HOTFIX 1','BuildAdvancedScroll','SidebarNavScroll'"
 $gateNew="'Production R53.1 · 0.1.53.1','R54.2 ONEDRIVE + GAME RELIABILITY','BuildAdvancedScroll','SidebarNavScroll'"
 if(($r53v1Patched.Split($gateOld).Count-1)-ne1){throw 'R54.2 inherited R53 suffix-gate anchor mismatch'}
 $r53v1Patched=$r53v1Patched.Replace($gateOld,$gateNew)
 
-# Adapt only the outer R54.1 controller identity.
 $patched=$patched.Replace('0.1.54.1','0.1.54.2')
 $patched=$patched.Replace('R54.1','R54.2')
 $patched=$patched.Replace('R54_1_SERVICE_CONTROL_ALL_GATES_PASS','R54_2_INHERITED_SERVICE_GATES_PASS')
