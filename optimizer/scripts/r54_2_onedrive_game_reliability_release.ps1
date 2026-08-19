@@ -2,11 +2,22 @@ $ErrorActionPreference='Stop'
 $base='.\optimizer\scripts\r54_1_service_control_hotfix_release.ps1'
 $original=Get-Content $base -Raw
 $patched=$original
+$onePatch='.\optimizer\patches\r54_2_onedrive_resilience.py'
+$onePatchOriginal=Get-Content $onePatch -Raw
+$onePatchPatched=$onePatchOriginal
 
 $oldLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py'',''r54_updater_bridge.py'',''r54_1_service_control_hotfix.py'')"'
 $newLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py'',''r54_updater_bridge.py'',''r54_1_service_control_hotfix.py'',''r54_1_service_selftest_contract.py'',''r54_2_onedrive_resilience.py'',''r54_2_version_finalize.py'')"'
 if(($patched.Split($oldLiteral).Count-1)-ne1){throw 'R54.2 patch-chain anchor mismatch'}
 $patched=$patched.Replace($oldLiteral,$newLiteral)
+
+# The initial patch contained a gate that matched unrelated helper processes.
+# Scope it to the exact legacy OneDrive exception message while preserving the
+# product changes themselves.
+$legacyGate="    'if (process.ExitCode != 0)\\n            throw',"
+$scopedGate="    'OneDriveSetup /uninstall завершился с кодом',"
+if(($onePatchPatched.Split($legacyGate).Count-1)-ne1){throw 'R54.2 OneDrive gate-scope anchor mismatch'}
+$onePatchPatched=$onePatchPatched.Replace($legacyGate,$scopedGate)
 
 # Adapt only the outer R54.1 release controller identity. Patch filenames and
 # R54_1 markers use underscores and remain unchanged.
@@ -15,6 +26,7 @@ $patched=$patched.Replace('R54.1','R54.2')
 $patched=$patched.Replace('R54_1_SERVICE_CONTROL_ALL_GATES_PASS','R54_2_INHERITED_SERVICE_GATES_PASS')
 
 try {
+    Set-Content $onePatch $onePatchPatched -Encoding UTF8
     Set-Content $base $patched -Encoding UTF8
     & $base
     if($LASTEXITCODE-ne0){throw "R54.2 inherited production gates failed: $LASTEXITCODE"}
@@ -35,7 +47,7 @@ try {
 
     if($o.Contains('KnownInstallPaths().Any(File.Exists)')){throw 'R54.2 stale OneDriveSetup install detection remains'}
     if(-not$o.Contains('KnownClientPaths().Any(File.Exists)')){throw 'R54.2 client-only OneDrive detection missing'}
-    if($h -match 'process\.ExitCode\s*!=\s*0[\s\S]{0,120}throw'){throw 'R54.2 non-zero OneDriveSetup exit remains package-fatal'}
+    if($h.Contains('OneDriveSetup /uninstall завершился с кодом')){throw 'R54.2 legacy OneDriveSetup fatal-exit message remains'}
     foreach($token in @('setup leftovers ignored','OneDrive оставлен; пакет продолжен','OneDrive не удалён; необязательный шаг пропущен, пакет продолжен.','OneDrive не настроен')){
         if(-not(($o+"`n"+$h+"`n"+$v).Contains($token))){throw "R54.2 OneDrive contract missing: $token"}
     }
@@ -56,4 +68,5 @@ try {
 }
 finally {
     Set-Content $base $original -Encoding UTF8
+    Set-Content $onePatch $onePatchOriginal -Encoding UTF8
 }
