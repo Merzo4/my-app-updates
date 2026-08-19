@@ -13,9 +13,9 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch current 0.1.0p build
+      - name: Dispatch current 0.1.0p R2 build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run trigger-merzostream-010p-build.yml --repo "$GITHUB_REPOSITORY" --ref main
-          echo "0.1.0p build dispatched"
+          gh workflow run trigger-merzostream-010p-build-r2.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo "0.1.0p R2 build dispatched"
