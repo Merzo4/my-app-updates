@@ -39,7 +39,23 @@ jobs:
         shell: pwsh
         run: |
           $status='optimizer/R54_1_PUBLISH_STATUS.json'
-          if(!(Test-Path $status)){@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;error='R54.1 publication v2 did not create status'} | ConvertTo-Json -Compress | Set-Content $status -Encoding UTF8}
+          $fresh=$false
+          if(Test-Path $status){
+            try {
+              $current=Get-Content $status -Raw | ConvertFrom-Json
+              $fresh=([long]$current.databaseId -eq [long]$env:GITHUB_RUN_ID)
+            } catch {}
+          }
+          if(!$fresh){
+            @{
+              conclusion='failure'
+              createdAt=(Get-Date).ToUniversalTime().ToString('o')
+              databaseId=[long]$env:GITHUB_RUN_ID
+              publishOutcome='${{ steps.publish.outcome }}'
+              headSha=$env:GITHUB_SHA
+              error='R54.1 publication v2 did not create a fresh status file; inspect this run log'
+            } | ConvertTo-Json -Compress | Set-Content $status -Encoding UTF8
+          }
           $saved=Join-Path $env:RUNNER_TEMP 'R54_1_PUBLISH_STATUS.json'
           Copy-Item $status $saved -Force
           git config user.name 'github-actions[bot]'
