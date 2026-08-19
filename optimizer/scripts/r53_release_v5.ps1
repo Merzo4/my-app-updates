@@ -5,7 +5,7 @@ $old=@'
 $new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py')"
 '@.Trim()
 $new=@'
-$new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py','r53_game_compat_guard.py','r53_ascii_targets.py','r53_product_install_branding.py','r53_version_finalize.py')"
+$new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_process_start_debloat.py','r53_catalog_probe.py','r53_game_compat_guard.py','r53_ascii_targets.py','r53_product_install_branding.py','r53_version_finalize.py')"
 '@.Trim()
 if(($original.Split($old).Count-1)-ne1){throw 'R53 V5 patch-chain anchor mismatch'}
 $patched=$original.Replace($old,$new)
