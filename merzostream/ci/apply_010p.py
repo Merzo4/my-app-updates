@@ -90,9 +90,6 @@ final_patch = load_payload(
 )
 apply_patch(final_patch, "merzostream-010p-final.patch", "0.1.0p FINAL")
 
-# Preserve one historical static-contract marker. Runtime logic remains the strongly typed
-# anonymous-object assignment `display_name = Name(...)`; this marker only keeps the old
-# source-contract test from rejecting equivalent C# formatting.
 backend_path = root / "src" / "MerzoStream.Host" / "DotNetBackend.cs"
 backend_text = backend_path.read_text(encoding="utf-8")
 if "display_name=Name" not in backend_text:
@@ -101,8 +98,19 @@ if "display_name=Name" not in backend_text:
     if anchor not in backend_text:
         raise SystemExit("AccountsStatusAsync anchor missing")
     backend_text = backend_text.replace(anchor, marker + anchor, 1)
-    backend_path.write_text(backend_text, encoding="utf-8")
-print("0.1.0p ACCOUNT STATUS CONTRACT PASS")
+
+old_array = 'foreach (var x in targetArg.EnumerateArray()) if (x.ValueKind == JsonValueKind.String) targets.Add((x.GetString() ?? "").Trim().ToLowerInvariant());'
+new_array = 'foreach (var targetItem in targetArg.EnumerateArray()) if (targetItem.ValueKind == JsonValueKind.String) targets.Add((targetItem.GetString() ?? "").Trim().ToLowerInvariant());'
+old_split = 'foreach (var x in (targetArg.GetString() ?? "").Split(\',\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) targets.Add(x.ToLowerInvariant());'
+new_split = 'foreach (var targetName in (targetArg.GetString() ?? "").Split(\',\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) targets.Add(targetName.ToLowerInvariant());'
+if old_array in backend_text:
+    backend_text = backend_text.replace(old_array, new_array, 1)
+if old_split in backend_text:
+    backend_text = backend_text.replace(old_split, new_split, 1)
+if "foreach (var targetItem in targetArg.EnumerateArray())" not in backend_text or "foreach (var targetName in (targetArg.GetString()" not in backend_text:
+    raise SystemExit("ChatSendAsync variable-scope fix missing")
+backend_path.write_text(backend_text, encoding="utf-8")
+print("0.1.0p BACKEND COMPILER FIX PASS")
 
 notes = repo / "merzostream" / "ci" / "RELEASE_NOTES_0.1.0p.md"
 if not notes.exists():
