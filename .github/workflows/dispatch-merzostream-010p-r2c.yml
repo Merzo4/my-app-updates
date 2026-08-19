@@ -14,8 +14,9 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch 0.1.0p R2 after verified transport repair
+      - name: Dispatch final 0.1.0p two-stage build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run trigger-merzostream-010p-build-r2.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo '0.1.0p final CI dispatched'
