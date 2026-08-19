@@ -2,5 +2,5 @@ monitor R53 production + OTA acceptance
 2026-08-19
 production-run=32213986328
 publish-acceptance=1
-actions-snapshot=5
-verify-v3=5
+actions-snapshot=3
+verify-v3=2
