@@ -8,6 +8,27 @@ $prevPlaceholder='<AssemblyVersion>__R53_PREV__.0</AssemblyVersion><FileVersion>
 if(($src.Split($prev).Count-1)-ne1){throw 'R53 previous-client anchor mismatch'}
 $src=$src.Replace($prev,$prevPlaceholder)
 $src=$src.Replace('0.1.52','0.1.53')
+
+# R53 Hotfix 1 is a four-part Windows/file version (0.1.53.1). The inherited
+# R52 -> R51 -> R50 -> R49 generator promotes the old 0.1.49 source by a
+# three-part string replacement, which naturally produces 0.1.53.0. Normalize
+# only current-version checks/build arguments to .1 while the previous-client
+# placeholder is still protected, so OTA smoke remains exactly 0.1.52.0.
+$src=$src.Replace('0.1.53.0','0.1.53.1')
+$src=$src.Replace("'Production R53 · 0.1.53'","'Production R53.1 · 0.1.53.1'")
+
+# The deepest R50 step later reads pristine R49 and performs the actual
+# 0.1.49 -> 0.1.53 promotion. Extend that generated replacement with a second,
+# exact .53.0 -> .53.1 normalization and pass 0.1.53.1 to Build-Production.
+$deepOld=@'
+$replacement="`$src=`$src.Replace('0.1.49','0.1.53')"
+'@.Trim()
+$deepNew=@'
+$replacement="`$src=`$src.Replace('0.1.49','0.1.53');`$src=`$src.Replace('0.1.53.0','0.1.53.1');`$src=`$src.Replace('-Version ''0.1.53''','-Version ''0.1.53.1''')"
+'@.Trim()
+if(($src.Split($deepOld).Count-1)-ne1){throw 'R53 HF1 deep version promotion anchor mismatch'}
+$src=$src.Replace($deepOld,$deepNew)
+
 $src=$src.Replace('__R53_PREV__','0.1.52')
 $src=$src.Replace('Production R52','Production R53')
 $src=$src.Replace('R52_RELEASE_NOTES.md','R53_RELEASE_NOTES.md')
