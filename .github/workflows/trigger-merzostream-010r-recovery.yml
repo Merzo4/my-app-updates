@@ -58,6 +58,8 @@ jobs:
           if($LASTEXITCODE){throw '010q failed'}
           python merzostream/ci/apply_010r.py
           if($LASTEXITCODE){throw '010r recovery R2 failed'}
+          python merzostream/ci/fix_010r_r2_selftest.py
+          if($LASTEXITCODE){throw '010r R2 selftest finalization failed'}
           & .\merzostream\ci\make_brand.ps1 -BrandOnly
           if($LASTEXITCODE){throw 'brand finalization failed'}
 
