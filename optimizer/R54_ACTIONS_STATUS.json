@@ -76,10 +76,19 @@
   "publish": [
     {
       "conclusion": "",
+      "createdAt": "2026-08-19T06:33:09Z",
+      "databaseId": 32223893392,
+      "headSha": "6d8abc7a130ab2027b73efbcbe7bd919bf194f65",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32223893392",
+      "workflowName": "Publish MWO R54 R53 HOTFIX BRIDGE"
+    },
+    {
+      "conclusion": "failure",
       "createdAt": "2026-08-19T06:29:20Z",
       "databaseId": 32223616414,
       "headSha": "dc5d3bc857528cd60c05d6333e33b0b02f985098",
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32223616414",
       "workflowName": "Publish MWO R54 R53 HOTFIX BRIDGE"
     }
