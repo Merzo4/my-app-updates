@@ -5,7 +5,7 @@ import re
 root = pathlib.Path(os.environ['MERZO_SRC'])
 p = root / 'src' / 'MerzoStream.Foundation' / 'Services' / 'LocalPlayerServer.cs'
 text = p.read_text(encoding='utf-8-sig')
-pattern = re.compile(r'    private const string PlayerHtml = """\n.*?\n""";\n\n    private const string MusicHtml = """', re.S)
+pattern = re.compile(r'    private const string PlayerHtml = """\n.*?\n""";\n\n    private const string ChatHtml = """', re.S)
 replacement = '''    private const string PlayerHtml = """
 <!doctype html><html><head><meta charset="utf-8"><style>html,body,#p{margin:0;width:100%;height:100%;background:transparent!important;overflow:hidden}iframe{border:0;background:transparent!important}body.idle #p{visibility:hidden!important;opacity:0!important;pointer-events:none}</style></head><body class="idle"><div id="p"></div><script src="https://www.youtube.com/iframe_api"></script><script>
 // protected 0.1.0e player transport restored + later blank/clear safety retained
@@ -17,17 +17,21 @@ async function tick(){try{const s=await (await fetch('/state',{cache:'no-store'}
 </script></body></html>
 """;
 
-    private const string MusicHtml = """'''
+    private const string ChatHtml = """'''
 new_text, count = pattern.subn(replacement, text, count=1)
 if count != 1:
     raise SystemExit(f'0.1.0r player finalize failed: PlayerHtml block matches={count}')
+player_start = new_text.index('private const string PlayerHtml')
+chat_start = new_text.index('private const string ChatHtml')
+player_block = new_text[player_start:chat_start]
 for forbidden in ('youtube-nocookie.com', 'startup-timeout', 'loadDeadline'):
-    player_block = new_text[new_text.index('private const string PlayerHtml'):new_text.index('private const string MusicHtml')]
     if forbidden in player_block:
         raise SystemExit(f'0.1.0r forbidden player experiment remains: {forbidden}')
 for required in ('background:transparent!important', 'function blank()', 'protected 0.1.0e player transport restored', 'player.clearVideo'):
-    player_block = new_text[new_text.index('private const string PlayerHtml'):new_text.index('private const string MusicHtml')]
     if required not in player_block:
         raise SystemExit(f'0.1.0r protected player invariant missing: {required}')
+for retained in ('{{platform_icon}}', 'chat-platform-icon youtube', 'private const string AlertsHtml'):
+    if retained not in new_text:
+        raise SystemExit(f'0.1.0r non-player overlay was lost: {retained}')
 p.write_text(new_text, encoding='utf-8')
-print('0.1.0r HYBRID PROTECTED PLAYER FINALIZE PASS')
+print('0.1.0r HYBRID PROTECTED PLAYER FINALIZE PASS + CHAT/ALERTS RETAINED')
