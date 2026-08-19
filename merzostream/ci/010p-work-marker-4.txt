@@ -1,0 +1,1 @@
+0.1.0p uses provider-native/user-session mechanisms only where verified; unsupported VK chat behavior will be labeled NEEDS FIELD TEST rather than falsely marked confirmed.
