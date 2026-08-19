@@ -5,8 +5,6 @@ on:
   push:
     branches: [merzo-windows-optimizer]
     paths:
-      - '.github/workflows/verify-mwo-r53-ota-v3.yml'
-      - 'optimizer/scripts/r53_ota_acceptance.ps1'
       - 'optimizer/triggers/r53-verify-v3.txt'
 
 permissions:
@@ -47,7 +45,10 @@ jobs:
           git diff --cached --quiet
           if($LASTEXITCODE -ne 0){
             git commit -m "Record robust R53 OTA acceptance run $env:GITHUB_RUN_ID"
-            git pull --rebase origin merzo-windows-optimizer
+            git fetch origin merzo-windows-optimizer
+            git reset --soft origin/merzo-windows-optimizer
+            git add optimizer/R53_OTA_ACCEPTANCE_STATUS.json
+            git commit -m "Record robust R53 OTA acceptance run $env:GITHUB_RUN_ID"
             git push origin HEAD:merzo-windows-optimizer
           }
           if('${{ steps.accept.outcome }}' -ne 'success'){exit 1}
