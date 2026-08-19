@@ -1,0 +1,7 @@
+R54 R53 GAME HOTFIX DELIVERY BRIDGE
+2026-08-19
+source-bug=R53 GAME rollback on r53.process.service_host_density
+updater-bug=R53 truncates four-part LatestVersion with ToString(3)
+public-version=0.1.54
+file-version=0.1.54.0
+attempt=1
