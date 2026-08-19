@@ -1,4 +1,4 @@
-name: Build MerzoStream 0.1.0r RECOVERY
+name: Build MerzoStream 0.1.0r RECOVERY R2
 
 on:
   push:
@@ -31,7 +31,7 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Reconstruct q and apply r recovery
+      - name: Reconstruct q and apply r recovery R2
         shell: pwsh
         run: |
           $src=Join-Path $env:RUNNER_TEMP 'merzostream-010r-src'
@@ -57,11 +57,11 @@ jobs:
           python merzostream/ci/apply_010q.py
           if($LASTEXITCODE){throw '010q failed'}
           python merzostream/ci/apply_010r.py
-          if($LASTEXITCODE){throw '010r recovery failed'}
+          if($LASTEXITCODE){throw '010r recovery R2 failed'}
           & .\merzostream\ci\make_brand.ps1 -BrandOnly
           if($LASTEXITCODE){throw 'brand finalization failed'}
 
-      - name: Protected regression contracts
+      - name: Protected R2 regression contracts
         shell: pwsh
         run: |
           $info=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json
@@ -69,22 +69,42 @@ jobs:
           $media=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\MediaQueueService.cs" -Raw
           $player=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\LocalPlayerServer.cs" -Raw
           $vk=Get-Content "$env:MERZO_SRC\src\MerzoStream.Host\VkLiveAuthCoordinator.cs" -Raw
+          $mainForm=Get-Content "$env:MERZO_SRC\src\MerzoStream.Host\MainForm.cs" -Raw
           $app=Get-Content "$env:MERZO_SRC\ui\web\app.js" -Raw
           $html=Get-Content "$env:MERZO_SRC\ui\web\index.html" -Raw
-          if(-not $media.Contains('PROTECTED MEDIA RECOVERY 0.1.0r')){throw 'media recovery marker missing'}
-          if($media.Contains('.Where(x => StrongQueryMatch(query, x.Title, x.Channel))' + "`r`n            .Select")){throw 'strict resolver still blocks real requests'}
-          if(-not $player.Contains('protected 0.1.0e player transport restored')){throw 'protected player not restored'}
-          if($player.Contains('youtube-nocookie.com')){throw 'youtube-nocookie experiment still active'}
-          if($player.Contains('startup-timeout')){throw 'startup timeout auto-skip still active'}
+
+          $resolveStart=$media.IndexOf('ResolveAsync')
+          $resolveEnd=$media.IndexOf('OEmbedAsync',$resolveStart)
+          if($resolveStart -lt 0 -or $resolveEnd -le $resolveStart){throw 'R2 ResolveAsync contract block missing'}
+          $resolveBlock=$media.Substring($resolveStart,$resolveEnd-$resolveStart)
+          if($resolveBlock.Contains('officialCandidates')){throw 'R2 hidden second YouTube search returned'}
+          if(-not $resolveBlock.Contains('var candidates = await SearchAsync(query, ct);')){throw 'R2 exact one-query primary resolver missing'}
+          if($resolveBlock.Contains('StrongQueryMatch')){throw 'R2 strict preview filter leaked into primary resolver'}
+
+          if(-not $player.Contains('protected 0.1.0e player transport restored')){throw 'protected player safety marker missing'}
+          if(-not $player.Contains('setInterval(tick,250)')){throw 'R2 0.1.0m player timing missing'}
+          if($player.Contains('onReady:()=>{if(last)player.playVideo()}')){throw 'R2 post-m player event override returned'}
+          if($player.Contains('youtube-nocookie.com')){throw 'youtube-nocookie experiment returned'}
+          if($player.Contains('startup-timeout')){throw 'startup timeout auto-skip returned'}
+          if(-not $player.Contains('function blank()') -or -not $player.Contains('player.clearVideo')){throw 'stale-video blank/clear protection missing'}
+
           if(-not $app.Contains("api('media_add_test',q)")){throw 'one-click media add missing'}
           if($app.Contains("const r=await api('media_search',q);")){throw 'mandatory preview search still intercepts primary add'}
+          if(-not $app.Contains('e.textContent!==next')){throw 'R2 stable label update guard missing'}
           if(-not $html.Contains('id="mediaTestAdd">Добавить</button>')){throw 'media primary button not restored'}
+
+          if(-not $mainForm.Contains('TableLayoutPanel _rootLayout')){throw 'R2 titlebar layout row missing'}
+          if(-not $mainForm.Contains('_rootLayout.RowStyles[0].Height = 34')){throw 'R2 titlebar row activation missing'}
+          if(-not $mainForm.Contains('_rootLayout.Controls.Add(_contentHost, 0, 1)')){throw 'R2 WebView content row missing'}
+          if($mainForm.Contains('_titleBar.BringToFront();')){throw 'R2 titlebar overlay regression returned'}
+
           if(-not $vk.Contains('Path.Combine(AppPaths.DataDirectory(), "WebView2")')){throw 'VK not using shared WebView2 profile'}
           if(-not $vk.Contains('WaitAsync(TimeSpan.FromSeconds(15))')){throw 'VK init timeout missing'}
-          if($vk.Contains('VkAuthWebView2_v2')){throw 'experimental VK profile still active'}
+          if($vk.Contains('VkAuthWebView2_v2')){throw 'experimental VK profile returned'}
+
           node --check "$env:MERZO_SRC\ui\web\app.js"
           if($LASTEXITCODE){throw 'app.js syntax failed'}
-          Write-Host '0.1.0r PROTECTED RECOVERY CONTRACT PASS'
+          Write-Host '0.1.0r RECOVERY R2 PROTECTED CONTRACT PASS'
 
       - name: Static selftest
         shell: pwsh
@@ -126,7 +146,7 @@ jobs:
       - name: Create source ZIP
         shell: pwsh
         run: |
-          $dst=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_0.1.0r_SOURCE.zip'; $stage=Join-Path $env:RUNNER_TEMP 'source-stage-r'
+          $dst=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_0.1.0r_SOURCE.zip'; $stage=Join-Path $env:RUNNER_TEMP 'source-stage-r-r2'
           New-Item -ItemType Directory -Force $stage | Out-Null
           Get-ChildItem $env:MERZO_SRC -Force | Where-Object { $_.Name -notin @('bin','obj','artifacts') } | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
           Get-ChildItem $stage -Recurse -Directory | Where-Object { $_.Name -in @('bin','obj','artifacts') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -136,7 +156,7 @@ jobs:
       - name: Upload verified artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MerzoStreamSuite-0.1.0r-RECOVERY-READY
+          name: MerzoStreamSuite-0.1.0r-RECOVERY-R2-READY
           path: |
             ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.zip
             ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.sha256
@@ -146,7 +166,7 @@ jobs:
             ${{ env.SOURCE_ZIP }}
           if-no-files-found: error
 
-      - name: Publish v0.1.0r recovery release
+      - name: Publish v0.1.0r recovery R2 release
         shell: pwsh
         working-directory: ${{ env.MERZO_SRC }}
         env:
@@ -154,21 +174,22 @@ jobs:
         run: |
           $tag='v0.1.0r'
           gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if($LASTEXITCODE -ne 0){gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_HEAD --title 'MerzoStream Suite 0.1.0r RECOVERY' --notes-file RELEASE_NOTES_0.1.0r.md}
+          if($LASTEXITCODE -ne 0){gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_HEAD --title 'MerzoStream Suite 0.1.0r RECOVERY R2' --notes-file RELEASE_NOTES_0.1.0r.md}
           if($LASTEXITCODE){throw 'release create failed'}
           gh release upload $tag 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.zip' 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.sha256' 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe' 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256' $env:SOURCE_ZIP RELEASE_NOTES_0.1.0r.md --repo $env:GITHUB_REPOSITORY --clobber
           if($LASTEXITCODE){throw 'release upload failed'}
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title 'MerzoStream Suite 0.1.0r RECOVERY R2' --notes-file RELEASE_NOTES_0.1.0r.md
 
-      - name: Record recovery CI status
+      - name: Record recovery R2 CI status
         if: always()
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}
         run: |
-          $payload=[ordered]@{status='completed';conclusion=$env:JOB_STATUS;sourceHead=$env:SOURCE_HEAD;databaseId=$env:GITHUB_RUN_ID;url="https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"}|ConvertTo-Json -Compress
-          $tmp=Join-Path $env:RUNNER_TEMP '010r-status.json'; Set-Content $tmp $payload -Encoding utf8
-          $b64=[Convert]::ToBase64String([IO.File]::ReadAllBytes($tmp)); $path='merzostream/ci/010r-ci-status.json'
+          $payload=[ordered]@{status='completed';conclusion=$env:JOB_STATUS;sourceHead=$env:SOURCE_HEAD;databaseId=$env:GITHUB_RUN_ID;url="https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID";recovery='R2'}|ConvertTo-Json -Compress
+          $tmp=Join-Path $env:RUNNER_TEMP '010r-r2-status.json'; Set-Content $tmp $payload -Encoding utf8
+          $b64=[Convert]::ToBase64String([IO.File]::ReadAllBytes($tmp)); $path='merzostream/ci/010r-r2-ci-status.json'
           $old=(gh api --method GET "repos/$env:GITHUB_REPOSITORY/contents/$path" -f ref=main --jq '.sha' 2>$null); if($LASTEXITCODE){$old=''}
-          if($old){gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0r recovery CI status' -f content=$b64 -f branch=main -f sha=$old | Out-Null}else{gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0r recovery CI status' -f content=$b64 -f branch=main | Out-Null}
+          if($old){gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0r recovery R2 CI status' -f content=$b64 -f branch=main -f sha=$old | Out-Null}else{gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0r recovery R2 CI status' -f content=$b64 -f branch=main | Out-Null}
           Write-Host $payload
