@@ -41,6 +41,17 @@ $newJson=$newJson.Replace("`r`n","`n")
 if(!$text.Contains($oldJson)){throw 'R54 acceptance JSON-options patch anchor missing'}
 $text=$text.Replace($oldJson,$newJson)
 
+$oldSafety=@'
+  $safetyType=$asm.GetTypes() | Where-Object {$_.FullName -match 'SafetyEngine$'} | Select-Object -First 1
+'@
+$newSafety=@'
+  $safetyType=$asm.GetTypes() | Where-Object {$_.FullName -match 'SafetyEngine$' -and -not $_.IsInterface -and -not $_.IsAbstract} | Select-Object -First 1
+'@
+$oldSafety=$oldSafety.Replace("`r`n","`n")
+$newSafety=$newSafety.Replace("`r`n","`n")
+if(!$text.Contains($oldSafety)){throw 'R54 acceptance concrete SafetyEngine patch anchor missing'}
+$text=$text.Replace($oldSafety,$newSafety)
+
 Set-Content $runtime $text -Encoding UTF8
 try {
   & $runtime
