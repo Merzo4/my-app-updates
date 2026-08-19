@@ -4,4 +4,5 @@ production-run=32223315758
 production-head=97a664b33fbb59af7972138f525c18b0bc0fd3ef
 artifact=MerzoWindowsOptimizer-0.1.54-R53-HOTFIX-BRIDGE
 public-tag=mwo-v0.1.54
-attempt=1
+attempt=2
+acceptance-host=real-entry-assembly-0.1.53.0
