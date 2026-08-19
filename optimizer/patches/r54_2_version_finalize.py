@@ -5,17 +5,26 @@ root=Path(os.environ['SOURCE_ROOT'])
 def read(p): return p.read_text(encoding='utf-8-sig')
 def write(p,s): p.write_text(s,encoding='utf-8')
 
-# R54.2 visible identity.
+# R54.2 visible identity. The outer R54.2 controller can already promote the
+# inherited R54.1 suffix so old source gates and shipped UI validate the same
+# product identity. Keep this finalizer idempotent for that suffix.
 xp=root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
 x=read(xp)
-repls=[
+for old,new in [
     ('Production R54.1 · 0.1.54.1','Production R54.2 · 0.1.54.2'),
     ('Text="R54.1"','Text="R54.2"'),
-    ('Production 0.1.54.1 · R54 SERVICE CONTROL HOTFIX','Production 0.1.54.2 · R54.2 ONEDRIVE + GAME RELIABILITY'),
-]
-for old,new in repls:
+]:
     if old not in x: raise SystemExit('R54.2 UI version anchor missing: '+old)
     x=x.replace(old,new,1)
+old_suffix='Production 0.1.54.1 · R54 SERVICE CONTROL HOTFIX'
+new_suffix='Production 0.1.54.2 · R54.2 ONEDRIVE + GAME RELIABILITY'
+already_suffix='Production 0.1.54.1 · R54.2 ONEDRIVE + GAME RELIABILITY'
+if old_suffix in x:
+    x=x.replace(old_suffix,new_suffix,1)
+elif already_suffix in x:
+    x=x.replace(already_suffix,new_suffix,1)
+elif new_suffix not in x:
+    raise SystemExit('R54.2 UI suffix anchor missing')
 write(xp,x)
 
 iss=root/'installer'/'MerzoWindowsOptimizer.iss'
@@ -43,7 +52,6 @@ for cp in projects:
         t=re.sub(pat,lambda m:m.group(1)+'0.1.54.2'+m.group(3),t)
     write(cp,t)
 
-# Update release note identity without losing inherited history.
 notes=root/'dist'/'R53_RELEASE_NOTES.md'
 if notes.exists():
     n=read(notes)
