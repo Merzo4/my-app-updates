@@ -97,6 +97,19 @@ if notes_json.exists():
     except Exception:
         pass
 
+# Regression guard for the exact screenshot failure: automatic GAME must never
+# silently accumulate another Advanced/Expert tweak while the global SafetyEngine
+# guard remains fail-closed. If that happens, production stops before packaging.
+catalog = json.loads(read(root/'data'/'tweaks.json'))
+game_high_risk = []
+for item in catalog:
+    tags = {str(tag).lower() for tag in (item.get('profile_tags') or [])}
+    risk = str(item.get('risk') or '').lower()
+    if 'merzo_game' in tags and risk in {'advanced', 'expert'} and not item.get('scan_only', False):
+        game_high_risk.append(item.get('id'))
+if game_high_risk != ['r53.process.service_host_density']:
+    raise SystemExit('R53 HF1 automatic GAME Advanced/Expert contract changed: ' + repr(game_high_risk))
+
 # Fail-closed source assertions.
 s = read(safety)
 for token in ('r53.process.service_host_density','SvcHostSplitThresholdInKB','67108864','if (!isR53ManagedServiceHostDensity)'):
@@ -114,6 +127,6 @@ if ('#define MyAppVersion "0.1.53.1"' not in installer_final and
     raise SystemExit('R53 HF1 installer version finalize failed')
 
 (root/'R53_GAME_APPLY_HOTFIX.marker').write_text(
-    '0.1.53.1: exact Service Host Density allow-list + generic Advanced/Expert deny + stale R52 UI fixed\n',
+    '0.1.53.1: exact Service Host Density allow-list + generic Advanced/Expert deny + GAME high-risk regression guard + stale R52 UI fixed\n',
     encoding='utf-8')
-print('R53 GAME apply hotfix: OK')
+print('R53 GAME apply hotfix: OK; automatic GAME Advanced/Expert=', game_high_risk)
