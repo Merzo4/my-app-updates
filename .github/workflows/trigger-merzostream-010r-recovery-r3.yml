@@ -1,0 +1,167 @@
+name: Build MerzoStream 0.1.0r RECOVERY R3
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/trigger-merzostream-010r-recovery-r3.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - name: Checkout recovery transport
+        uses: actions/checkout@v4
+        with:
+          ref: merzostream-010r-recovery
+          fetch-depth: 0
+
+      - name: Capture source head
+        shell: pwsh
+        run: |
+          $sourceHead=(git rev-parse HEAD).Trim()
+          "SOURCE_HEAD=$sourceHead" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Reconstruct and apply RECOVERY R3
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:RUNNER_TEMP 'merzostream-010r-r3-src'
+          New-Item -ItemType Directory -Force $src | Out-Null
+          "MERZO_SRC=$src" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:MERZO_SRC=$src
+          python merzostream/ci/rebuild_010h.py
+          if($LASTEXITCODE){throw '010h failed'}
+          & .\merzostream\ci\make_brand.ps1
+          if($LASTEXITCODE){throw 'brand bootstrap failed'}
+          foreach($v in @('010i','010j','010k','010l','010m','010n')) { python "merzostream/ci/apply_$v.py"; if($LASTEXITCODE){throw "$v failed"} }
+          python merzostream/ci/apply_010n_installer_r2.py
+          if($LASTEXITCODE){throw 'installer R2 failed'}
+          $proj="$src\src\MerzoStream.Setup\MerzoStream.Setup.csproj"
+          $xml=Get-Content $proj -Raw
+          if(-not $xml.Contains('WFO1000')) { $xml=$xml.Replace('<ApplicationManifest>app.manifest</ApplicationManifest>', '<ApplicationManifest>app.manifest</ApplicationManifest>' + "`r`n    <NoWarn>`$(NoWarn);WFO1000</NoWarn>"); Set-Content $proj $xml -Encoding utf8 }
+          python merzostream/ci/apply_010n_installer_r3.py
+          if($LASTEXITCODE){throw 'installer R3 failed'}
+          python merzostream/ci/apply_010o.py
+          if($LASTEXITCODE){throw '010o failed'}
+          python merzostream/ci/apply_010p.py
+          if($LASTEXITCODE){throw '010p failed'}
+          python merzostream/ci/apply_010q.py
+          if($LASTEXITCODE){throw '010q failed'}
+          python merzostream/ci/apply_010r.py
+          if($LASTEXITCODE){throw '010r R2 failed'}
+          python merzostream/ci/fix_010r_r2_selftest.py
+          if($LASTEXITCODE){throw 'R2 selftest finalization failed'}
+          python merzostream/ci/finalize_010r_regression3.py
+          if($LASTEXITCODE){throw 'R3 Media recovery failed'}
+          python merzostream/ci/fix_010r_r3_selftest.py
+          if($LASTEXITCODE){throw 'R3 selftest migration failed'}
+          & .\merzostream\ci\make_brand.ps1 -BrandOnly
+          if($LASTEXITCODE){throw 'brand finalization failed'}
+
+      - name: Protected R3 Media contracts
+        shell: pwsh
+        run: |
+          $info=Get-Content "$env:MERZO_SRC\content\app_info.json" -Raw | ConvertFrom-Json
+          if($info.version -ne '0.1.0r'){throw "Wrong version $($info.version)"}
+          $media=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\MediaQueueService.cs" -Raw
+          $player=Get-Content "$env:MERZO_SRC\src\MerzoStream.Foundation\Services\LocalPlayerServer.cs" -Raw
+          $app=Get-Content "$env:MERZO_SRC\ui\web\app.js" -Raw
+          $main=Get-Content "$env:MERZO_SRC\src\MerzoStream.Host\MainForm.cs" -Raw
+          $vk=Get-Content "$env:MERZO_SRC\src\MerzoStream.Host\VkLiveAuthCoordinator.cs" -Raw
+          $rs=$media.IndexOf('ResolveAsync'); $re=$media.IndexOf('private async Task<(string title, string channel)> OEmbedAsync',$rs)
+          $rb=$media.Substring($rs,$re-$rs)
+          if(-not $rb.Contains('SearchPrimaryLegacyAsync(query, ct)')){throw 'R3 old proven primary search not wired'}
+          if($rb.Contains('var candidates = await SearchAsync(query, ct);')){throw 'R3 newer recursive search still handles real queue'}
+          if(-not $media.Contains('ScorePrimaryLegacy')){throw 'R3 old official/relevance score missing'}
+          if(-not $media.Contains('heartbeat proves the page is alive')){throw 'R3 false heartbeat playing fix missing'}
+          if(-not $player.Contains('actual 0.1.0e player transport restored')){throw 'R3 actual e PlayerHtml missing'}
+          if(-not $player.Contains('setInterval(tick,300)')){throw 'R3 e player loop missing'}
+          if($player.Contains('body.idle #p') -or $player.Contains('startup-timeout') -or $player.Contains('youtube-nocookie.com')){throw 'post-e player experiments returned'}
+          if(-not $app.Contains('/player?preview=1`')){throw 'R3 persistent preview URL missing'}
+          if($app.Contains('/player?preview=1&g=') -or $app.Contains('const hasActive=!!cur&&!stopped')){throw 'R3 preview remount regression returned'}
+          if(-not $app.Contains('e.textContent!==next')){throw 'stable media title guard missing'}
+          if(-not $main.Contains('_rootLayout.Controls.Add(_contentHost, 0, 1)')){throw 'titlebar non-overlay layout lost'}
+          if(-not $vk.Contains('Path.Combine(AppPaths.DataDirectory(), "WebView2")')){throw 'VK shared profile lost'}
+          node --check "$env:MERZO_SRC\ui\web\app.js"
+          if($LASTEXITCODE){throw 'app.js syntax failed'}
+          Write-Host '0.1.0r RECOVERY R3 PROTECTED MEDIA CONTRACT PASS'
+
+      - name: Static selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./SELFTEST_PURE_DOTNET_STATIC.ps1
+          if($LASTEXITCODE){throw 'Static selftest failed'}
+
+      - name: Compile full Pure .NET solution
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet restore MerzoStream.NetHost.sln
+          if($LASTEXITCODE){throw 'restore failed'}
+          dotnet build MerzoStream.NetHost.sln -c Release --no-restore
+          if($LASTEXITCODE){throw 'build failed'}
+
+      - name: Foundation selftest
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          dotnet run --project tools/MerzoStream.Foundation.SelfTest/MerzoStream.Foundation.SelfTest.csproj -c Release --no-restore
+          if($LASTEXITCODE){throw 'Foundation selftest failed'}
+
+      - name: Build runtime and installer
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        run: |
+          ./06_BUILD_RUNTIME_RELEASE.ps1 -Version '0.1.0r' -Runtime 'win-x64'
+          if($LASTEXITCODE){throw 'runtime failed'}
+          ./08_BUILD_BRANDED_SETUP.ps1 -Version '0.1.0r' -RuntimeZip 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.zip'
+          if($LASTEXITCODE){throw 'installer failed'}
+          $exe='artifacts/branded-setup/MerzoStreamSuite_Setup.exe'
+          $sha=(Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content "$exe.sha256" "$sha  MerzoStreamSuite_Setup.exe" -Encoding ascii
+          Write-Host "INSTALLER SHA=$sha SIZE=$((Get-Item $exe).Length)"
+
+      - name: Create source ZIP
+        shell: pwsh
+        run: |
+          $dst=Join-Path $env:RUNNER_TEMP 'MerzoStreamSuite_0.1.0r_RECOVERY_R3_SOURCE.zip'; $stage=Join-Path $env:RUNNER_TEMP 'source-r3'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Get-ChildItem $env:MERZO_SRC -Force | Where-Object { $_.Name -notin @('bin','obj','artifacts') } | ForEach-Object { Copy-Item $_.FullName $stage -Recurse -Force }
+          Get-ChildItem $stage -Recurse -Directory | Where-Object { $_.Name -in @('bin','obj','artifacts') } | Sort-Object FullName -Descending | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path "$stage\*" -DestinationPath $dst -CompressionLevel Optimal -Force
+          "SOURCE_ZIP=$dst" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload R3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoStreamSuite-0.1.0r-RECOVERY-R3-READY
+          path: |
+            ${{ env.MERZO_SRC }}/artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.zip
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe
+            ${{ env.MERZO_SRC }}/artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256
+            ${{ env.MERZO_SRC }}/RELEASE_NOTES_0.1.0r.md
+            ${{ env.SOURCE_ZIP }}
+          if-no-files-found: error
+
+      - name: Publish v0.1.0r RECOVERY R3
+        shell: pwsh
+        working-directory: ${{ env.MERZO_SRC }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag='v0.1.0r'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if($LASTEXITCODE -ne 0){gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:SOURCE_HEAD --title 'MerzoStream Suite 0.1.0r RECOVERY R3' --notes-file RELEASE_NOTES_0.1.0r.md}
+          gh release upload $tag 'artifacts/runtime-release/MerzoStreamSuite-runtime-win-x64-0.1.0r.zip' 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe' 'artifacts/branded-setup/MerzoStreamSuite_Setup.exe.sha256' $env:SOURCE_ZIP RELEASE_NOTES_0.1.0r.md --repo $env:GITHUB_REPOSITORY --clobber
+          if($LASTEXITCODE){throw 'release upload failed'}
+          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title 'MerzoStream Suite 0.1.0r RECOVERY R3' --notes-file RELEASE_NOTES_0.1.0r.md
