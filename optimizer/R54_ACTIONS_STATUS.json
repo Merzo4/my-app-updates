@@ -75,11 +75,11 @@
   ],
   "publish": [
     {
-      "conclusion": "",
+      "conclusion": "failure",
       "createdAt": "2026-08-19T06:33:09Z",
       "databaseId": 32223893392,
       "headSha": "6d8abc7a130ab2027b73efbcbe7bd919bf194f65",
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32223893392",
       "workflowName": "Publish MWO R54 R53 HOTFIX BRIDGE"
     },
@@ -91,6 +91,35 @@
       "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32223616414",
       "workflowName": "Publish MWO R54 R53 HOTFIX BRIDGE"
+    }
+  ],
+  "verifyV2": [
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:38:21Z",
+      "databaseId": 32224261030,
+      "headSha": "554a7882f5f2c3d95269ac27e4ad5638692d443e",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224261030",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:38:04Z",
+      "databaseId": 32224241974,
+      "headSha": "0febba6e909a5ac3d20eb68f4a2e792f46be18bd",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224241974",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:37:29Z",
+      "databaseId": 32224199666,
+      "headSha": "75799e121c223384d4de36a92eabeed624f903b5",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224199666",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
     }
   ]
 }
