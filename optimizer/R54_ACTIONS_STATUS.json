@@ -1,0 +1,23 @@
+{
+  "build": [
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:12:49Z",
+      "databaseId": 32222460531,
+      "headSha": "152b3b3d037720fa8cbbc5d38b38b719733b1bf8",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32222460531",
+      "workflowName": "Merzo Windows Optimizer R54 R53 HOTFIX BRIDGE"
+    },
+    {
+      "conclusion": "cancelled",
+      "createdAt": "2026-08-19T06:12:38Z",
+      "databaseId": 32222448285,
+      "headSha": "35e911ae1d2795295ee4f2b6502308e173c8d223",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32222448285",
+      "workflowName": "Merzo Windows Optimizer R54 R53 HOTFIX BRIDGE"
+    }
+  ],
+  "publish": []
+}
