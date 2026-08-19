@@ -5,6 +5,9 @@ $patched=$original
 $onePatch='.\optimizer\patches\r54_2_onedrive_resilience.py'
 $onePatchOriginal=Get-Content $onePatch -Raw
 $onePatchPatched=$onePatchOriginal
+$r53v1='.\optimizer\scripts\r53_release_v1.ps1'
+$r53v1Original=Get-Content $r53v1 -Raw
+$r53v1Patched=$r53v1Original
 
 $oldLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py'',''r54_updater_bridge.py'',''r54_1_service_control_hotfix.py'')"'
 $newLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py'',''r54_updater_bridge.py'',''r54_1_service_control_hotfix.py'',''r54_1_service_selftest_contract.py'',''r54_2_onedrive_resilience.py'',''r54_2_version_finalize.py'')"'
@@ -18,6 +21,15 @@ $scopedGate="    'OneDriveSetup /uninstall завершился с кодом',"
 if(($onePatchPatched.Split($legacyGate).Count-1)-ne1){throw 'R54.2 OneDrive gate-scope anchor mismatch'}
 $onePatchPatched=$onePatchPatched.Replace($legacyGate,$scopedGate)
 
+# R53 V1 carries an inherited literal suffix gate inside its source/security
+# Python block. Adapt ONLY that exact gate list in the temporary runner copy;
+# the canonical R53 script remains untouched. The R54.1 product patch can still
+# create its intermediate suffix, then R54.2 version-finalize promotes it.
+$gateOld="'Production R53.1 · 0.1.53.1','R53 HOTFIX 1','BuildAdvancedScroll','SidebarNavScroll'"
+$gateNew="'Production R53.1 · 0.1.53.1','R54.2 ONEDRIVE + GAME RELIABILITY','BuildAdvancedScroll','SidebarNavScroll'"
+if(($r53v1Patched.Split($gateOld).Count-1)-ne1){throw 'R54.2 inherited R53 suffix-gate anchor mismatch'}
+$r53v1Patched=$r53v1Patched.Replace($gateOld,$gateNew)
+
 # Adapt only the outer R54.1 release controller identity. Patch filenames and
 # R54_1 markers use underscores and remain unchanged.
 $patched=$patched.Replace('0.1.54.1','0.1.54.2')
@@ -26,6 +38,7 @@ $patched=$patched.Replace('R54_1_SERVICE_CONTROL_ALL_GATES_PASS','R54_2_INHERITE
 
 try {
     Set-Content $onePatch $onePatchPatched -Encoding UTF8
+    Set-Content $r53v1 $r53v1Patched -Encoding UTF8
     Set-Content $base $patched -Encoding UTF8
     & $base
     if($LASTEXITCODE-ne0){throw "R54.2 inherited production gates failed: $LASTEXITCODE"}
@@ -68,4 +81,5 @@ try {
 finally {
     Set-Content $base $original -Encoding UTF8
     Set-Content $onePatch $onePatchOriginal -Encoding UTF8
+    Set-Content $r53v1 $r53v1Original -Encoding UTF8
 }
