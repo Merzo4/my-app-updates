@@ -1,0 +1,69 @@
+name: Diagnose MerzoStream 0.1.0p transport
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/diag-merzostream-010p-transport.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: merzostream-010p-release
+          fetch-depth: 0
+
+      - name: Compute diagnostic
+        shell: python
+        run: |
+          import base64, hashlib, json, lzma, pathlib
+          root=pathlib.Path('.')
+          old_dir=root/'merzostream/ci/010p-full-b64-r2'
+          new_dir=root/'merzostream/ci/010p-transport6k'
+          expected_old=[
+            '8625aa715465c35c6af07db878c41d23dbb3609abfe5c1e1c436aaec289e8754',
+            'a1319ae42f5e7430e36ce535698660402dc45d1ff57d4ecabf14784ace402caf',
+            'a48ad994aad560c35d706b3b9a3fa3bf448f1d3b108bddc68ca3a7bda6431e8f',
+            'b32eab18a63deda574c32ee069752e48208bfe06f520071a14ca13f3e2645be6',
+          ]
+          xz_expected='e9b7593ff43c4b2f9058ebadb944301ca7d67a985a1c09dc8e1b179e4729ee35'
+          raw_expected='e71b8a71b15cfd74c1813123bf0d2594f6a4b0b26d22758aadb7317523a8e3ea'
+          d={'old':[],'new':[],'xz_expected':xz_expected,'raw_expected':raw_expected}
+          old=[]
+          for i,e in enumerate(expected_old):
+            b=(old_dir/f'chunk{i:02d}.txt').read_bytes(); old.append(b.decode('ascii').strip())
+            d['old'].append({'i':i,'len':len(b),'sha256':hashlib.sha256(b).hexdigest(),'expected':e,'ok':hashlib.sha256(b).hexdigest()==e})
+          new=[]; i=0
+          while (new_dir/f'chunk{i:02d}.txt').exists():
+            b=(new_dir/f'chunk{i:02d}.txt').read_bytes(); new.append(b.decode('ascii').strip())
+            d['new'].append({'i':i,'len':len(b),'sha256':hashlib.sha256(b).hexdigest()}); i+=1
+          prefix=''.join(new); old_all=''.join(old); candidate=prefix+old_all[len(prefix):]
+          d['prefix_len']=len(prefix); d['old_total_len']=len(old_all); d['candidate_len']=len(candidate)
+          try:
+            xz=base64.urlsafe_b64decode(candidate)
+            d['candidate_xz_sha']=hashlib.sha256(xz).hexdigest(); d['candidate_xz_ok']=d['candidate_xz_sha']==xz_expected
+            try:
+              patch=lzma.decompress(xz); d['candidate_raw_sha']=hashlib.sha256(patch).hexdigest(); d['candidate_raw_ok']=d['candidate_raw_sha']==raw_expected
+            except Exception as ex: d['lzma_error']=str(ex)
+          except Exception as ex: d['base64_error']=str(ex)
+          pathlib.Path('010p-transport-diagnostic.json').write_text(json.dumps(d,indent=2),encoding='utf-8')
+          print(json.dumps(d,indent=2))
+
+      - name: Record diagnostic on main
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          content=$(base64 -w0 010p-transport-diagnostic.json)
+          path='merzostream/ci/010p-transport-diagnostic.json'
+          old=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=main" --jq '.sha' 2>/dev/null || true)
+          if [ -n "$old" ]; then
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0p transport diagnostic' -f content="$content" -f branch=main -f sha="$old" >/dev/null
+          else
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0p transport diagnostic' -f content="$content" -f branch=main >/dev/null
+          fi
