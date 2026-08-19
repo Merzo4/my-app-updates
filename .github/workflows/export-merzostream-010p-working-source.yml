@@ -1,0 +1,80 @@
+name: Export MerzoStream 0.1.0p working source
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/export-merzostream-010p-working-source.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: merzostream-010p-release
+          fetch-depth: 0
+      - name: Reconstruct 0.1.0o
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:RUNNER_TEMP 'merzostream-010p-working'
+          New-Item -ItemType Directory -Force $src | Out-Null
+          "MERZO_SRC=$src" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:MERZO_SRC=$src
+          python merzostream/ci/rebuild_010h.py
+          if($LASTEXITCODE){throw '010h reconstruction failed'}
+          & .\merzostream\ci\make_brand.ps1
+          if($LASTEXITCODE){throw 'brand failed'}
+          foreach($v in @('010i','010j','010k','010l','010m','010n')) { python "merzostream/ci/apply_$v.py"; if($LASTEXITCODE){throw "$v failed"} }
+          python merzostream/ci/apply_010n_installer_r2.py
+          if($LASTEXITCODE){throw 'installer R2 failed'}
+          $proj="$src\src\MerzoStream.Setup\MerzoStream.Setup.csproj"
+          $xml=Get-Content $proj -Raw
+          if(-not $xml.Contains('WFO1000')) { $xml=$xml.Replace('<ApplicationManifest>app.manifest</ApplicationManifest>', '<ApplicationManifest>app.manifest</ApplicationManifest>' + "`r`n    <NoWarn>`$(NoWarn);WFO1000</NoWarn>"); Set-Content $proj $xml -Encoding utf8 }
+          python merzostream/ci/apply_010n_installer_r3.py
+          if($LASTEXITCODE){throw 'installer R3 failed'}
+          python merzostream/ci/apply_010o.py
+          if($LASTEXITCODE){throw '010o failed'}
+      - name: Apply first working 0.1.0p patch
+        shell: python
+        run: |
+          import base64,hashlib,lzma,os,pathlib,subprocess
+          repo=pathlib.Path('.')
+          parts=repo/'merzostream/ci/010p-b64'
+          raw_sha='aaf9102abda5cdec25eb8e70663e0dfd5d44891cfc3de4b99207739e6124eb15'
+          xz_sha='21d74b200a3d8e6ff98cf611da2c3e9b10f18db49d1726ef7af9792ee5c36aaa'
+          chunk_sha=['56c96146ba47af47607a08915281fe9ff901ac5390cfb30e5f77e98415e0c986','07aab0ec7474605c92200e7223f2683b0badac6678901c4d2f7aa0c04975ac74','d4a28c764ff7cc791f682c2424e3989515eb64483801606d694316afa38d213e','d10153ea7e245ab209db15ae99444016c0412160856b72cf9e86578ef73931b6','efce472661e1125debc3be45d8a084c9aed432e5f5b5fae5309b1e9680ff34af']
+          enc=[]
+          for i,e in enumerate(chunk_sha):
+            b=(parts/f'chunk{i:02d}.txt').read_bytes(); a=hashlib.sha256(b).hexdigest()
+            if a!=e: raise SystemExit(f'chunk{i:02d} sha {a} != {e}')
+            enc.append(b.decode('ascii').strip())
+          xz=base64.urlsafe_b64decode(''.join(enc)); assert hashlib.sha256(xz).hexdigest()==xz_sha
+          patch=lzma.decompress(xz); assert hashlib.sha256(patch).hexdigest()==raw_sha
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'010p-working.patch'; out.write_bytes(patch)
+          root=pathlib.Path(os.environ['MERZO_SRC'])
+          subprocess.run(['git','apply','--check','--binary',str(out)],cwd=root,check=True)
+          subprocess.run(['git','apply','--binary',str(out)],cwd=root,check=True)
+          print('FIRST 0.1.0p PATCH APPLIED',raw_sha)
+      - name: Upload working source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoStream-0.1.0p-working-source
+          path: ${{ env.MERZO_SRC }}
+          if-no-files-found: error
+      - name: Record export status
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          $payload=[ordered]@{status='completed';conclusion=$env:JOB_STATUS;runId=$env:GITHUB_RUN_ID;artifact='MerzoStream-0.1.0p-working-source'}|ConvertTo-Json -Compress
+          $tmp=Join-Path $env:RUNNER_TEMP '010p-export.json'; Set-Content $tmp $payload -Encoding utf8
+          $content=[Convert]::ToBase64String([IO.File]::ReadAllBytes($tmp)); $path='merzostream/ci/010p-export-status.json'
+          $old=(gh api "repos/$env:GITHUB_REPOSITORY/contents/$path?ref=main" --jq '.sha' 2>$null); if($LASTEXITCODE){$old=''}
+          if($old){gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0p source export status' -f content=$content -f branch=main -f sha=$old|Out-Null}else{gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0p source export status' -f content=$content -f branch=main|Out-Null}
+          Write-Host $payload
