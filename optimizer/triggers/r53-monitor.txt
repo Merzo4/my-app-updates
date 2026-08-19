@@ -2,6 +2,6 @@ monitor R53 production + OTA acceptance
 2026-08-19
 production-run=32213986328
 publish-acceptance=1
-actions-snapshot=4
+actions-snapshot=5
 verify-v3=2
-purpose=game-rollback-diag
+purpose=game-rollback-hotfix53.1
