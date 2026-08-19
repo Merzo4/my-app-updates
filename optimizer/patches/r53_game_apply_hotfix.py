@@ -63,13 +63,19 @@ for old_x, new_x in replacements:
 write(xaml, x)
 
 # Hotfix must be a newer OTA version so already-installed 0.1.53 clients can see it.
+# Historical source generations can still carry 0.1.51/0.1.52 here; accept only
+# known lineage values and fail closed on anything unexpected.
 iss = root/'installer'/'MerzoWindowsOptimizer.iss'
 i = read(iss)
-if 'AppVersion=0.1.53' not in i:
-    raise SystemExit('R53 HF1 installer AppVersion anchor missing')
-i = i.replace('AppVersion=0.1.53', 'AppVersion=0.1.53.1', 1)
-# Keep any explicit AppVerName in sync when present.
-i = re.sub(r'(?mi)^(AppVerName=.*?)(?:0\.1\.53)(.*)$', lambda m: m.group(1)+'0.1.53.1'+m.group(2), i, count=1)
+app_version = re.search(r'(?mi)^AppVersion\s*=\s*([^\r\n]+)\s*$', i)
+if not app_version:
+    raise SystemExit('R53 HF1 installer AppVersion directive missing')
+current_app_version = app_version.group(1).strip()
+if current_app_version not in {'0.1.51','0.1.52','0.1.53'}:
+    raise SystemExit('R53 HF1 unknown installer AppVersion: ' + current_app_version)
+i = i[:app_version.start()] + 'AppVersion=0.1.53.1' + i[app_version.end():]
+# Keep any explicit AppVerName in sync when present, but only for known lineage.
+i = re.sub(r'(?mi)^(AppVerName=.*?)(0\.1\.(?:51|52|53))(.*)$', lambda m: m.group(1)+'0.1.53.1'+m.group(3), i, count=1)
 write(iss, i)
 
 # Append a user-facing changelog entry without changing the risk classification.
@@ -101,6 +107,8 @@ if 'r53ManagedAdvanced' not in read(selftest):
     raise SystemExit('R53 HF1 SelfTest managed-advanced proof missing')
 if 'R52" Foreground="{StaticResource Accent}" FontSize="9.2"' in read(xaml):
     raise SystemExit('R53 HF1 stale R52 navigation badge remains')
+if 'AppVersion=0.1.53.1' not in read(iss):
+    raise SystemExit('R53 HF1 installer version finalize failed')
 
 (root/'R53_GAME_APPLY_HOTFIX.marker').write_text(
     '0.1.53.1: exact Service Host Density allow-list + generic Advanced/Expert deny + stale R52 UI fixed\n',
