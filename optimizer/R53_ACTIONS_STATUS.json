@@ -1,11 +1,11 @@
 {
   "production": [
     {
-      "conclusion": "",
+      "conclusion": "success",
       "createdAt": "2026-08-19T05:54:26Z",
       "databaseId": 32221210209,
       "headSha": "d85481faade33542ccf155bbfed7cdcf7fb92590",
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32221210209",
       "workflowName": "Merzo Windows Optimizer R53 PROCESS CLEAN START"
     },
@@ -55,6 +55,17 @@
       "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32214231307",
       "workflowName": "Publish MWO R53 OTA"
+    }
+  ],
+  "publishHf1": [
+    {
+      "conclusion": "",
+      "createdAt": "2026-08-19T05:59:23Z",
+      "databaseId": 32221533648,
+      "headSha": "3cfa4d1b4217173c8dd2251e5f1846a0e8382e81",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32221533648",
+      "workflowName": "Publish MWO R53.1 HOTFIX1 OTA"
     }
   ],
   "verify": [
