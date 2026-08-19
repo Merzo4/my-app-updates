@@ -6,7 +6,7 @@ on:
     branches: [merzo-windows-optimizer]
     paths:
       - '.github/workflows/verify-mwo-r54-public-ota-v2.yml'
-      - 'optimizer/scripts/r54_acceptance_v2_runner.ps1'
+      - 'optimizer/scripts/r54_acceptance_v3_runner.ps1'
       - 'optimizer/triggers/r54-verify-v2.txt'
 
 permissions:
@@ -28,13 +28,13 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Run public R53 to R54 acceptance with catalog-compatible JSON options
+      - name: Run public R53 to R54 acceptance with exact MWO release + catalog JSON rules
         id: accept
         continue-on-error: true
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: .\optimizer\scripts\r54_acceptance_v2_runner.ps1
+        run: .\optimizer\scripts\r54_acceptance_v3_runner.ps1
 
       - name: Record R54 v2 acceptance status
         if: always()
