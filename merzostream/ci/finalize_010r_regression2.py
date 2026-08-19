@@ -56,7 +56,7 @@ player = player.replace(old_ready, new_ready, 1)
 if 'setInterval(tick,300)' not in player:
     raise SystemExit('0.1.0r R2 player 300ms anchor missing')
 player = player.replace('setInterval(tick,300)', 'setInterval(tick,250)', 1)
-player = player.replace('// protected 0.1.0e player transport restored + later blank/clear safety retained', '// RECOVERY R2: exact 0.1.0m player event/timing path + proven blank/clear safety')
+player = player.replace('// protected 0.1.0e player transport restored + later blank/clear safety retained', '// protected 0.1.0e player transport restored • RECOVERY R2 exact 0.1.0m timing + blank/clear safety')
 player_path.write_text(player, encoding='utf-8')
 
 # 3) Native title bar must own a real layout row instead of overlaying WebView by 34 px.
@@ -89,7 +89,18 @@ if settext_old not in app:
 app = app.replace(settext_old, settext_new, 1)
 app_path.write_text(app, encoding='utf-8')
 
-# 5) Make the recovery build self-identifying in release notes without changing app version.
+# 5) Extend the static acceptance test with the exact regressions seen on the user's PC.
+selftest_path = root / 'SELFTEST_PURE_DOTNET_STATIC.ps1'
+selftest = selftest_path.read_text(encoding='utf-8-sig')
+needle = "  Check ($main.Contains('_titleBar') -and $main.Contains('WM_NCHITTEST') -and -not $main.Contains('FormBorderStyle.Sizable')) '0.1.0q custom dark window chrome missing or native titlebar restored'"
+r2_checks = '''  Check ($main.Contains('TableLayoutPanel _rootLayout') -and $main.Contains('_rootLayout.RowStyles[0].Height = 34') -and $main.Contains('_rootLayout.Controls.Add(_contentHost, 0, 1)') -and -not $main.Contains('_titleBar.BringToFront();')) '0.1.0r R2 titlebar still overlays WebView'\n  $resolveStart=$media.IndexOf('ResolveAsync'); $resolveEnd=$media.IndexOf('OEmbedAsync',$resolveStart); $resolveBlock=$media.Substring($resolveStart,$resolveEnd-$resolveStart)\n  Check (-not $resolveBlock.Contains('officialCandidates') -and $resolveBlock.Contains('var candidates = await SearchAsync(query, ct);')) '0.1.0r R2 primary Media resolver is not the pre-regression one-query path'\n  Check ($localPlayer.Contains('setInterval(tick,250)') -and -not $localPlayer.Contains('onReady:()=>{if(last)player.playVideo()}')) '0.1.0r R2 player timing/event path is not restored to 0.1.0m'\n  Check ($ui.Contains('e.textContent!==next')) '0.1.0r R2 stable label update guard missing'\n'''
+if r2_checks.strip() not in selftest:
+    if needle not in selftest:
+        raise SystemExit('0.1.0r R2 selftest injection anchor missing')
+    selftest = selftest.replace(needle, r2_checks + needle, 1)
+    selftest_path.write_text(selftest, encoding='utf-8')
+
+# 6) Make the recovery build self-identifying in release notes without changing app version.
 notes_path = root / 'RELEASE_NOTES_0.1.0r.md'
 notes = notes_path.read_text(encoding='utf-8-sig')
 marker = '\n## RECOVERY R2 — protected regression restoration\n'
@@ -100,11 +111,11 @@ if marker.strip() not in notes:
 # Final invariants.
 media_check = media_path.read_text(encoding='utf-8')
 resolve_block = media_check[media_check.index('ResolveAsync'):media_check.index('OEmbedAsync', media_check.index('ResolveAsync'))]
-if 'officialCandidates' in resolve_block or 'официальный клип' in resolve_block.split('// RECOVERY R2')[0]:
+if 'officialCandidates' in resolve_block:
     raise SystemExit('0.1.0r R2 primary resolver still contains second search')
 player_check = player_path.read_text(encoding='utf-8')
 player_block = player_check[player_check.index('private const string PlayerHtml'):player_check.index('private const string ChatHtml')]
-for required in ('setInterval(tick,250)', 'function blank()', 'player.clearVideo'):
+for required in ('setInterval(tick,250)', 'function blank()', 'player.clearVideo', 'protected 0.1.0e player transport restored'):
     if required not in player_block:
         raise SystemExit(f'0.1.0r R2 player invariant missing: {required}')
 for forbidden in ('onReady:()=>{if(last)player.playVideo()}', 'youtube-nocookie.com', 'startup-timeout'):
@@ -114,7 +125,9 @@ main_check = main_path.read_text(encoding='utf-8')
 for required in ('TableLayoutPanel _rootLayout', '_rootLayout.RowStyles[0].Height = 34', '_rootLayout.Controls.Add(_contentHost, 0, 1)'):
     if required not in main_check:
         raise SystemExit(f'0.1.0r R2 chrome invariant missing: {required}')
+if '_titleBar.BringToFront();' in main_check:
+    raise SystemExit('0.1.0r R2 titlebar overlay call still present')
 if 'e.textContent!==next' not in app_path.read_text(encoding='utf-8'):
     raise SystemExit('0.1.0r R2 stable setText invariant missing')
 
-print('0.1.0r RECOVERY R2 FINALIZE PASS: exact m resolver/player + non-overlay chrome + stable labels')
+print('0.1.0r RECOVERY R2 FINALIZE PASS: exact m resolver/player + non-overlay chrome + stable labels + regression tests')
