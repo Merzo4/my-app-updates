@@ -25,9 +25,20 @@ for i, chunk in enumerate(chunks):
     if not chunk.exists():
         raise SystemExit(f"0.1.0o chunk missing: {chunk.name}")
     raw = chunk.read_bytes()
+    expected = CHUNK_SHA[i]
     actual = hashlib.sha256(raw).hexdigest()
-    if actual != CHUNK_SHA[i]:
-        raise SystemExit(f"0.1.0o chunk SHA mismatch: {chunk.name} {actual}")
+    if actual != expected:
+        # chunk02 was transported with one accidental leading '+' character.
+        # Normalize only when the resulting bytes match the pre-recorded SHA exactly;
+        # otherwise fail closed so a genuinely corrupted cumulative patch is never used.
+        candidate = raw[1:] if raw.startswith(b"+") else raw
+        candidate_sha = hashlib.sha256(candidate).hexdigest()
+        if candidate_sha == expected:
+            raw = candidate
+            actual = candidate_sha
+            print(f"0.1.0o chunk transport normalization: {chunk.name}")
+        else:
+            raise SystemExit(f"0.1.0o chunk SHA mismatch: {chunk.name} {actual}")
     encoded_parts.append(raw.decode("ascii").strip())
 
 xz = base64.b64decode("".join(encoded_parts))
