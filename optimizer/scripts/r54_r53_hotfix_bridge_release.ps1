@@ -3,9 +3,11 @@ $ErrorActionPreference='Stop'
 $v1='.\optimizer\scripts\r53_release_v1.ps1'
 $v2='.\optimizer\scripts\r53_release_v2.ps1'
 $v5='.\optimizer\scripts\r53_release_v5.ps1'
+$legacy='.\optimizer\scripts\r49_release.ps1'
 $originalV1=Get-Content $v1 -Raw
 $originalV2=Get-Content $v2 -Raw
 $originalV5=Get-Content $v5 -Raw
+$originalLegacy=Get-Content $legacy -Raw
 
 function Convert-R53ScriptToR54Bridge([string]$text) {
     # Preserve old R53 scripts in git; transform only the generated production
@@ -21,6 +23,17 @@ function Convert-R53ScriptToR54Bridge([string]$text) {
 }
 
 try {
+    # The old R49 OTA smoke verifies 504 -> refs -> exact-release fallback. In
+    # R54 GetCurrentVersion correctly comes from MerzoOptimizer.Windows itself,
+    # so the synthetic fallback release is the SAME version as the tested DLL
+    # and UpdateAvailable must be false. Keep all fallback assertions (success,
+    # selected version, three retries); stop requiring a logically-wrong update.
+    $fallbackOld='if(!r.Success||!r.UpdateAvailable||r.LatestVersion!="0.1.49"||f.N!=3)throw new Exception($"Fallback failed success={r.Success} latest={r.LatestVersion} calls={f.N} msg={r.Message}");'
+    $fallbackNew='if(!r.Success||r.LatestVersion!="0.1.49"||f.N!=3)throw new Exception($"Fallback failed success={r.Success} latest={r.LatestVersion} calls={f.N} msg={r.Message}");'
+    if(($originalLegacy.Split($fallbackOld).Count-1)-ne1){throw 'R54 bridge R49 fallback smoke anchor mismatch'}
+    $patchedLegacy=$originalLegacy.Replace($fallbackOld,$fallbackNew)
+    Set-Content $legacy $patchedLegacy -Encoding UTF8
+
     $patchedV1=Convert-R53ScriptToR54Bridge $originalV1
 
     # The deepest generated R49 build receives -Version. After the generic
@@ -137,4 +150,5 @@ finally {
     Set-Content $v1 $originalV1 -Encoding UTF8
     Set-Content $v2 $originalV2 -Encoding UTF8
     Set-Content $v5 $originalV5 -Encoding UTF8
+    Set-Content $legacy $originalLegacy -Encoding UTF8
 }
