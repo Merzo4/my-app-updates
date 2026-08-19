@@ -93,7 +93,8 @@ app_path.write_text(app, encoding='utf-8')
 selftest_path = root / 'SELFTEST_PURE_DOTNET_STATIC.ps1'
 selftest = selftest_path.read_text(encoding='utf-8-sig')
 needle = "  Check ($main.Contains('_titleBar') -and $main.Contains('WM_NCHITTEST') -and -not $main.Contains('FormBorderStyle.Sizable')) '0.1.0q custom dark window chrome missing or native titlebar restored'"
-r2_checks = '''  Check ($main.Contains('TableLayoutPanel _rootLayout') -and $main.Contains('_rootLayout.RowStyles[0].Height = 34') -and $main.Contains('_rootLayout.Controls.Add(_contentHost, 0, 1)') -and -not $main.Contains('_titleBar.BringToFront();')) '0.1.0r R2 titlebar still overlays WebView'\n  $resolveStart=$media.IndexOf('ResolveAsync'); $resolveEnd=$media.IndexOf('OEmbedAsync',$resolveStart); $resolveBlock=$media.Substring($resolveStart,$resolveEnd-$resolveStart)\n  Check (-not $resolveBlock.Contains('officialCandidates') -and $resolveBlock.Contains('var candidates = await SearchAsync(query, ct);')) '0.1.0r R2 primary Media resolver is not the pre-regression one-query path'\n  Check ($localPlayer.Contains('setInterval(tick,250)') -and -not $localPlayer.Contains('onReady:()=>{if(last)player.playVideo()}')) '0.1.0r R2 player timing/event path is not restored to 0.1.0m'\n  Check ($ui.Contains('e.textContent!==next')) '0.1.0r R2 stable label update guard missing'\n'''
+resolver_signature = 'private async Task<(string title, string channel)> OEmbedAsync'
+r2_checks = f'''  Check ($main.Contains('TableLayoutPanel _rootLayout') -and $main.Contains('_rootLayout.RowStyles[0].Height = 34') -and $main.Contains('_rootLayout.Controls.Add(_contentHost, 0, 1)') -and -not $main.Contains('_titleBar.BringToFront();')) '0.1.0r R2 titlebar still overlays WebView'\n  $resolveStart=$media.IndexOf('ResolveAsync'); $resolveEnd=$media.IndexOf('{resolver_signature}',$resolveStart); $resolveBlock=$media.Substring($resolveStart,$resolveEnd-$resolveStart)\n  Check (-not $resolveBlock.Contains('officialCandidates') -and $resolveBlock.Contains('var candidates = await SearchAsync(query, ct);')) '0.1.0r R2 primary Media resolver is not the pre-regression one-query path'\n  Check ($localPlayer.Contains('setInterval(tick,250)') -and -not $localPlayer.Contains('onReady:()=>{{if(last)player.playVideo()}}')) '0.1.0r R2 player timing/event path is not restored to 0.1.0m'\n  Check ($ui.Contains('e.textContent!==next')) '0.1.0r R2 stable label update guard missing'\n'''
 if r2_checks.strip() not in selftest:
     if needle not in selftest:
         raise SystemExit('0.1.0r R2 selftest injection anchor missing')
@@ -108,11 +109,14 @@ if marker.strip() not in notes:
     notes += marker + '''\n- Primary Media resolver restored to the exact 0.1.0m one-query path; hidden `официальный клип` second search removed from real requests.\n- Local YouTube player event/timing path restored to 0.1.0m while retaining stale-video blank/clear protection.\n- Custom title bar moved into its own WinForms layout row; it no longer overlays the WebView.\n- Repeated polling no longer rewrites unchanged labels, removing Media title flicker.\n'''
     notes_path.write_text(notes, encoding='utf-8')
 
-# Final invariants.
+# Final invariants. Use the next method signature as the boundary; OEmbedAsync is also
+# called inside ResolveAsync for direct URLs, so searching for the bare token is wrong.
 media_check = media_path.read_text(encoding='utf-8')
-resolve_block = media_check[media_check.index('ResolveAsync'):media_check.index('OEmbedAsync', media_check.index('ResolveAsync'))]
-if 'officialCandidates' in resolve_block:
-    raise SystemExit('0.1.0r R2 primary resolver still contains second search')
+resolve_start = media_check.index('ResolveAsync')
+resolve_end = media_check.index(resolver_signature, resolve_start)
+resolve_block = media_check[resolve_start:resolve_end]
+if 'officialCandidates' in resolve_block or 'var candidates = await SearchAsync(query, ct);' not in resolve_block:
+    raise SystemExit('0.1.0r R2 primary resolver is not the exact one-query path')
 player_check = player_path.read_text(encoding='utf-8')
 player_block = player_check[player_check.index('private const string PlayerHtml'):player_check.index('private const string ChatHtml')]
 for required in ('setInterval(tick,250)', 'function blank()', 'player.clearVideo', 'protected 0.1.0e player transport restored'):
