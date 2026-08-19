@@ -26,7 +26,8 @@ jobs:
           production=$(gh run list --workflow build-mwo-r53-process-clean-start.yml --branch merzo-windows-optimizer --limit 3 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
           publish=$(gh run list --workflow publish-mwo-r53-ota.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
           verify=$(gh run list --workflow verify-mwo-r53-ota.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
-          jq -n --argjson production "$production" --argjson publish "$publish" --argjson verify "$verify" '{production:$production,publish:$publish,verify:$verify}' > optimizer/R53_ACTIONS_STATUS.json
+          verifyV3=$(gh run list --workflow verify-mwo-r53-ota-v3.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          jq -n --argjson production "$production" --argjson publish "$publish" --argjson verify "$verify" --argjson verifyV3 "$verifyV3" '{production:$production,publish:$publish,verify:$verify,verifyV3:$verifyV3}' > optimizer/R53_ACTIONS_STATUS.json
           cat optimizer/R53_ACTIONS_STATUS.json
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
