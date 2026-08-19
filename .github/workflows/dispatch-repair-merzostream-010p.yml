@@ -1,0 +1,21 @@
+name: Dispatch MerzoStream 0.1.0p transport repair
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/dispatch-repair-merzostream-010p.yml']
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch repair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run repair-merzostream-010p-transport.yml --repo "$GITHUB_REPOSITORY" --ref main
+          echo 'repair dispatched'
