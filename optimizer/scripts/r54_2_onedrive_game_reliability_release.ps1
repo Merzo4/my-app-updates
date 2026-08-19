@@ -3,9 +3,6 @@ $base='.\optimizer\scripts\r54_1_service_control_hotfix_release.ps1'
 $original=Get-Content $base -Raw
 $patched=$original
 
-$oldChain="$newChain=\"'r53_game_apply_hotfix.py','r53_version_finalize.py','r54_updater_bridge.py','r54_1_service_control_hotfix.py')\""
-$newChain="$newChain=\"'r53_game_apply_hotfix.py','r53_version_finalize.py','r54_updater_bridge.py','r54_1_service_control_hotfix.py','r54_1_service_selftest_contract.py','r54_2_onedrive_resilience.py','r54_2_version_finalize.py')\""
-# The literal above expands $newChain in PowerShell; use an exact single-quoted fallback.
 $oldLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py'',''r54_updater_bridge.py'',''r54_1_service_control_hotfix.py'')"'
 $newLiteral='$newChain="''r53_game_apply_hotfix.py'',''r53_version_finalize.py'',''r54_updater_bridge.py'',''r54_1_service_control_hotfix.py'',''r54_1_service_selftest_contract.py'',''r54_2_onedrive_resilience.py'',''r54_2_version_finalize.py'')"'
 if(($patched.Split($oldLiteral).Count-1)-ne1){throw 'R54.2 patch-chain anchor mismatch'}
