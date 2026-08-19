@@ -16,6 +16,10 @@ $src=$src.Replace('0.1.52','0.1.53')
 # placeholder is still protected, so OTA smoke remains exactly 0.1.52.0.
 $src=$src.Replace('0.1.53.0','0.1.53.1')
 $src=$src.Replace("'Production R53 · 0.1.53'","'Production R53.1 · 0.1.53.1'")
+# Nested historical PowerShell layers can corrupt the middle-dot glyph. The old
+# R51/R52 readability gate only needs a stable product identity token; final R53
+# gates below still validate the complete Unicode title/version exactly.
+$src=[regex]::Replace($src,"'Production R53[^'\r\n]*0\.1\.53(?:\.1)?'","'Production R53.1'")
 
 # The deepest R50 step later reads pristine R49 and performs the actual
 # 0.1.49 -> 0.1.53 promotion. Extend that generated replacement with a second,
