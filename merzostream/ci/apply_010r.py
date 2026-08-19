@@ -113,3 +113,9 @@ if old_vk not in st:
 st = st.replace(old_vk, new_vk)
 selftest.write_text(st, encoding='utf-8')
 print('0.1.0r VERSION + SELFTEST FINALIZE PASS')
+
+# Merge the old direct YouTube player transport with the later proven blank/clear safety.
+# This intentionally avoids q's nocookie/startup-watchdog experiment while preserving
+# transparent empty state and stale-video suppression after Skip/Clear.
+finalizer = pathlib.Path(__file__).resolve().with_name('finalize_010r_player.py')
+subprocess.run(['python', str(finalizer)], check=True)
