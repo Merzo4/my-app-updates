@@ -35,7 +35,9 @@ for tid, key in EXPECTED.items():
                     'scan_only': bool(item.get('scan_only')),
                     'action': action,
                 })
-    print('R53 CATALOG COLLISION ' + tid + ' => ' + json.dumps(owners, ensure_ascii=False, sort_keys=True))
+    # GitHub Windows runners may expose a cp1252 stdout. Keep the diagnostic
+    # ASCII-safe so Russian display names cannot hide the actual collision owner.
+    print('R53 CATALOG COLLISION ' + tid + ' => ' + json.dumps(owners, ensure_ascii=True, sort_keys=True))
 
 (root / 'R53_CATALOG_PROBE.marker').write_text('R53 exact tweak ownership probe completed\n', encoding='utf-8')
 print('R53 catalog ownership probe: OK')
