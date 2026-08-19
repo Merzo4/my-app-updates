@@ -52,7 +52,7 @@ try {
             throw "R52 live updater check failed/configured=false: $($result.Message)"
         }
         if($latest -notmatch [regex]::Escape($ExpectedVersion)){
-            throw "R52 live updater latest version is not $ExpectedVersion: $latest"
+            throw "R52 live updater latest version is not ${ExpectedVersion}: $latest"
         }
         Write-Output ("R52_LIVE_FEED_PASS LATEST=$latest UPDATE_AVAILABLE=$($result.UpdateAvailable)")
     }
