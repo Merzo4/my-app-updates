@@ -1,0 +1,53 @@
+name: Publish MWO R54.1 Exact Green v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/publish-mwo-r54-1-exact-green-v2.yml'
+      - 'optimizer/triggers/r54-1-publish-v2.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download exact green R54.1 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.54.1-SERVICE-CONTROL-HOTFIX
+          path: artifact
+          run-id: 32232868999
+          github-token: ${{ github.token }}
+      - name: Publish exact green R54.1
+        id: publish
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\optimizer\scripts\publish_r54_1_exact_green.ps1 -ArtifactDir '.\artifact'
+      - name: Record publication status
+        if: always()
+        shell: pwsh
+        run: |
+          $status='optimizer/R54_1_PUBLISH_STATUS.json'
+          if(!(Test-Path $status)){@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;error='R54.1 publication v2 did not create status'} | ConvertTo-Json -Compress | Set-Content $status -Encoding UTF8}
+          $saved=Join-Path $env:RUNNER_TEMP 'R54_1_PUBLISH_STATUS.json'
+          Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Copy-Item $saved $status -Force
+          git add $status
+          git diff --cached --quiet
+          if($LASTEXITCODE-ne0){git commit -m "Record R54.1 publish v2 run $env:GITHUB_RUN_ID"; git push origin HEAD:merzo-windows-optimizer}
+          if('${{ steps.publish.outcome }}'-ne'success'){exit 1}
