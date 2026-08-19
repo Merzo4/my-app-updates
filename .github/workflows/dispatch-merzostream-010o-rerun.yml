@@ -1,5 +1,6 @@
 name: Dispatch MerzoStream 0.1.0o rerun
 
+# rerun after exact chunk02 recovery
 on:
   push:
     branches: [main]
