@@ -32,6 +32,35 @@ $patchedV5=$patchedV5.Replace('Text="R53.1"','Text="R54.1"')
 if(($patched.Split($badgeOld).Count-1)-ne1){throw 'R54.1 V5 badge anchor mismatch'}
 $patched=$patched.Replace($badgeOld,$badgeNew)
 
+# R54 wrapper validates its generated R53 scripts before executing them. Those
+# checks must follow the new 54.1 target too; they are runner assertions only.
+$buildCheckOld=@'
+if(-not$patchedV1.Contains("-Version ''0.1.54.0''")){throw 'R54 bridge Build-Production version anchor missing'}
+'@.Trim()
+$buildCheckNew=@'
+if(-not$patchedV1.Contains("-Version ''0.1.54.1''")){throw 'R54.1 Build-Production version anchor missing'}
+'@.Trim()
+if(($patched.Split($buildCheckOld).Count-1)-ne1){throw 'R54.1 R54-wrapper build self-check anchor mismatch'}
+$patched=$patched.Replace($buildCheckOld,$buildCheckNew)
+
+$dllCheckOld=@'
+if(-not$patchedV1.Contains("if($v-ne'0.1.54.0')")){throw 'R54 bridge DLL version gate missing'}
+'@.Trim()
+$dllCheckNew=@'
+if(-not$patchedV1.Contains("if($v-ne'0.1.54.1')")){throw 'R54.1 DLL version gate missing'}
+'@.Trim()
+if(($patched.Split($dllCheckOld).Count-1)-ne1){throw 'R54.1 R54-wrapper DLL self-check anchor mismatch'}
+$patched=$patched.Replace($dllCheckOld,$dllCheckNew)
+
+$v2CheckOld=@'
+if(-not$patchedV2.Contains("'Production R54 · 0.1.54'")){throw 'R54 bridge V2 exact title anchor missing after conversion'}
+'@.Trim()
+$v2CheckNew=@'
+if(-not$patchedV2.Contains("'Production R54.1 · 0.1.54.1'")){throw 'R54.1 V2 exact title anchor missing after conversion'}
+'@.Trim()
+if(($patched.Split($v2CheckOld).Count-1)-ne1){throw 'R54.1 R54-wrapper V2 title self-check anchor mismatch'}
+$patched=$patched.Replace($v2CheckOld,$v2CheckNew)
+
 $distOld="if(`$version-ne'0.1.54.0')"
 $distNew="if(`$version-ne'0.1.54.1')"
 if(($patched.Split($distOld).Count-1)-ne1){throw 'R54.1 outer DLL version anchor mismatch'}
