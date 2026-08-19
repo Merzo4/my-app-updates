@@ -1,0 +1,5 @@
+R53 public OTA + installed R52 -> R53 acceptance
+2026-08-19
+expected-production-run=32213986328
+expected-production-head=57c0894d6db2a42b9ec1949f9dabd37f399ee737
+verify=1
