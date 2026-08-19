@@ -16,6 +16,23 @@ CHUNK_SHA = [
     "4a2ebc1062b558a9aa24406a491a9824ff594c94b5f088356dd6a007f0b987d8",
     "f162d80441fda25ddec971a8ece027b131e26b85e160fec1a22d442321ea3fba",
 ]
+BASE64_ALPHABET = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+
+def repair_single_substitution(raw: bytes, expected_sha: str):
+    """Return (repaired_bytes, pos, old, new) only for an exact SHA match."""
+    data = bytearray(raw)
+    for pos in range(len(data)):
+        old = data[pos]
+        for new in BASE64_ALPHABET:
+            if new == old:
+                continue
+            data[pos] = new
+            if hashlib.sha256(data).hexdigest() == expected_sha:
+                return bytes(data), pos, old, new
+        data[pos] = old
+    return None
+
 
 repo = pathlib.Path(__file__).resolve().parents[2]
 parts_dir = repo / "merzostream" / "ci" / "010o-small-b64"
@@ -28,19 +45,21 @@ for i, chunk in enumerate(chunks):
     expected = CHUNK_SHA[i]
     actual = hashlib.sha256(raw).hexdigest()
     if actual != expected:
-        if i == 2:
-            # Diagnose the one transported chunk using the stronger package-level
-            # checks below. Nothing can be applied unless BOTH the complete XZ SHA
-            # and the decompressed raw patch SHA still match their canonical values.
-            print(f"0.1.0o chunk02 legacy SHA differs: {actual}; validating full package")
-        else:
+        if i != 2:
             raise SystemExit(f"0.1.0o chunk SHA mismatch: {chunk.name} {actual}")
+        print(f"0.1.0o chunk02 SHA differs: {actual}; searching one Base64 substitution")
+        fixed = repair_single_substitution(raw, expected)
+        if fixed is None:
+            raise SystemExit("0.1.0o chunk02 cannot be repaired by one Base64 substitution")
+        raw, pos, old, new = fixed
+        actual = hashlib.sha256(raw).hexdigest()
+        print(f"0.1.0o chunk02 EXACT REPAIR pos={pos} {chr(old)!r}->{chr(new)!r} sha={actual}")
     encoded_parts.append(raw.decode("ascii").strip())
 
-xz = base64.b64decode("".join(encoded_parts))
+xz = base64.b64decode("".join(encoded_parts), validate=True)
 actual_xz = hashlib.sha256(xz).hexdigest()
 if actual_xz != XZ_SHA:
-    raise SystemExit(f"0.1.0o xz SHA mismatch: {actual_xz}")
+    raise SystemExit(f"0.1.0o xz SHA mismatch after chunk verification: {actual_xz}")
 patch = lzma.decompress(xz)
 actual_raw = hashlib.sha256(patch).hexdigest()
 if actual_raw != RAW_SHA:
