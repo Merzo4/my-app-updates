@@ -95,11 +95,11 @@
   ],
   "verifyV2": [
     {
-      "conclusion": "",
+      "conclusion": "failure",
       "createdAt": "2026-08-19T06:42:33Z",
       "databaseId": 32224554254,
       "headSha": "d640ade6743b3fe6d8f1d748412ba4cca1de755f",
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224554254",
       "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
     },
