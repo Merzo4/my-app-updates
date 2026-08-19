@@ -40,7 +40,7 @@ try {
     $st=Get-Content $selftest -Raw
     $ui=Get-Content $xaml -Raw
     foreach($token in @('DefaultDirName={autopf}\Merzo Windows Optimizer','PrivilegesRequired=admin','UsePreviousAppDir=no','WizardStyle=modern','R53 MERZO PRODUCT INSTALLER THEME','MERZO UPDATE · БЕЗОПАСНО ОБНОВЛЯЕМ ФАЙЛЫ')){if(-not$i.Contains($token)){throw "R53 installer contract missing: $token"}}
-    if(-not$i.Contains('AppVersion=0.1.53.1')){throw 'R53 HF1 installer version missing'}
+    if(-not$i.Contains('#define MyAppVersion "0.1.53.1"') -and -not$i.Contains('AppVersion=0.1.53.1')){throw 'R53 HF1 installer version missing'}
     if(-not$m.Contains('requestedExecutionLevel level="asInvoker" uiAccess="false"')){throw 'R53 main shell is not asInvoker'}
     if($m.Contains('requireAdministrator')){throw 'R53 main shell accidentally requires administrator'}
     if(-not$p.Contains('<ApplicationManifest>app.manifest</ApplicationManifest>')){throw 'R53 app project manifest link missing'}
