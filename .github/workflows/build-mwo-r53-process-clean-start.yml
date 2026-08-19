@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -34,9 +34,13 @@ jobs:
         with:
           python-version: '3.13'
       - name: Run complete R53 production gates
+        id: gates
+        continue-on-error: true
         shell: pwsh
         run: .\optimizer\scripts\r53_release_v5.ps1
       - name: Upload verified R53 artifact
+        id: artifact
+        if: steps.gates.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: MerzoWindowsOptimizer-0.1.53-R53-PROCESS-CLEAN-START
@@ -47,3 +51,35 @@ jobs:
             ${{ env.SOURCE_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
             ${{ env.SOURCE_ROOT }}/dist/R53_RELEASE_NOTES.md
           if-no-files-found: error
+      - name: Record current R53 CI status
+        if: always()
+        shell: pwsh
+        env:
+          GATES_OUTCOME: ${{ steps.gates.outcome }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+        run: |
+          $ok = ($env:GATES_OUTCOME -eq 'success' -and $env:ARTIFACT_OUTCOME -eq 'success')
+          $conclusion = if ($ok) { 'success' } else { 'failure' }
+          $payload = @{
+            conclusion = $conclusion
+            createdAt = (Get-Date).ToUniversalTime().ToString('o')
+            databaseId = [long]$env:GITHUB_RUN_ID
+            headSha = $env:GITHUB_SHA
+            status = 'completed'
+            url = "https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            gates = $env:GATES_OUTCOME
+            artifact = $env:ARTIFACT_OUTCOME
+          } | ConvertTo-Json -Compress
+          Set-Content '.\optimizer\R53_CI_STATUS.json' $payload -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R53_CI_STATUS.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Record R53 CI status run $env:GITHUB_RUN_ID"
+            git push origin HEAD:merzo-windows-optimizer
+          }
+      - name: Fail job when R53 is not releasable
+        if: always() && (steps.gates.outcome != 'success' || steps.artifact.outcome != 'success')
+        shell: pwsh
+        run: exit 1
