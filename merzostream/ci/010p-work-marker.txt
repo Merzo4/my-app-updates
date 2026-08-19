@@ -1,0 +1,3 @@
+MerzoStream Suite 0.1.0p cumulative work started 2026-08-19.
+Scope: Chat Core 3.0 send/receive, restore VK user auth path, DonationAlerts Secret Token compatibility.
+Runtime remains Pure .NET.
