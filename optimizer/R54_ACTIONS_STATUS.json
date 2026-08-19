@@ -96,6 +96,33 @@
   "verifyV2": [
     {
       "conclusion": "failure",
+      "createdAt": "2026-08-19T07:02:24Z",
+      "databaseId": 32225990231,
+      "headSha": "ced48cf48e7143296ccf2c54c4e18ef1446c1466",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32225990231",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:51:43Z",
+      "databaseId": 32225208948,
+      "headSha": "0fe77442648ceb3a70c78340662b7ab502826ef2",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32225208948",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:44:19Z",
+      "databaseId": 32224681235,
+      "headSha": "e5055b88f4310801caefda47ed45c325a41ce0ba",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224681235",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
       "createdAt": "2026-08-19T06:42:33Z",
       "databaseId": 32224554254,
       "headSha": "d640ade6743b3fe6d8f1d748412ba4cca1de755f",
@@ -137,33 +164,6 @@
       "headSha": "5f5ff7e04c2dc1e41cd27ece1736111dcb3922ba",
       "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224283573",
-      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
-    },
-    {
-      "conclusion": "failure",
-      "createdAt": "2026-08-19T06:38:21Z",
-      "databaseId": 32224261030,
-      "headSha": "554a7882f5f2c3d95269ac27e4ad5638692d443e",
-      "status": "completed",
-      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224261030",
-      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
-    },
-    {
-      "conclusion": "failure",
-      "createdAt": "2026-08-19T06:38:04Z",
-      "databaseId": 32224241974,
-      "headSha": "0febba6e909a5ac3d20eb68f4a2e792f46be18bd",
-      "status": "completed",
-      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224241974",
-      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
-    },
-    {
-      "conclusion": "failure",
-      "createdAt": "2026-08-19T06:37:29Z",
-      "databaseId": 32224199666,
-      "headSha": "75799e121c223384d4de36a92eabeed624f903b5",
-      "status": "completed",
-      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224199666",
       "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
     }
   ]
