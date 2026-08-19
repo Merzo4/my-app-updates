@@ -1,0 +1,28 @@
+name: Dispatch MerzoStream 0.1.0r RECOVERY R3
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/dispatch-merzostream-010r-recovery-r3.yml']
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch R3 and record run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run trigger-merzostream-010r-recovery-r3.yml --repo "$GITHUB_REPOSITORY" --ref main
+          sleep 8
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow trigger-merzostream-010r-recovery-r3.yml --limit 1 --json databaseId,status,conclusion,headSha,url > current.json
+          content=$(base64 -w0 current.json)
+          path='merzostream/ci/010r-r3-current-run.json'
+          old=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=main" --jq '.sha' 2>/dev/null || true)
+          if [ -n "$old" ]; then gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current 0.1.0r R3 run' -f content="$content" -f branch=main -f sha="$old" >/dev/null; else gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current 0.1.0r R3 run' -f content="$content" -f branch=main >/dev/null; fi
+          cat current.json
