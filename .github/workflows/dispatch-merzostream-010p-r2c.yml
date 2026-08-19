@@ -8,15 +8,25 @@ on:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch final 0.1.0p two-stage build
+      - name: Dispatch and record final 0.1.0p build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run trigger-merzostream-010p-build-r2.yml --repo "$GITHUB_REPOSITORY" --ref main
-          echo '0.1.0p final CI dispatched'
+          sleep 8
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow trigger-merzostream-010p-build-r2.yml --limit 1 --json databaseId,status,conclusion,headSha,url > current.json
+          cat current.json
+          content=$(base64 -w0 current.json)
+          path='merzostream/ci/010p-current-run.json'
+          old=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=main" --jq '.sha' 2>/dev/null || true)
+          if [ -n "$old" ]; then
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current MerzoStream 0.1.0p CI run' -f content="$content" -f branch=main -f sha="$old" >/dev/null
+          else
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record current MerzoStream 0.1.0p CI run' -f content="$content" -f branch=main >/dev/null
+          fi
