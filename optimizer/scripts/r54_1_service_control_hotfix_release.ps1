@@ -50,14 +50,8 @@ if(-not$patchedV1.Contains("if(`$v-ne'0.1.54.1')")){throw 'R54.1 DLL version gat
 if(($patched.Split($dllCheckOld).Count-1)-ne1){throw 'R54.1 R54-wrapper DLL self-check anchor mismatch'}
 $patched=$patched.Replace($dllCheckOld,$dllCheckNew)
 
-$v2CheckOld=@'
-if(-not$patchedV2.Contains("'Production R54 · 0.1.54'")){throw 'R54 bridge V2 exact title anchor missing after conversion'}
-'@.Trim()
-$v2CheckNew=@'
-if(-not$patchedV2.Contains("'Production R54.1 · 0.1.54.1'")){throw 'R54.1 V2 exact title anchor missing after conversion'}
-'@.Trim()
-if(($patched.Split($v2CheckOld).Count-1)-ne1){throw 'R54.1 R54-wrapper V2 title self-check anchor mismatch'}
-$patched=$patched.Replace($v2CheckOld,$v2CheckNew)
+# Keep R54 V2's own intermediate identity self-check unchanged. It validates
+# the generated pre-hotfix wrapper before V5 executes the R54.1 patch chain.
 
 $distOld="if(`$version-ne'0.1.54.0')"
 $distNew="if(`$version-ne'0.1.54.1')"
