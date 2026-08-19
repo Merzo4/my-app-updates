@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$statusPath = Join-Path $PSScriptRoot '..\R53_OTA_ACCEPTANCE_STATUS.json'
+$statusPath = Join-Path (Split-Path $PSScriptRoot -Parent) 'R53_OTA_ACCEPTANCE_STATUS.json'
 $status = [ordered]@{
     conclusion = 'failure'
     createdAt = (Get-Date).ToUniversalTime().ToString('o')
@@ -38,8 +38,8 @@ function Invoke-InnoInstaller {
     $p = Start-Process $Setup -ArgumentList $Arguments -PassThru
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while (!$p.HasExited -and (Get-Date) -lt $deadline) {
-        # Some inherited Inno packages launch the app from [Run] and wait for it.
-        # CI is non-interactive, so close that child and let Setup finish normally.
+        # Inherited Inno packages can launch the app from [Run] and wait for it.
+        # CI closes only the app child, never Setup itself.
         Stop-MerzoApp
         Start-Sleep -Milliseconds 750
         $p.Refresh()
@@ -50,6 +50,20 @@ function Invoke-InnoInstaller {
         throw "Installer timeout after $TimeoutSeconds seconds: $Setup"
     }
     if ($p.ExitCode -ne 0) { throw "Installer exit $($p.ExitCode): $Setup" }
+
+    # Inno can hand work to a temporary child executable after the original
+    # process exits. Do not inspect the installation until all Setup children stop.
+    $childDeadline = (Get-Date).AddSeconds(90)
+    while ((Get-Date) -lt $childDeadline) {
+        Stop-MerzoApp
+        $children = Get-Process -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProcessName -like 'MerzoWindowsOptimizerSetup*' }
+        if (!$children) { break }
+        Start-Sleep -Milliseconds 750
+    }
+    $left = Get-Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProcessName -like 'MerzoWindowsOptimizerSetup*' }
+    if ($left) { throw 'Installer child process did not finish in acceptance window' }
     Stop-MerzoApp
 }
 
@@ -92,7 +106,6 @@ function Find-MerzoExe {
         if ($path -and (Test-Path $path)) { return Get-Item $path }
     }
 
-    # Last-resort search is limited to Merzo-named first-level folders, not all AppData.
     foreach ($base in @($env:LOCALAPPDATA, $env:ProgramFiles, ${env:ProgramFiles(x86)})) {
         if (!$base -or !(Test-Path $base)) { continue }
         foreach ($dir in (Get-ChildItem $base -Directory -Filter 'Merzo*' -ErrorAction SilentlyContinue)) {
@@ -102,6 +115,60 @@ function Find-MerzoExe {
         }
     }
     return $null
+}
+
+function Invoke-R52UpdateFeedProbe {
+    param([Parameter(Mandatory=$true)][string]$WindowsDll)
+
+    # The real R53 installer uses /CLOSEAPPLICATIONS. Therefore never LoadFrom
+    # an installed Merzo DLL in this parent process: Restart Manager would
+    # correctly close the CI shell because it holds a file being replaced.
+    $probe = Join-Path $env:TEMP ("mwo-r52-feed-probe-{0}.ps1" -f [guid]::NewGuid().ToString('N'))
+    @'
+param([Parameter(Mandatory=$true)][string]$Dll)
+$ErrorActionPreference='Stop'
+$dir=Split-Path $Dll -Parent
+Push-Location $dir
+try {
+    $asm=[Reflection.Assembly]::LoadFrom($Dll)
+    $type=$asm.GetTypes() | Where-Object {$_.FullName -match 'GitHubUpdateService$'} | Select-Object -First 1
+    if(!$type){throw 'GitHubUpdateService type missing'}
+    Write-Output ('TYPE=' + $type.FullName)
+    Write-Output ('CTORS=' + (($type.GetConstructors() | ForEach-Object {$_.ToString()}) -join ' | '))
+    Write-Output ('METHODS=' + (($type.GetMethods([Reflection.BindingFlags]'Public,Instance,Static,DeclaredOnly') | ForEach-Object {$_.ToString()}) -join ' | '))
+    $ctor=$type.GetConstructor([type[]]@([string],[string],[System.Net.Http.HttpMessageHandler]))
+    if(!$ctor){throw 'Expected R52 updater constructor missing'}
+    $handler=[System.Net.Http.HttpClientHandler]::new()
+    $svc=$ctor.Invoke(@('Merzo4','my-app-updates',$handler))
+    try {
+        $method=$type.GetMethod('CheckAsync',[type[]]@([System.Threading.CancellationToken]))
+        if(!$method){throw 'R52 CheckAsync(CancellationToken) missing'}
+        $task=$method.Invoke($svc,@([System.Threading.CancellationToken]::None))
+        $task.GetAwaiter().GetResult() | Out-Null
+        $result=$task.Result
+        Write-Output ('CHECK=' + ($result | ConvertTo-Json -Depth 10 -Compress))
+    }
+    finally {
+        if($svc -is [IDisposable]){$svc.Dispose()}
+        $handler.Dispose()
+    }
+}
+finally { Pop-Location }
+'@ | Set-Content $probe -Encoding UTF8
+
+    try {
+        $lines = & pwsh -NoLogo -NoProfile -File $probe -Dll $WindowsDll 2>&1
+        $exit = $LASTEXITCODE
+        $text = ($lines | ForEach-Object { [string]$_ }) -join "`n"
+        Write-Host $text
+        if ($exit -ne 0) { throw "R52 updater feed probe exit $exit" }
+        if ($text -notmatch 'CHECK=') { throw 'R52 updater CheckAsync did not return a result' }
+        if ($text -notmatch '0\.1\.53') { throw "R52 updater did not see R53 in live feed: $text" }
+        return $text
+    }
+    finally {
+        Remove-Item $probe -Force -ErrorAction SilentlyContinue
+    }
 }
 
 try {
@@ -120,9 +187,9 @@ try {
     gh release download mwo-v0.1.52 --repo $repo --dir public-r52 --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe'
     gh release download mwo-v0.1.53 --repo $repo --dir public-r53 --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe' --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'
 
-    $r52Setup = Resolve-Path 'public-r52/MerzoWindowsOptimizerSetup-win-x64.exe'
-    $r53Setup = Resolve-Path 'public-r53/MerzoWindowsOptimizerSetup-win-x64.exe'
-    $r53Sidecar = Resolve-Path 'public-r53/MerzoWindowsOptimizerSetup-win-x64.exe.sha256'
+    $r52Setup = (Resolve-Path 'public-r52/MerzoWindowsOptimizerSetup-win-x64.exe').Path
+    $r53Setup = (Resolve-Path 'public-r53/MerzoWindowsOptimizerSetup-win-x64.exe').Path
+    $r53Sidecar = (Resolve-Path 'public-r53/MerzoWindowsOptimizerSetup-win-x64.exe.sha256').Path
     $sha = (Get-FileHash $r53Setup -Algorithm SHA256).Hash.ToLowerInvariant()
     if (-not (Get-Content $r53Sidecar -Raw).ToLowerInvariant().Contains($sha)) {
         throw 'Public R53 installer SHA sidecar mismatch'
@@ -142,28 +209,23 @@ try {
     $status.r52Baseline = 'success'
     Write-Host "R52_BASELINE_PASS path=$($r52Exe.FullName) version=$r52Version"
 
-    $winDll = Join-Path $r52Exe.DirectoryName 'MerzoOptimizer.Windows.dll'
-    if (!(Test-Path $winDll)) { throw 'R52 updater assembly missing' }
-    $asm = [Reflection.Assembly]::LoadFrom($winDll)
-    $type = $asm.GetTypes() | Where-Object { $_.FullName -match 'GitHubUpdateService$' } | Select-Object -First 1
-    if (!$type) { throw 'R52 GitHubUpdateService type missing' }
-    $ctors = ($type.GetConstructors() | ForEach-Object { $_.ToString() }) -join ' | '
-    $methods = ($type.GetMethods([Reflection.BindingFlags]'Public,Instance,Static,DeclaredOnly') | ForEach-Object { $_.ToString() }) -join ' | '
-    Write-Host "R52_UPDATER_TYPE=$($type.FullName)"
-    Write-Host "R52_UPDATER_CTORS=$ctors"
-    Write-Host "R52_UPDATER_METHODS=$methods"
-
     $updateCfg = Join-Path $r52Exe.DirectoryName 'data\update_settings.json'
     if (Test-Path $updateCfg) { Write-Host ('R52_UPDATE_SETTINGS=' + (Get-Content $updateCfg -Raw)) }
-    $bytes = [IO.File]::ReadAllBytes($winDll)
-    $ascii = [Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [Text.Encoding]::Unicode.GetString($bytes)
-    if (($ascii -notmatch 'Merzo4') -and ($unicode -notmatch 'Merzo4')) { throw 'R52 updater owner contract missing' }
-    if (($ascii -notmatch 'my-app-updates') -and ($unicode -notmatch 'my-app-updates')) { throw 'R52 updater repository contract missing' }
-    if ([version]'0.1.53' -le [version]'0.1.52') { throw 'Version comparison sanity failure' }
+    $winDll = Join-Path $r52Exe.DirectoryName 'MerzoOptimizer.Windows.dll'
+    if (!(Test-Path $winDll)) { throw 'R52 updater assembly missing' }
+    $feedText = Invoke-R52UpdateFeedProbe -WindowsDll $winDll
+    if ($feedText -notmatch 'Merzo4' -or $feedText -notmatch 'my-app-updates') {
+        # Constructor output does not contain values, so retain config/binary ownership proof below.
+        $bytes = [IO.File]::ReadAllBytes($winDll)
+        $ascii = [Text.Encoding]::ASCII.GetString($bytes)
+        $unicode = [Text.Encoding]::Unicode.GetString($bytes)
+        if (($ascii -notmatch 'Merzo4') -and ($unicode -notmatch 'Merzo4')) { throw 'R52 updater owner contract missing' }
+        if (($ascii -notmatch 'my-app-updates') -and ($unicode -notmatch 'my-app-updates')) { throw 'R52 updater repository contract missing' }
+    }
     $status.r52FeedContract = 'success'
-    Write-Host 'R52_UPDATE_FEED_CONTRACT_PASS latest=mwo-v0.1.53'
+    Write-Host 'R52_LIVE_CHECKASYNC_SEES_R53_PASS'
 
+    # Child feed-probe is gone here, so no CI process holds Merzo assemblies.
     Invoke-InnoInstaller -Setup $r53Setup -Arguments '/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-'
     $canonical = Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
     if (!(Test-Path $canonical)) { throw "R53 canonical Program Files executable missing: $canonical" }
@@ -198,6 +260,6 @@ try {
 catch {
     $status.error = $_.Exception.Message
     Save-Status
-    Write-Error $_
+    Write-Host "::error::$($_.Exception.Message)"
     exit 1
 }
