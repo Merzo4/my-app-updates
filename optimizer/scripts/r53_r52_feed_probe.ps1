@@ -1,11 +1,13 @@
 param(
     [Parameter(Mandatory=$true)][string]$Dll,
-    [Parameter(Mandatory=$true)][string]$SettingsPath,
-    [Parameter(Mandatory=$true)][string]$UpdateDirectory,
+    [string]$SettingsPath = '',
+    [string]$UpdateDirectory = '',
     [string]$ExpectedVersion = '0.1.53'
 )
 $ErrorActionPreference='Stop'
 $dir=Split-Path $Dll -Parent
+if([string]::IsNullOrWhiteSpace($SettingsPath)){$SettingsPath=Join-Path $dir 'data\update_settings.json'}
+if([string]::IsNullOrWhiteSpace($UpdateDirectory)){$UpdateDirectory=Join-Path $env:TEMP 'MerzoWindowsOptimizer-R52-UpdateProbe'}
 Push-Location $dir
 try {
     if(!(Test-Path $SettingsPath)){throw "R52 settings path missing: $SettingsPath"}
@@ -23,6 +25,7 @@ try {
     }
     Write-Output ('TYPE=' + $type.FullName)
     Write-Output ('CTOR_PARAMS=' + (($params | ForEach-Object {"$($_.Position):$($_.Name):$($_.ParameterType.FullName)"}) -join ' | '))
+    Write-Output ("PATHS=settings:$SettingsPath updates:$UpdateDirectory")
 
     $handler=[System.Net.Http.HttpClientHandler]::new()
     $svc=$ctor.Invoke(@($SettingsPath,$UpdateDirectory,$handler))
