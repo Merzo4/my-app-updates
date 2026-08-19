@@ -71,7 +71,7 @@ jobs:
           $setup='r52-public/MerzoWindowsOptimizerSetup-win-x64.exe'
           if(!(Test-Path $setup)){throw 'R52 public installer missing'}
           $p=Start-Process $setup -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -PassThru -Wait
-          if($p.ExitCode-ne0){throw "R52 installer exit $($p.ExitCode)"}
+          if($p.ExitCode -ne 0){throw "R52 installer exit $($p.ExitCode)"}
           Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
           $locations=@()
@@ -109,7 +109,6 @@ jobs:
           Write-Host ('R52_UPDATER_CTORS=' + ($ctors -join ' | '))
           Write-Host ('R52_UPDATER_METHODS=' + ($methods -join ' | '))
 
-          # R52 OTA implementation must still target this repository and GitHub release feed.
           $bytes=[IO.File]::ReadAllBytes($winDll)
           $ascii=[Text.Encoding]::ASCII.GetString($bytes)
           $unicode=[Text.Encoding]::Unicode.GetString($bytes)
@@ -127,13 +126,12 @@ jobs:
           if([string]::IsNullOrWhiteSpace($env:R52_EXE) -or !(Test-Path $env:R52_EXE)){throw 'R52 baseline path unavailable'}
           Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           $p=Start-Process 'r53-public/MerzoWindowsOptimizerSetup-win-x64.exe' -ArgumentList '/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-' -PassThru -Wait
-          if($p.ExitCode-ne0){throw "R53 OTA installer exit $($p.ExitCode)"}
+          if($p.ExitCode -ne 0){throw "R53 OTA installer exit $($p.ExitCode)"}
           Start-Sleep -Seconds 4
           $canonical=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
           if(!(Test-Path $canonical)){throw "R53 canonical Program Files executable missing: $canonical"}
           $v=[Diagnostics.FileVersionInfo]::GetVersionInfo($canonical).FileVersion
           if($v -ne '0.1.53.0'){throw "R53 installed FileVersion mismatch: $v"}
-          $manifestPath=Join-Path (Split-Path $canonical) 'MerzoWindowsOptimizer.exe.manifest'
           Write-Host "R53_CANONICAL_EXE=$canonical"
           Write-Host "R53_INSTALLED_VERSION=$v"
           if($env:R52_EXE -ne $canonical -and (Test-Path $env:R52_EXE)){
@@ -151,8 +149,9 @@ jobs:
           UPGRADE_OUTCOME: ${{ steps.upgrade.outcome }}
         run: |
           $ok=($env:PUBLIC_OUTCOME -eq 'success' -and $env:R52_OUTCOME -eq 'success' -and $env:UPGRADE_OUTCOME -eq 'success')
+          $conclusion=if($ok){'success'}else{'failure'}
           $payload=@{
-            conclusion=if($ok){'success'}else{'failure'}
+            conclusion=$conclusion
             createdAt=(Get-Date).ToUniversalTime().ToString('o')
             databaseId=[long]$env:GITHUB_RUN_ID
             headSha=$env:GITHUB_SHA
@@ -167,8 +166,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add optimizer/R53_OTA_STATUS.json
           git diff --cached --quiet
-          if($LASTEXITCODE-ne0){
+          if($LASTEXITCODE -ne 0){
             git commit -m "Record R53 OTA acceptance run $env:GITHUB_RUN_ID"
+            git pull --rebase origin merzo-windows-optimizer
             git push origin HEAD:merzo-windows-optimizer
           }
           if(!$ok){exit 1}
