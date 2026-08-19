@@ -12,7 +12,12 @@ $src=$src.Replace('__R53_PREV__','0.1.52')
 $src=$src.Replace('Production R52','Production R53')
 $src=$src.Replace('R52_RELEASE_NOTES.md','R53_RELEASE_NOTES.md')
 $src=$src.Replace('R52 GAME WOW + UI RELIABILITY','R53 PROCESS + CLEAN START')
-$src=$src.Replace('90–120','80–100')
+
+# Normalize the inherited R52 process target BEFORE the old script is written
+# through generated PowerShell/UTF-8 layers. Match any single dash/mojibake
+# separator instead of depending on one Unicode code point. This prevents the
+# legacy source gate from turning 90-120 into 90�120 on hosted runners.
+$src=[regex]::Replace($src,'90[^0-9\r\n]{1,4}120','80-100')
 
 # R46 hardened ElevatedOperationBroker from one string to three string arguments.
 # R52's read-only probe predates that constructor. It never executes an elevated
@@ -55,9 +60,9 @@ items=json.loads((r/'data/tweaks.json').read_text(encoding='utf-8-sig'))
 services=json.loads((r/'data/service_rules.json').read_text(encoding='utf-8-sig'))
 byid={z.get('id'):z for z in items}
 
-for t in ['Production R53 · 0.1.53','R53 PROCESS + CLEAN START','80–100','60–80','BuildAdvancedScroll','SidebarNavScroll']:
+for t in ['Production R53 · 0.1.53','R53 PROCESS + CLEAN START','80-100','60-80','BuildAdvancedScroll','SidebarNavScroll']:
     assert t in x,t
-for t in ['processTargetText','80–100','60–80','gamingDebloatRemoved','processCountBefore','processCountAfter','WalletService','TrkWks','WSearch','SysMain']:
+for t in ['processTargetText','80-100','60-80','gamingDebloatRemoved','processCountBefore','processCountAfter','WalletService','TrkWks','WSearch','SysMain']:
     assert t in vm,t
 assert '\\"готов\\"' not in vm, 'escaped quote regression returned to generated C#'
 for tid in ['r53.start.hide_recent_documents','r53.start.disable_web_search_suggestions','r53.process.service_host_density']:
@@ -121,7 +126,7 @@ $notes=Join-Path $env:SOURCE_ROOT 'dist\R53_RELEASE_NOTES.md'
 @'
 # R53 PROCESS + CLEAN START
 
-- GAME: целевой диапазон после перезагрузки и 2–3 минут простоя — 80–100 процессов. EXTREME: 60–80. Это ориентиры, а не искусственно подделываемые числа.
+- GAME: целевой диапазон после перезагрузки и 2–3 минут простоя — 80-100 процессов. EXTREME: 60-80. Это ориентиры, а не искусственно подделываемые числа.
 - Добавлен Process Density: часть Service Host снова группируется, что реально уменьшает количество отдельных svchost. Это не выдаётся за самостоятельный FPS-твик и может снижать изоляцию служб; Snapshot/Undo обязателен.
 - Чистый Пуск усилен: недавние документы и web suggestions отключаются; consumer recommendations/silent installs остаются выключенными. Пользовательские закрепления программа не стирает.
 - GAME Debloat реально удаляет allow-listed consumer Appx текущего пользователя. Добавлены Outlook(new), consumer Teams, Phone Link, People/Maps/Cortana, Dev Home, Power Automate Desktop и Quick Assist при наличии.
