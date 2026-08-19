@@ -98,10 +98,28 @@
   "verifyV3": [
     {
       "conclusion": "",
+      "createdAt": "2026-08-19T04:24:16Z",
+      "databaseId": 32215635056,
+      "headSha": "ec5ccb54e65ec3d354463b7ebf752c0a9aa40101",
+      "status": "in_progress",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32215635056",
+      "workflowName": "Verify MWO R53 Public OTA v3"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T04:23:59Z",
+      "databaseId": 32215618205,
+      "headSha": "c7a94326ef368a7ee2a2380da2abb6cec80ef8a4",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32215618205",
+      "workflowName": "Verify MWO R53 Public OTA v3"
+    },
+    {
+      "conclusion": "failure",
       "createdAt": "2026-08-19T04:21:29Z",
       "databaseId": 32215468031,
       "headSha": "d3be04f0ecb516d99c3ac7b37f902991e3daf4f0",
-      "status": "in_progress",
+      "status": "completed",
       "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32215468031",
       "workflowName": "Verify MWO R53 Public OTA v3"
     },
