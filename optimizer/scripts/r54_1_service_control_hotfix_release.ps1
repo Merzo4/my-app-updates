@@ -50,9 +50,8 @@ if(-not$patchedV1.Contains("if(`$v-ne'0.1.54.1')")){throw 'R54.1 DLL version gat
 if(($patched.Split($dllCheckOld).Count-1)-ne1){throw 'R54.1 R54-wrapper DLL self-check anchor mismatch'}
 $patched=$patched.Replace($dllCheckOld,$dllCheckNew)
 
-# Keep R54 V2's own intermediate identity self-check unchanged. It validates
-# the generated pre-hotfix wrapper before V5 executes the R54.1 patch chain.
-
+# R54 V2's intermediate identity gate intentionally stays R54. The R54.1
+# product patch is executed later in V5 and the final outer gates require 54.1.
 $distOld="if(`$version-ne'0.1.54.0')"
 $distNew="if(`$version-ne'0.1.54.1')"
 if(($patched.Split($distOld).Count-1)-ne1){throw 'R54.1 outer DLL version anchor mismatch'}
@@ -92,20 +91,34 @@ try {
     if([string]::IsNullOrWhiteSpace($env:SOURCE_ROOT)){throw 'R54.1 SOURCE_ROOT missing'}
     $root=$env:SOURCE_ROOT
 
-    $svc=Join-Path $root 'src\MerzoOptimizer.Windows\Services\WindowsServiceAuditService.cs'
+    $auditPath=Join-Path $root 'src\MerzoOptimizer.Windows\Services\WindowsServiceAuditService.cs'
+    $restorePath=Join-Path $root 'src\MerzoOptimizer.Windows\Restore\WindowsRestoreService.cs'
+    $helperPath=Join-Path $root 'src\MerzoOptimizer.Windows\Services\WindowsServiceStartTypeManager.cs'
     $xaml=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'
     $iss=Join-Path $root 'installer\MerzoWindowsOptimizer.iss'
-    foreach($p in @($svc,$xaml,$iss)){if(!(Test-Path $p)){throw "R54.1 final source missing: $p"}}
-    $s=Get-Content $svc -Raw
+    foreach($p in @($auditPath,$restorePath,$helperPath,$xaml,$iss)){if(!(Test-Path $p)){throw "R54.1 final source missing: $p"}}
+    $audit=Get-Content $auditPath -Raw
+    $restore=Get-Content $restorePath -Raw
+    $helper=Get-Content $helperPath -Raw
+    $combined=$audit+"`n"+$restore+"`n"+$helper
     $ui=Get-Content $xaml -Raw
     $i=Get-Content $iss -Raw
 
-    foreach($token in @('SetServiceStartTypeViaScm(item.ServiceName, 4);','SetServiceStartTypeViaScm(state.ServiceName, state.StartValue);','ChangeServiceConfig(','OpenSCManager(','OpenService(','ServiceChangeConfig = 0x0002')){
-        if(-not$s.Contains($token)){throw "R54.1 SCM contract missing: $token"}
+    foreach($token in @(
+        'WindowsServiceStartTypeManager.SetStartType(item.ServiceName, 4);',
+        'WindowsServiceStartTypeManager.SetStartType(state.ServiceName, state.StartValue);',
+        'ChangeServiceConfig(',
+        'OpenSCManager(',
+        'OpenService(',
+        'ServiceChangeConfig = 0x0002'
+    )){
+        if(-not$combined.Contains($token)){throw "R54.1 SCM contract missing: $token"}
     }
     foreach($bad in @('key.SetValue("Start", 4','key.SetValue("Start", state.StartValue')){
-        if($s.Contains($bad)){throw "R54.1 direct service Start registry write remains: $bad"}
+        if($audit.Contains($bad) -or $restore.Contains($bad)){throw "R54.1 direct service Start registry write remains: $bad"}
     }
+    if($audit -match 'CurrentControlSet\\Services.*writable:\s*true'){throw 'R54.1 writable service registry apply path remains'}
+    if($restore -match 'CurrentControlSet\\Services.*writable:\s*true'){throw 'R54.1 writable service registry restore path remains'}
     if(!(Test-Path (Join-Path $root 'R54_1_SERVICE_CONTROL_HOTFIX.marker'))){throw 'R54.1 service hotfix marker missing'}
     if(-not$ui.Contains('Production R54.1 · 0.1.54.1') -or -not$ui.Contains('Text="R54.1"')){throw 'R54.1 visible identity missing'}
     if(-not$i.Contains('#define MyAppVersion "0.1.54.1"') -and -not$i.Contains('AppVersion=0.1.54.1')){throw 'R54.1 installer version missing'}
@@ -123,11 +136,11 @@ try {
 
 ## 0.1.54.1 — SERVICE CONTROL HOTFIX
 
-- Исправлен следующий фактический откат GAME: Distributed Link Tracking Client мог вернуть `Requested registry access is not allowed`.
-- Причина: применение и Undo меняли `HKLM\SYSTEM\CurrentControlSet\Services\<service>\Start` прямой записью реестра. Некоторые службы защищают этот ключ отдельным ACL даже для администратора.
-- Изменение типа запуска и восстановление теперь выполняются через штатный Windows Service Control Manager (`ChangeServiceConfig`). Прямой writable-доступ к `Services\...\Start` из service execution path удалён.
-- Snapshot/Undo, allow-list служб и запрет принудительного запуска восстановленной службы сохранены.
-- R54 updater используется как первая проверка доставки четырёхчастного hotfix `0.1.54.1` без обрезания revision.
+- Исправлен фактический откат GAME на `Distributed Link Tracking Client`: `Requested registry access is not allowed`.
+- Применение и snapshot Undo больше не записывают `HKLM\SYSTEM\CurrentControlSet\Services\<service>\Start` напрямую.
+- Оба направления используют один штатный Windows Service Control Manager helper (`OpenSCManager` + `OpenService` + `ChangeServiceConfig`).
+- Snapshot/Undo, service allow-list и запрет принудительного запуска восстановленной службы сохранены.
+- R54 updater используется для доставки четырёхчастного hotfix `0.1.54.1` без обрезания revision.
 '@ | Add-Content $notes -Encoding UTF8
     Write-Host 'R54_1_SERVICE_CONTROL_ALL_GATES_PASS'
 }
