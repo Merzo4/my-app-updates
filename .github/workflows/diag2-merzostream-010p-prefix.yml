@@ -1,0 +1,43 @@
+name: Compare MerzoStream 0.1.0p prefix
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/diag2-merzostream-010p-prefix.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: merzostream-010p-release
+          fetch-depth: 0
+      - name: Compare
+        shell: python
+        run: |
+          import hashlib,json,pathlib
+          r=pathlib.Path('.')
+          old0=(r/'merzostream/ci/010p-full-b64-r2/chunk00.txt').read_text(encoding='ascii').strip()
+          prefix=''.join((r/f'merzostream/ci/010p-transport6k/chunk{i:02d}.txt').read_text(encoding='ascii').strip() for i in range(4))
+          target='8625aa715465c35c6af07db878c41d23dbb3609abfe5c1e1c436aaec289e8754'
+          new0=prefix[:len(old0)]
+          cp=0
+          for a,b in zip(old0,new0):
+            if a!=b: break
+            cp+=1
+          mism=[i for i,(a,b) in enumerate(zip(old0,new0)) if a!=b]
+          d={'old0_len':len(old0),'new0_len':len(new0),'old0_sha':hashlib.sha256(old0.encode()).hexdigest(),'new0_sha':hashlib.sha256(new0.encode()).hexdigest(),'target_sha':target,'new0_matches_target':hashlib.sha256(new0.encode()).hexdigest()==target,'common_prefix':cp,'mismatch_count':len(mism),'first_mismatch_positions':mism[:40]}
+          pathlib.Path('010p-prefix-diagnostic.json').write_text(json.dumps(d,indent=2),encoding='utf-8')
+          print(json.dumps(d,indent=2))
+      - name: Record
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          content=$(base64 -w0 010p-prefix-diagnostic.json); path='merzostream/ci/010p-prefix-diagnostic.json'; old=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=main" --jq '.sha' 2>/dev/null || true)
+          if [ -n "$old" ]; then gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0p prefix diagnostic' -f content="$content" -f branch=main -f sha="$old" >/dev/null; else gh api --method PUT "repos/$GITHUB_REPOSITORY/contents/$path" -f message='Record 0.1.0p prefix diagnostic' -f content="$content" -f branch=main >/dev/null; fi
