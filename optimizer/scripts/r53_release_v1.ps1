@@ -1,6 +1,18 @@
 $ErrorActionPreference='Stop'
 $src=Get-Content '.\optimizer\scripts\r52_game_release_v2.ps1' -Raw
 
+# The R52 wrapper carries two historical readability tokens through another
+# generated PowerShell layer. Replace them while this source is still pristine
+# UTF-8, before any version promotion can turn the middle-dot into mojibake.
+$nestedReadabilityOld='$src=$src.Replace("''Production R51 · 0.1.51''","''Production R52 · 0.1.52''")'
+$nestedReadabilityNew='$src=$src.Replace("''Production R51 · 0.1.51''","''Production R53.1''")'
+if(($src.Split($nestedReadabilityOld).Count-1)-ne1){throw 'R53 HF1 nested R51 readability anchor mismatch'}
+$src=$src.Replace($nestedReadabilityOld,$nestedReadabilityNew)
+$r52ReadabilityOld="'Production R52 · 0.1.52'"
+$r52ReadabilityNew="'Production R53.1'"
+if(($src.Split($r52ReadabilityOld).Count-1)-ne1){throw 'R53 HF1 outer R52 readability anchor mismatch'}
+$src=$src.Replace($r52ReadabilityOld,$r52ReadabilityNew)
+
 # R53 builds on the complete R51 pipeline + R52 window/scroll + corrected GAME WOW
 # patch, then adds the R53 process/Clean Start layer before any build/test step.
 $prev='<AssemblyVersion>0.1.51.0</AssemblyVersion><FileVersion>0.1.51.0</FileVersion><InformationalVersion>0.1.51</InformationalVersion>'
@@ -16,10 +28,6 @@ $src=$src.Replace('0.1.52','0.1.53')
 # placeholder is still protected, so OTA smoke remains exactly 0.1.52.0.
 $src=$src.Replace('0.1.53.0','0.1.53.1')
 $src=$src.Replace("'Production R53 · 0.1.53'","'Production R53.1 · 0.1.53.1'")
-# Nested historical PowerShell layers can corrupt the middle-dot glyph. The old
-# R51/R52 readability gate only needs a stable product identity token; final R53
-# gates below still validate the complete Unicode title/version exactly.
-$src=[regex]::Replace($src,"'Production R53[^'\r\n]*0\.1\.53(?:\.1)?'","'Production R53.1'")
 
 # The deepest R50 step later reads pristine R49 and performs the actual
 # 0.1.49 -> 0.1.53 promotion. Extend that generated replacement with a second,
@@ -58,9 +66,6 @@ $new="'r52_window_scroll_reliability.py','r52_game_wow_debloat_v3.py','r53_proce
 if(($src.Split($old).Count-1)-ne1){throw 'R53 patch-chain anchor mismatch'}
 $src=$src.Replace($old,$new)
 
-# R52/R51 keep their own marker checks. R53 has an explicit post-build marker
-# gate below, avoiding a brittle textual dependency on the inherited marker list.
-
 # Keep internal gate names unique so logs are easy to audit.
 $src=$src.Replace('R52_V2_GAME_UI_SOURCE_PASS','R53_BASE_GAME_UI_SOURCE_PASS')
 $src=$src.Replace('R52_V2_MAXIMIZE_SCROLL_PASS','R53_MAXIMIZE_SCROLL_PASS')
@@ -85,8 +90,6 @@ items=json.loads((r/'data/tweaks.json').read_text(encoding='utf-8-sig'))
 services=json.loads((r/'data/service_rules.json').read_text(encoding='utf-8-sig'))
 byid={z.get('id'):z for z in items}
 
-# UI identity/layout belongs in XAML. Process target text is runtime/reporting
-# state and is validated in the ViewModel plus the dedicated R53 ASCII gate.
 for t in ['Production R53.1 · 0.1.53.1','R53 PROCESS + CLEAN START','BuildAdvancedScroll','SidebarNavScroll']:
     assert t in x,t
 for t in ['processTargetText','80-100','60-80','gamingDebloatRemoved','processCountBefore','processCountAfter','WalletService','TrkWks','WSearch','SysMain']:
@@ -99,17 +102,13 @@ assert pd.get('risk')=='Advanced' and pd.get('requires_restart') is True
 assert {'merzo_game','merzo_extreme'} <= set(pd.get('profile_tags') or [])
 a=pd['registry_actions'][0]
 assert a['hive']=='LocalMachine' and a['value_name']=='SvcHostSplitThresholdInKB' and a['integer_value']==67108864
-
 svc={str(s.get('service_name','')).lower():s for s in services}
 for name in ['walletservice','trkwks','lfsvc','wmpnetworksvc','wsearch','sysmain']:
     assert name in svc,name
-
 for token in ['Microsoft.PowerAutomateDesktop','MicrosoftCorporationII.QuickAssist','XboxOptionalTargets','Microsoft.GamingApp','Microsoft.XboxApp']:
     assert token in g,token
 for token in ['$hasXbox','$xboxOptional','Microsoft.XboxGamingOverlay','Microsoft.PowerAutomateDesktop','Microsoft.WindowsSoundRecorder','Microsoft.Todos']:
     assert token in h,token
-
-# Never allow public GAME/EXTREME to cross critical boundaries.
 for forbidden in ['Microsoft.WindowsStore','Microsoft.WindowsCalculator','Microsoft.WindowsNotepad','Microsoft.Paint','Microsoft.Windows.Photos','Microsoft.ScreenSketch','Microsoft.SecHealthUI','Microsoft.DesktopAppInstaller']:
     assert forbidden.lower() not in h.lower(),forbidden
 for forbidden in ['Remove-AppxProvisionedPackage','-AllUsers']:
@@ -123,7 +122,6 @@ print('R53_PROCESS_START_DEBLOAT_SOURCE_PASS')
 '@ | python -
 if($LASTEXITCODE-ne0){throw 'R53 source/security gate failed'}
 
-# Packaged data must contain the new public behavior, not only generated source.
 $portable=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
 if(!(Test-Path $portable)){throw 'R53 portable missing'}
 $check=Join-Path $env:RUNNER_TEMP 'r53_portable_check'
@@ -141,7 +139,6 @@ print('R53_PACKAGED_PROCESS_START_PASS')
 '@ | python -
 if($LASTEXITCODE-ne0){throw 'R53 packaged data gate failed'}
 
-# Re-check exact finished binary version.
 $dist=Join-Path $env:SOURCE_ROOT 'dist\app'
 foreach($n in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
     $p=Join-Path $dist $n
