@@ -15,34 +15,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Wait for R53 production run
+        with:
+          fetch-depth: 0
+      - name: Capture R53 production, publish and acceptance runs
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          for i in $(seq 1 90); do
-            row=$(gh run list --workflow build-mwo-r53-process-clean-start.yml --branch merzo-windows-optimizer --limit 1 --json databaseId,status,conclusion,headSha,createdAt,url | jq -c '.[0] // empty')
-            if [ -n "$row" ]; then
-              status=$(echo "$row" | jq -r '.status')
-              if [ "$status" = "completed" ]; then
-                echo "$row" > optimizer/R53_CI_STATUS.json
-                conclusion=$(echo "$row" | jq -r '.conclusion')
-                runid=$(echo "$row" | jq -r '.databaseId')
-                if [ "$conclusion" != "success" ]; then
-                  gh run view "$runid" --log-failed > optimizer/R53_CI_FAILED.log 2>&1 || true
-                else
-                  rm -f optimizer/R53_CI_FAILED.log
-                fi
-                git config user.name github-actions[bot]
-                git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-                git add optimizer/R53_CI_STATUS.json optimizer/R53_CI_FAILED.log 2>/dev/null || true
-                git commit -m 'diag: record R53 production result' || true
-                git push
-                exit 0
-              fi
-            fi
-            sleep 20
-          done
-          echo 'R53 run did not complete in monitor window' >&2
-          exit 1
+          production=$(gh run list --workflow build-mwo-r53-process-clean-start.yml --branch merzo-windows-optimizer --limit 3 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
+          publish=$(gh run list --workflow publish-mwo-r53-ota.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
+          verify=$(gh run list --workflow verify-mwo-r53-ota.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          jq -n --argjson production "$production" --argjson publish "$publish" --argjson verify "$verify" '{production:$production,publish:$publish,verify:$verify}' > optimizer/R53_ACTIONS_STATUS.json
+          cat optimizer/R53_ACTIONS_STATUS.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add optimizer/R53_ACTIONS_STATUS.json
+          git commit -m 'diag: record R53 Actions status' || true
+          git pull --rebase origin merzo-windows-optimizer
+          git push origin HEAD:merzo-windows-optimizer
