@@ -8,6 +8,27 @@ import subprocess
 repo = pathlib.Path(__file__).resolve().parents[2]
 root = pathlib.Path(os.environ["MERZO_SRC"])
 tmp = pathlib.Path(os.environ.get("RUNNER_TEMP", str(root.parent)))
+ALPHABET = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+
+def recover_one_symbol(raw: bytes, expected: str, label: str) -> bytes:
+    actual = hashlib.sha256(raw).hexdigest()
+    if actual == expected:
+        return raw
+    print(f"{label} SHA differs: {actual}; searching one Base64 substitution")
+    work = bytearray(raw)
+    for pos, old in enumerate(raw):
+        if old not in ALPHABET:
+            continue
+        for repl in ALPHABET:
+            if repl == old:
+                continue
+            work[pos] = repl
+            if hashlib.sha256(work).hexdigest() == expected:
+                print(f"{label} EXACT REPAIR pos={pos} {chr(old)!r}->{chr(repl)!r} sha={expected}")
+                return bytes(work)
+        work[pos] = old
+    raise SystemExit(f"{label} SHA mismatch and one-substitution repair failed: {actual} != {expected}")
 
 
 def load_payload(folder, chunk_shas, xz_sha, raw_sha, label):
@@ -17,10 +38,7 @@ def load_payload(folder, chunk_shas, xz_sha, raw_sha, label):
         p = parts / f"chunk{i:02d}.txt"
         if not p.exists():
             raise SystemExit(f"{label} chunk missing: {p.name}")
-        raw = p.read_bytes()
-        actual = hashlib.sha256(raw).hexdigest()
-        if actual != expected:
-            raise SystemExit(f"{label} chunk SHA mismatch: {p.name} {actual} != {expected}")
+        raw = recover_one_symbol(p.read_bytes(), expected, f"{label} {p.name}")
         encoded.append(raw.decode("ascii").strip())
     xz = base64.urlsafe_b64decode("".join(encoded))
     actual_xz = hashlib.sha256(xz).hexdigest()
