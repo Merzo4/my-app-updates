@@ -25,7 +25,8 @@ jobs:
           set -euo pipefail
           build=$(gh run list --workflow build-mwo-r54-r53-hotfix-bridge.yml --branch merzo-windows-optimizer --limit 8 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
           publish=$(gh run list --workflow publish-mwo-r54-r53-hotfix-bridge.yml --branch merzo-windows-optimizer --limit 8 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
-          jq -n --argjson build "$build" --argjson publish "$publish" '{build:$build,publish:$publish}' > optimizer/R54_ACTIONS_STATUS.json
+          verifyV2=$(gh run list --workflow verify-mwo-r54-public-ota-v2.yml --branch merzo-windows-optimizer --limit 8 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          jq -n --argjson build "$build" --argjson publish "$publish" --argjson verifyV2 "$verifyV2" '{build:$build,publish:$publish,verifyV2:$verifyV2}' > optimizer/R54_ACTIONS_STATUS.json
           cat optimizer/R54_ACTIONS_STATUS.json
           saved="$RUNNER_TEMP/R54_ACTIONS_STATUS.json"
           cp optimizer/R54_ACTIONS_STATUS.json "$saved"
