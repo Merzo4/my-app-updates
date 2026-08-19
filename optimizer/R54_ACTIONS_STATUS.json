@@ -96,6 +96,24 @@
   "verifyV2": [
     {
       "conclusion": "failure",
+      "createdAt": "2026-08-19T06:39:09Z",
+      "databaseId": 32224314049,
+      "headSha": "9dc44632210b1805568053b12d7bbfcc1e700154",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224314049",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-08-19T06:38:43Z",
+      "databaseId": 32224283573,
+      "headSha": "5f5ff7e04c2dc1e41cd27ece1736111dcb3922ba",
+      "status": "completed",
+      "url": "https://github.com/Merzo4/my-app-updates/actions/runs/32224283573",
+      "workflowName": ".github/workflows/verify-mwo-r54-public-ota-v2.yml"
+    },
+    {
+      "conclusion": "failure",
       "createdAt": "2026-08-19T06:38:21Z",
       "databaseId": 32224261030,
       "headSha": "554a7882f5f2c3d95269ac27e4ad5638692d443e",
