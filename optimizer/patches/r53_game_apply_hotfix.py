@@ -11,12 +11,9 @@ def write(p, text):
 
 # -----------------------------------------------------------------------------
 # R53 HOTFIX 1
-# The R53 GAME profile intentionally contains one Advanced tweak:
-# r53.process.service_host_density. R20 SafetyEngine still denied every
-# Advanced/Expert tweak unconditionally, so GAME aborted and the transaction
-# rolled back. Keep the global guard. Allow ONLY the exact R53 managed action,
-# with exact ID/tags/registry target/value. Any generic/tampered Advanced tweak
-# remains blocked.
+# R53 GAME intentionally contains one Advanced tweak: Service Host Density.
+# R20 SafetyEngine denied every Advanced/Expert tweak unconditionally, so GAME
+# rolled back. Keep that global guard and allow ONLY this exact managed action.
 # -----------------------------------------------------------------------------
 safety = root/'src'/'MerzoOptimizer.Core'/'Safety'/'SafetyEngine.cs'
 s = read(safety)
@@ -33,9 +30,8 @@ if old_msg not in s:
 s = s.replace(old_msg, new_msg, 1)
 write(safety, s)
 
-# SelfTest must prove BOTH sides of the contract:
-# 1) generic Advanced stays denied;
-# 2) the exact shipped R53 managed tweak is allowed for an administrator.
+# SelfTest proves generic Advanced remains denied while the exact shipped R53
+# managed tweak is allowed for an administrator.
 selftest = root/'src'/'MerzoOptimizer.SelfTest'/'Program.cs'
 t = read(selftest)
 anchor = '''    if (safety.Evaluate(advancedProbe, true, Environment.OSVersion.Version.Build).Allowed) failures.Add("SafetyEngine must keep ADVANCED/EXPERT auto-apply blocked in R20.");'''
@@ -45,7 +41,7 @@ if anchor not in t:
 t = t.replace(anchor, insert, 1)
 write(selftest, t)
 
-# Fix the stale R52 labels visible in the shipped R53 UI.
+# Fix stale R52 labels visible in the shipped R53 UI.
 xaml = root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
 x = read(xaml)
 replacements = [
@@ -62,23 +58,31 @@ for old_x, new_x in replacements:
     x = x.replace(old_x, new_x, 1)
 write(xaml, x)
 
-# Hotfix must be a newer OTA version so already-installed 0.1.53 clients can see it.
-# Historical source generations can still carry 0.1.51/0.1.52 here; accept only
-# known lineage values and fail closed on anything unexpected.
+# Hotfix needs a newer OTA version for already-installed 0.1.53 clients.
+# The Inno source uses #define MyAppVersion and AppVersion={#MyAppVersion}.
 iss = root/'installer'/'MerzoWindowsOptimizer.iss'
 i = read(iss)
 app_version = re.search(r'(?mi)^AppVersion\s*=\s*([^\r\n]+)\s*$', i)
 if not app_version:
     raise SystemExit('R53 HF1 installer AppVersion directive missing')
 current_app_version = app_version.group(1).strip()
-if current_app_version not in {'0.1.51','0.1.52','0.1.53'}:
+if current_app_version == '{#MyAppVersion}':
+    define = re.search(r'(?mi)^(\s*#define\s+MyAppVersion\s+")([^"]+)("\s*)$', i)
+    if not define:
+        raise SystemExit('R53 HF1 MyAppVersion define missing')
+    current_define = define.group(2).strip()
+    if current_define not in {'0.1.51','0.1.52','0.1.53'}:
+        raise SystemExit('R53 HF1 unknown MyAppVersion: ' + current_define)
+    i = i[:define.start()] + define.group(1) + '0.1.53.1' + define.group(3) + i[define.end():]
+elif current_app_version in {'0.1.51','0.1.52','0.1.53'}:
+    i = i[:app_version.start()] + 'AppVersion=0.1.53.1' + i[app_version.end():]
+else:
     raise SystemExit('R53 HF1 unknown installer AppVersion: ' + current_app_version)
-i = i[:app_version.start()] + 'AppVersion=0.1.53.1' + i[app_version.end():]
-# Keep any explicit AppVerName in sync when present, but only for known lineage.
+# Keep explicit AppVerName in sync when it embeds a literal lineage version.
 i = re.sub(r'(?mi)^(AppVerName=.*?)(0\.1\.(?:51|52|53))(.*)$', lambda m: m.group(1)+'0.1.53.1'+m.group(3), i, count=1)
 write(iss, i)
 
-# Append a user-facing changelog entry without changing the risk classification.
+# User-facing changelog entry.
 notes_json = root/'data'/'release_notes.json'
 if notes_json.exists():
     try:
@@ -91,14 +95,9 @@ if notes_json.exists():
     except Exception:
         pass
 
-# Fail-closed source assertions for the exact hotfix contract.
+# Fail-closed source assertions.
 s = read(safety)
-for token in (
-    'r53.process.service_host_density',
-    'SvcHostSplitThresholdInKB',
-    '67108864',
-    'if (!isR53ManagedServiceHostDensity)',
-):
+for token in ('r53.process.service_host_density','SvcHostSplitThresholdInKB','67108864','if (!isR53ManagedServiceHostDensity)'):
     if token not in s:
         raise SystemExit('R53 HF1 SafetyEngine contract missing: ' + token)
 if 'tweak.Risk is TweakRisk.Advanced or TweakRisk.Expert' not in s:
@@ -107,7 +106,9 @@ if 'r53ManagedAdvanced' not in read(selftest):
     raise SystemExit('R53 HF1 SelfTest managed-advanced proof missing')
 if 'R52" Foreground="{StaticResource Accent}" FontSize="9.2"' in read(xaml):
     raise SystemExit('R53 HF1 stale R52 navigation badge remains')
-if 'AppVersion=0.1.53.1' not in read(iss):
+installer_final = read(iss)
+if ('#define MyAppVersion "0.1.53.1"' not in installer_final and
+        'AppVersion=0.1.53.1' not in installer_final):
     raise SystemExit('R53 HF1 installer version finalize failed')
 
 (root/'R53_GAME_APPLY_HOTFIX.marker').write_text(
