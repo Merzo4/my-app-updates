@@ -2,4 +2,4 @@ R53 robust public OTA acceptance v3
 2026-08-19
 production-run=32213986328
 production-head=57c0894d6db2a42b9ec1949f9dabd37f399ee737
-attempt=2
+attempt=3
