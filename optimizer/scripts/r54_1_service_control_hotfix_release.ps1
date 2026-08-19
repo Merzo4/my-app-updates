@@ -3,15 +3,11 @@ $base='.\optimizer\scripts\r54_r53_hotfix_bridge_release.ps1'
 $original=Get-Content $base -Raw
 $patched=$original
 
-# Extend the exact already-green R54 patch chain by one patch only.
 $oldChain="'r53_game_apply_hotfix.py','r53_version_finalize.py','r54_updater_bridge.py')"
 $newChain="'r53_game_apply_hotfix.py','r53_version_finalize.py','r54_updater_bridge.py','r54_1_service_control_hotfix.py')"
 if(($patched.Split($oldChain).Count-1)-ne1){throw 'R54.1 patch-chain anchor mismatch'}
 $patched=$patched.Replace($oldChain,$newChain)
 
-# R54.1 is the first four-part release delivered by the fixed R54 updater.
-# Transform inherited R53.1 build/gate expectations to 0.1.54.1 instead of the
-# R54 bridge's 0.1.54.0, while leaving three-part R54 bridge parser tests intact.
 $old="`$text=`$text.Replace('0.1.53.1','0.1.54.0')"
 $new="`$text=`$text.Replace('0.1.53.1','0.1.54.1')"
 if(($patched.Split($old).Count-1)-ne1){throw 'R54.1 Convert version anchor mismatch'}
@@ -27,18 +23,46 @@ $new="`$text=`$text.Replace('R53 HOTFIX 1','R54 SERVICE CONTROL HOTFIX')"
 if(($patched.Split($old).Count-1)-ne1){throw 'R54.1 Convert suffix anchor mismatch'}
 $patched=$patched.Replace($old,$new)
 
-# V5 has a standalone navigation badge normalization after generic conversion.
-$patched=$patched.Replace("`$patchedV5=`$patchedV5.Replace('Text=\"R53.1\"','Text=\"R54\"')",
-                           "`$patchedV5=`$patchedV5.Replace('Text=\"R53.1\"','Text=\"R54.1\"')")
+$badgeOld=@'
+$patchedV5=$patchedV5.Replace('Text="R53.1"','Text="R54"')
+'@.Trim()
+$badgeNew=@'
+$patchedV5=$patchedV5.Replace('Text="R53.1"','Text="R54.1"')
+'@.Trim()
+if(($patched.Split($badgeOld).Count-1)-ne1){throw 'R54.1 V5 badge anchor mismatch'}
+$patched=$patched.Replace($badgeOld,$badgeNew)
 
-# Outer final gates must inspect the finished 54.1 source/artifact.
-$patched=$patched.Replace("if(`$version-ne'0.1.54.0')","if(`$version-ne'0.1.54.1')")
-$patched=$patched.Replace("if(-not`$ui.Contains('Production R54 · 0.1.54')){throw 'R54 visible version missing'}",
-                           "if(-not`$ui.Contains('Production R54.1 · 0.1.54.1')){throw 'R54.1 visible version missing'}")
-$patched=$patched.Replace("if(-not`$ui.Contains('Text=\"R54\"')){throw 'R54 navigation badge missing'}",
-                           "if(-not`$ui.Contains('Text=\"R54.1\"')){throw 'R54.1 navigation badge missing'}")
-$patched=$patched.Replace("if(-not`$i.Contains('#define MyAppVersion \"0.1.54\"') -and -not`$i.Contains('AppVersion=0.1.54')){throw 'R54 Inno public version missing'}",
-                           "if(-not`$i.Contains('#define MyAppVersion \"0.1.54.1\"') -and -not`$i.Contains('AppVersion=0.1.54.1')){throw 'R54.1 Inno public version missing'}")
+$distOld="if(`$version-ne'0.1.54.0')"
+$distNew="if(`$version-ne'0.1.54.1')"
+if(($patched.Split($distOld).Count-1)-ne1){throw 'R54.1 outer DLL version anchor mismatch'}
+$patched=$patched.Replace($distOld,$distNew)
+
+$uiOld=@'
+if(-not$ui.Contains('Production R54 · 0.1.54')){throw 'R54 visible version missing'}
+'@.Trim()
+$uiNew=@'
+if(-not$ui.Contains('Production R54.1 · 0.1.54.1')){throw 'R54.1 visible version missing'}
+'@.Trim()
+if(($patched.Split($uiOld).Count-1)-ne1){throw 'R54.1 outer visible version anchor mismatch'}
+$patched=$patched.Replace($uiOld,$uiNew)
+
+$navOld=@'
+if(-not$ui.Contains('Text="R54"')){throw 'R54 navigation badge missing'}
+'@.Trim()
+$navNew=@'
+if(-not$ui.Contains('Text="R54.1"')){throw 'R54.1 navigation badge missing'}
+'@.Trim()
+if(($patched.Split($navOld).Count-1)-ne1){throw 'R54.1 outer badge anchor mismatch'}
+$patched=$patched.Replace($navOld,$navNew)
+
+$issOld=@'
+if(-not$i.Contains('#define MyAppVersion "0.1.54"') -and -not$i.Contains('AppVersion=0.1.54')){throw 'R54 Inno public version missing'}
+'@.Trim()
+$issNew=@'
+if(-not$i.Contains('#define MyAppVersion "0.1.54.1"') -and -not$i.Contains('AppVersion=0.1.54.1')){throw 'R54.1 Inno public version missing'}
+'@.Trim()
+if(($patched.Split($issOld).Count-1)-ne1){throw 'R54.1 outer Inno anchor mismatch'}
+$patched=$patched.Replace($issOld,$issNew)
 
 try {
     Set-Content $base $patched -Encoding UTF8
