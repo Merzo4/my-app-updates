@@ -12,9 +12,8 @@ if(($patched.Split($oldLiteral).Count-1)-ne1){throw 'R54.2 patch-chain anchor mi
 $patched=$patched.Replace($oldLiteral,$newLiteral)
 
 # The initial patch contained a gate that matched unrelated helper processes.
-# Scope it to the exact legacy OneDrive exception message while preserving the
-# product changes themselves.
-$legacyGate="    'if (process.ExitCode != 0)\\n            throw',"
+# In Python source this is the two literal characters backslash+n, not a real newline.
+$legacyGate="    'if (process.ExitCode != 0)\n            throw',"
 $scopedGate="    'OneDriveSetup /uninstall завершился с кодом',"
 if(($onePatchPatched.Split($legacyGate).Count-1)-ne1){throw 'R54.2 OneDrive gate-scope anchor mismatch'}
 $onePatchPatched=$onePatchPatched.Replace($legacyGate,$scopedGate)
