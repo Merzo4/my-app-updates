@@ -12,6 +12,7 @@ function Convert-R53ScriptToR54Bridge([string]$text) {
     $text=$text.Replace('0.1.53.1','0.1.54.0')
     $text=$text.Replace('0.1.53','0.1.54')
     $text=$text.Replace('Production R53.1','Production R54')
+    $text=$text.Replace('Production R53','Production R54')
     $text=$text.Replace('Production R54 · 0.1.54.0','Production R54 · 0.1.54')
     $text=$text.Replace('R53 HOTFIX 1','R53 GAME HOTFIX BRIDGE')
     return $text
