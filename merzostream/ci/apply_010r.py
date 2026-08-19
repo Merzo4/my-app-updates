@@ -114,8 +114,12 @@ st = st.replace(old_vk, new_vk)
 selftest.write_text(st, encoding='utf-8')
 print('0.1.0r VERSION + SELFTEST FINALIZE PASS')
 
-# Merge the old direct YouTube player transport with the later proven blank/clear safety.
-# This intentionally avoids q's nocookie/startup-watchdog experiment while preserving
-# transparent empty state and stale-video suppression after Skip/Clear.
+# First recovery layer: direct player + stale-video safety.
 finalizer = pathlib.Path(__file__).resolve().with_name('finalize_010r_player.py')
 subprocess.run(['python', str(finalizer)], check=True)
+
+# Recovery R2: restore the exact pre-regression Media resolver/player timing and fix
+# the title-bar overlap / polling flicker reported on the real Windows installation.
+finalizer2 = pathlib.Path(__file__).resolve().with_name('finalize_010r_regression2.py')
+subprocess.run(['python', str(finalizer2)], check=True)
+print('0.1.0r RECOVERY R2 APPLY PASS')
