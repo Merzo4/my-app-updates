@@ -9,6 +9,24 @@ def read(p):
 def write(p, text):
     p.write_text(text, encoding='utf-8')
 
+# Temporary production diagnostic: print only the exact updater-version parsing
+# neighborhood so the hotfix can repair source from evidence, not assumptions.
+updater_diag = root/'src'/'MerzoOptimizer.Windows'/'Updates'/'GitHubUpdateService.cs'
+if updater_diag.exists():
+    diag_lines = read(updater_diag).splitlines()
+    needles = ('ParseTaggedVersion','Version.TryParse','LatestVersion','ReleaseTagPrefix','candidateTag')
+    print('R53_UPDATER_VERSION_DIAG_BEGIN')
+    emitted=set()
+    for idx,line in enumerate(diag_lines):
+        if any(n in line for n in needles):
+            for j in range(max(0,idx-7),min(len(diag_lines),idx+16)):
+                if j in emitted:
+                    continue
+                emitted.add(j)
+                safe=diag_lines[j].encode('ascii','backslashreplace').decode('ascii')
+                print(f'{j+1:04d}: {safe}')
+    print('R53_UPDATER_VERSION_DIAG_END')
+
 # -----------------------------------------------------------------------------
 # R53 HOTFIX 1
 # R53 GAME intentionally contains one Advanced tweak: Service Host Density.
