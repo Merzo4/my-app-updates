@@ -44,7 +44,10 @@ $src=$src.Replace($deepOld,$deepNew)
 $src=$src.Replace('__R53_PREV__','0.1.52')
 $src=$src.Replace('Production R52','Production R53')
 $src=$src.Replace('R52_RELEASE_NOTES.md','R53_RELEASE_NOTES.md')
-$src=$src.Replace('R52 GAME WOW + UI RELIABILITY','R53 PROCESS + CLEAN START')
+# The hotfix deliberately replaces the old R53 title suffix, so inherited R52
+# source gates must validate the shipped R53.1 identity rather than a superseded
+# PROCESS + CLEAN START literal. Functional process/debloat markers stay separate.
+$src=$src.Replace('R52 GAME WOW + UI RELIABILITY','R53 HOTFIX 1')
 
 # Normalize the inherited R52 process target BEFORE the old script is written
 # through generated PowerShell/UTF-8 layers. Match any single dash/mojibake
@@ -90,7 +93,7 @@ items=json.loads((r/'data/tweaks.json').read_text(encoding='utf-8-sig'))
 services=json.loads((r/'data/service_rules.json').read_text(encoding='utf-8-sig'))
 byid={z.get('id'):z for z in items}
 
-for t in ['Production R53.1 · 0.1.53.1','R53 PROCESS + CLEAN START','BuildAdvancedScroll','SidebarNavScroll']:
+for t in ['Production R53.1 · 0.1.53.1','R53 HOTFIX 1','BuildAdvancedScroll','SidebarNavScroll']:
     assert t in x,t
 for t in ['processTargetText','80-100','60-80','gamingDebloatRemoved','processCountBefore','processCountAfter','WalletService','TrkWks','WSearch','SysMain']:
     assert t in vm,t
