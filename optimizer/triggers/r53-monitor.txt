@@ -1,6 +1,5 @@
-monitor R53 production
-2026-08-18
-Process clean start + GAME compatibility + Program Files + PrintScreen + branded visible OTA
-broker-probe-fix=1
-ascii-targets=1
-rerun=20
+monitor R53 production + OTA acceptance
+2026-08-19
+production-run=32213986328
+publish-acceptance=1
+actions-snapshot=1
