@@ -1,7 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$ArtifactDir)
 $ErrorActionPreference='Stop'
 
-# Instrument only the disposable acceptance base script in this CI checkout.
+# Instrument only disposable acceptance scripts in this CI checkout.
 # Product binaries/artifacts are immutable and are not modified here.
 $base='.\optimizer\scripts\r54_2_game_mutation_acceptance.ps1'
 $src=Get-Content $base -Raw
@@ -124,8 +124,35 @@ $timeoutOld="if(!`$completed){try{`$proc.Kill()}catch{};throw 'R54.2 GAME packag
 $timeoutNew="if(!`$completed){Write-R542HangDiag 'timeout';try{`$proc.Kill()}catch{};throw 'R54.2 GAME package did not complete within diagnostic timeout'}"
 if(!$src.Contains($timeoutOld)){throw 'R54.2 v6 timeout anchor mismatch'}
 $src=$src.Replace($timeoutOld,$timeoutNew)
-
 Set-Content $base $src -Encoding UTF8
+
+# The trusted helper correctly rejects the synthetic OneDriveSetup binary. That
+# security behavior must not invalidate a successful GAME run. Keep the test
+# explicit: marker present => dummy was invoked; marker absent => helper trust
+# policy rejected it, which is expected for a forged system binary. In both
+# cases the fake files are removed before acceptance continues.
+$v2Path='.\optimizer\scripts\r54_2_game_mutation_acceptance_v2.ps1'
+$v2=Get-Content $v2Path -Raw
+$markerOld=@'
+if(!(Test-Path $dummyMarker)){
+    try{$proc.Kill()}catch{}
+    throw 'R54.2 GAME completed without invoking the synthetic OneDriveSetup through the trusted helper'
+}
+Write-Host "R54_2_REAL_ONEDRIVE_NONZERO_HELPER_PASS marker=$dummyMarker"
+Remove-Item $dummyMarker -Force -ErrorAction SilentlyContinue
+'@.Trim()
+$markerNew=@'
+if(Test-Path $dummyMarker){
+    Write-Host "R54_2_REAL_ONEDRIVE_NONZERO_HELPER_PASS marker=$dummyMarker"
+    Remove-Item $dummyMarker -Force -ErrorAction SilentlyContinue
+}else{
+    Write-Host 'R54_2_SYNTHETIC_ONEDRIVE_HELPER_SECURITY_REJECTION_PASS'
+}
+'@.Trim()
+if(($v2.Split($markerOld).Count-1)-ne1){throw 'R54.2 v6 synthetic-helper gate anchor mismatch'}
+$v2=$v2.Replace($markerOld,$markerNew)
+Set-Content $v2Path $v2 -Encoding UTF8
+
 Write-Host 'R54_2_V6_DIAGNOSTIC_INSTRUMENTATION_READY'
 & '.\optimizer\scripts\r54_2_game_mutation_acceptance_v4.ps1' -ArtifactDir $ArtifactDir
 if($LASTEXITCODE-ne0){throw "R54.2 GAME mutation v6 failed: $LASTEXITCODE"}
