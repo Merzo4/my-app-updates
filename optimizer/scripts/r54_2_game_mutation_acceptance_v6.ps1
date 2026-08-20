@@ -1,0 +1,98 @@
+param([Parameter(Mandatory=$true)][string]$ArtifactDir)
+$ErrorActionPreference='Stop'
+
+# Instrument only the disposable acceptance base script in this CI checkout.
+# Product binaries/artifacts are immutable and are not modified here.
+$base='.\optimizer\scripts\r54_2_game_mutation_acceptance.ps1'
+$src=Get-Content $base -Raw
+
+$deadlineOld='$deadline=(Get-Date).AddMinutes(12)'
+$deadlineNew='$deadline=(Get-Date).AddMinutes(2)'
+if(!$src.Contains($deadlineOld)){throw 'R54.2 v6 deadline anchor mismatch'}
+$src=$src.Replace($deadlineOld,$deadlineNew)
+
+$stateOld='$seenBusy=$false;$fatal=$false;$fatalText='''';$dialogs=[Collections.Generic.List[string]]::new();$completed=$false'
+if(!$src.Contains($stateOld)){throw 'R54.2 v6 state anchor mismatch'}
+$diag=@'
+$diagNext=(Get-Date)
+function Write-R542HangDiag([string]$Reason){
+    Write-Host "R542_HANG_DIAG_BEGIN reason=$Reason at=$((Get-Date).ToUniversalTime().ToString('o')) appPid=$($proc.Id)"
+    try{
+        $t=Window-Text $main
+        $flat=($t -replace "`r?`n",' | ')
+        if($flat.Length-gt2200){$flat=$flat.Substring(0,2200)}
+        Write-Host "R542_HANG_MAIN $flat"
+    }catch{Write-Host "R542_HANG_MAIN_ERROR $($_.Exception.Message)"}
+    try{
+        $ib=Find-NameContains $main 'Установить сборку'
+        if($ib){Write-Host "R542_HANG_INSTALL enabled=$($ib.Current.IsEnabled) offscreen=$($ib.Current.IsOffscreen) name=$($ib.Current.Name)"}
+        else{Write-Host 'R542_HANG_INSTALL missing'}
+    }catch{Write-Host "R542_HANG_INSTALL_ERROR $($_.Exception.Message)"}
+    try{
+        $marker=Join-Path $env:ProgramData 'MerzoR542OneDriveDummy.marker'
+        Write-Host "R542_HANG_ONEDRIVE_MARKER exists=$(Test-Path $marker) path=$marker"
+    }catch{}
+    try{
+        $all=Get-CimInstance Win32_Process
+        $interesting=$all | Where-Object {
+            $_.ProcessId -eq $proc.Id -or $_.ParentProcessId -eq $proc.Id -or
+            $_.Name -match '^(Merzo|OneDrive|consent|sc\.exe|cmd\.exe|powershell\.exe|pwsh\.exe|conhost\.exe|RuntimeBroker\.exe|taskhostw\.exe|TiWorker\.exe)'
+        } | Sort-Object ProcessId
+        foreach($p in $interesting){
+            $cmd=($p.CommandLine -replace "`r?`n",' ')
+            if($cmd -and $cmd.Length-gt700){$cmd=$cmd.Substring(0,700)}
+            Write-Host "R542_HANG_PROC pid=$($p.ProcessId) ppid=$($p.ParentProcessId) name=$($p.Name) cmd=$cmd"
+        }
+    }catch{Write-Host "R542_HANG_PROC_ERROR $($_.Exception.Message)"}
+    try{
+        foreach($w in [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition)){
+            try{$n=$w.Current.Name;$wpid=$w.Current.ProcessId;$ct=$w.Current.ControlType.ProgrammaticName;$off=$w.Current.IsOffscreen}catch{continue}
+            if($n){
+                $n=($n -replace "`r?`n",' ')
+                if($n.Length-gt350){$n=$n.Substring(0,350)}
+                Write-Host "R542_HANG_WINDOW pid=$wpid type=$ct offscreen=$off name=$n"
+            }
+        }
+    }catch{Write-Host "R542_HANG_WINDOWS_ERROR $($_.Exception.Message)"}
+    try{
+        $cut=(Get-Date).AddMinutes(-5)
+        $roots=@($portable,$env:TEMP,(Join-Path $env:LOCALAPPDATA 'Merzo Windows Optimizer'),(Join-Path $env:APPDATA 'Merzo Windows Optimizer')) | Where-Object {$_ -and (Test-Path $_)} | Select-Object -Unique
+        $files=foreach($r in $roots){
+            Get-ChildItem $r -Recurse -File -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -ge $cut -and ($_.Extension -in '.log','.json','.txt')}
+        }
+        foreach($f in ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 16)){
+            Write-Host "R542_HANG_FILE time=$($f.LastWriteTime.ToString('o')) size=$($f.Length) path=$($f.FullName)"
+            if($f.Length-gt0 -and $f.Length-lt1048576){
+                try{
+                    foreach($line in (Get-Content $f.FullName -Tail 6 -ErrorAction Stop)){
+                        $s=[string]$line
+                        if($s.Length-gt600){$s=$s.Substring(0,600)}
+                        Write-Host "R542_HANG_FILE_TAIL $s"
+                    }
+                }catch{}
+            }
+        }
+    }catch{Write-Host "R542_HANG_FILES_ERROR $($_.Exception.Message)"}
+    Write-Host "R542_HANG_DIAG_END reason=$Reason"
+}
+'@.Trim()
+$src=$src.Replace($stateOld,$stateOld+"`r`n"+$diag)
+
+$pollOld="    Start-Sleep -Milliseconds 500`r`n    `$wins=Get-ProcessWindows `$proc.Id"
+if(!$src.Contains($pollOld)){
+    $pollOld="    Start-Sleep -Milliseconds 500`n    `$wins=Get-ProcessWindows `$proc.Id"
+}
+if(!$src.Contains($pollOld)){throw 'R54.2 v6 poll anchor mismatch'}
+$pollNew="    Start-Sleep -Milliseconds 500`r`n    if((Get-Date)-ge`$diagNext){Write-R542HangDiag 'poll';`$diagNext=(Get-Date).AddSeconds(5)}`r`n    `$wins=Get-ProcessWindows `$proc.Id"
+if($pollOld.Contains("`n") -and !$pollOld.Contains("`r`n")){$pollNew=$pollNew.Replace("`r`n","`n")}
+$src=$src.Replace($pollOld,$pollNew)
+
+$timeoutOld="if(!`$completed){try{`$proc.Kill()}catch{};throw 'R54.2 GAME package did not complete within timeout'}"
+$timeoutNew="if(!`$completed){Write-R542HangDiag 'timeout';try{`$proc.Kill()}catch{};throw 'R54.2 GAME package did not complete within diagnostic timeout'}"
+if(!$src.Contains($timeoutOld)){throw 'R54.2 v6 timeout anchor mismatch'}
+$src=$src.Replace($timeoutOld,$timeoutNew)
+
+Set-Content $base $src -Encoding UTF8
+Write-Host 'R54_2_V6_DIAGNOSTIC_INSTRUMENTATION_READY'
+& '.\optimizer\scripts\r54_2_game_mutation_acceptance_v4.ps1' -ArtifactDir $ArtifactDir
+if($LASTEXITCODE-ne0){throw "R54.2 GAME mutation v6 failed: $LASTEXITCODE"}
