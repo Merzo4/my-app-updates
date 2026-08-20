@@ -2,103 +2,11 @@ param([Parameter(Mandatory=$true)][string]$ArtifactDir)
 $ErrorActionPreference='Stop'
 $base='.\optimizer\scripts\r54_2_game_mutation_acceptance_v4.ps1'
 $v4=Get-Content $base -Raw
-$tailStart=$v4.IndexOf("$tmp=Join-Path $env:RUNNER_TEMP 'r54_2_game_mutation_acceptance_v4_expanded.ps1'",[StringComparison]::Ordinal)
+$tailNeedle='$tmp=Join-Path $env:RUNNER_TEMP ''r54_2_game_mutation_acceptance_v4_expanded.ps1'''
+$tailStart=$v4.IndexOf($tailNeedle,[StringComparison]::Ordinal)
 if($tailStart-lt0){throw 'R54.2 v5 v4 execution tail missing'}
-$replacement=@'
-# R54.2 v5: instrument the real post-install wait so a disposable runner shows
-# exactly what the shipped GAME package is waiting on. This does not change the
-# product artifact; it only shortens the diagnostic wait and emits state.
-$deadlineOld='$deadline=(Get-Date).AddMinutes(12)'
-$deadlineNew='$deadline=(Get-Date).AddMinutes(2)'
-if(($src.Split($deadlineOld).Count-1)-ne1){throw 'R54.2 v5 deadline anchor mismatch'}
-$src=$src.Replace($deadlineOld,$deadlineNew)
-
-$stateOld='$seenBusy=$false;$fatal=$false;$fatalText='''';$dialogs=[Collections.Generic.List[string]]::new();$completed=$false'
-$stateNew=@'
-$seenBusy=$false;$fatal=$false;$fatalText='';$dialogs=[Collections.Generic.List[string]]::new();$completed=$false
-$diagNext=(Get-Date)
-function Write-R542HangDiag([string]$Reason){
-    Write-Host "R542_HANG_DIAG_BEGIN reason=$Reason at=$((Get-Date).ToUniversalTime().ToString('o')) appPid=$($proc.Id)"
-    try{
-        $t=Window-Text $main
-        $flat=($t -replace "`r?`n",' | ')
-        if($flat.Length-gt1800){$flat=$flat.Substring(0,1800)}
-        Write-Host "R542_HANG_MAIN $flat"
-    }catch{Write-Host "R542_HANG_MAIN_ERROR $($_.Exception.Message)"}
-    try{
-        $ib=Find-NameContains $main 'Установить сборку'
-        if($ib){Write-Host "R542_HANG_INSTALL enabled=$($ib.Current.IsEnabled) offscreen=$($ib.Current.IsOffscreen) name=$($ib.Current.Name)"}
-        else{Write-Host 'R542_HANG_INSTALL missing'}
-    }catch{Write-Host "R542_HANG_INSTALL_ERROR $($_.Exception.Message)"}
-    try{
-        $marker=Join-Path $env:ProgramData 'MerzoR542OneDriveDummy.marker'
-        Write-Host "R542_HANG_ONEDRIVE_MARKER exists=$(Test-Path $marker) path=$marker"
-    }catch{}
-    try{
-        $all=Get-CimInstance Win32_Process
-        $interesting=$all | Where-Object {
-            $_.ProcessId -eq $proc.Id -or $_.ParentProcessId -eq $proc.Id -or
-            $_.Name -match '^(Merzo|OneDrive|consent|sc\.exe|cmd\.exe|powershell\.exe|pwsh\.exe|conhost\.exe|RuntimeBroker\.exe|taskhostw\.exe|TiWorker\.exe)'
-        } | Sort-Object ProcessId
-        foreach($p in $interesting){
-            $cmd=($p.CommandLine -replace "`r?`n",' ')
-            if($cmd -and $cmd.Length-gt700){$cmd=$cmd.Substring(0,700)}
-            Write-Host "R542_HANG_PROC pid=$($p.ProcessId) ppid=$($p.ParentProcessId) name=$($p.Name) cmd=$cmd"
-        }
-    }catch{Write-Host "R542_HANG_PROC_ERROR $($_.Exception.Message)"}
-    try{
-        foreach($w in [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition)){
-            try{$n=$w.Current.Name;$pid=$w.Current.ProcessId;$ct=$w.Current.ControlType.ProgrammaticName;$off=$w.Current.IsOffscreen}catch{continue}
-            if($n){
-                $n=($n -replace "`r?`n",' ');if($n.Length-gt300){$n=$n.Substring(0,300)}
-                Write-Host "R542_HANG_WINDOW pid=$pid type=$ct offscreen=$off name=$n"
-            }
-        }
-    }catch{Write-Host "R542_HANG_WINDOWS_ERROR $($_.Exception.Message)"}
-    try{
-        $cut=(Get-Date).AddMinutes(-5)
-        $roots=@($portable,$env:TEMP,(Join-Path $env:LOCALAPPDATA 'Merzo Windows Optimizer'),(Join-Path $env:APPDATA 'Merzo Windows Optimizer')) | Where-Object {$_ -and (Test-Path $_)} | Select-Object -Unique
-        $files=foreach($r in $roots){
-            Get-ChildItem $r -Recurse -File -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -ge $cut -and ($_.Extension -in '.log','.json','.txt')} 
-        }
-        foreach($f in ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 12)){
-            Write-Host "R542_HANG_FILE time=$($f.LastWriteTime.ToString('o')) size=$($f.Length) path=$($f.FullName)"
-            if($f.Length-gt0 -and $f.Length-lt1048576){
-                try{
-                    $tail=Get-Content $f.FullName -Tail 5 -ErrorAction Stop
-                    foreach($line in $tail){$s=[string]$line;if($s.Length-gt500){$s=$s.Substring(0,500)};Write-Host "R542_HANG_FILE_TAIL $s"}
-                }catch{}
-            }
-        }
-    }catch{Write-Host "R542_HANG_FILES_ERROR $($_.Exception.Message)"}
-    Write-Host "R542_HANG_DIAG_END reason=$Reason"
-}
-'@.Trim()
-if(($src.Split($stateOld).Count-1)-ne1){throw 'R54.2 v5 state anchor mismatch'}
-$src=$src.Replace($stateOld,$stateNew)
-
-$pollOld=@'
-    Start-Sleep -Milliseconds 500
-    $wins=Get-ProcessWindows $proc.Id
-'@.Trim()
-$pollNew=@'
-    Start-Sleep -Milliseconds 500
-    if((Get-Date)-ge$diagNext){Write-R542HangDiag 'poll';$diagNext=(Get-Date).AddSeconds(5)}
-    $wins=Get-ProcessWindows $proc.Id
-'@.Trim()
-if(($src.Split($pollOld).Count-1)-ne1){throw 'R54.2 v5 poll anchor mismatch'}
-$src=$src.Replace($pollOld,$pollNew)
-
-$timeoutOld="if(!$completed){try{$proc.Kill()}catch{};throw 'R54.2 GAME package did not complete within timeout'}"
-$timeoutNew="if(!$completed){Write-R542HangDiag 'timeout';try{$proc.Kill()}catch{};throw 'R54.2 GAME package did not complete within diagnostic timeout'}"
-if(($src.Split($timeoutOld).Count-1)-ne1){throw 'R54.2 v5 timeout anchor mismatch'}
-$src=$src.Replace($timeoutOld,$timeoutNew)
-
-$tmp=Join-Path $env:RUNNER_TEMP 'r54_2_game_mutation_acceptance_v5_expanded.ps1'
-Set-Content $tmp $src -Encoding UTF8
-& $tmp -ArtifactDir $ArtifactDir
-if($LASTEXITCODE-ne0){throw "R54.2 GAME mutation v5 failed: $LASTEXITCODE"}
-'@
+$b64='IyBSNTQuMiB2NTogaW5zdHJ1bWVudCB0aGUgcmVhbCBwb3N0LWluc3RhbGwgd2FpdCBzbyBhIGRpc3Bvc2FibGUgcnVubmVyIHNob3dzCiMgZXhhY3RseSB3aGF0IHRoZSBzaGlwcGVkIEdBTUUgcGFja2FnZSBpcyB3YWl0aW5nIG9uLiBUaGlzIGRvZXMgbm90IGNoYW5nZSB0aGUKIyBwcm9kdWN0IGFydGlmYWN0OyBpdCBvbmx5IHNob3J0ZW5zIHRoZSBkaWFnbm9zdGljIHdhaXQgYW5kIGVtaXRzIHN0YXRlLgokZGVhZGxpbmVPbGQ9JyRkZWFkbGluZT0oR2V0LURhdGUpLkFkZE1pbnV0ZXMoMTIpJwokZGVhZGxpbmVOZXc9JyRkZWFkbGluZT0oR2V0LURhdGUpLkFkZE1pbnV0ZXMoMiknCmlmKCgkc3JjLlNwbGl0KCRkZWFkbGluZU9sZCkuQ291bnQtMSktbmUxKXt0aHJvdyAnUjU0LjIgdjUgZGVhZGxpbmUgYW5jaG9yIG1pc21hdGNoJ30KJHNyYz0kc3JjLlJlcGxhY2UoJGRlYWRsaW5lT2xkLCRkZWFkbGluZU5ldykKCiRzdGF0ZU9sZD0nJHNlZW5CdXN5PSRmYWxzZTskZmF0YWw9JGZhbHNlOyRmYXRhbFRleHQ9JycnJzskZGlhbG9ncz1bQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0W3N0cmluZ11dOjpuZXcoKTskY29tcGxldGVkPSRmYWxzZScKJHN0YXRlTmV3PUAnCiRzZWVuQnVzeT0kZmFsc2U7JGZhdGFsPSRmYWxzZTskZmF0YWxUZXh0PScnOyRkaWFsb2dzPVtDb2xsZWN0aW9ucy5HZW5lcmljLkxpc3Rbc3RyaW5nXV06Om5ldygpOyRjb21wbGV0ZWQ9JGZhbHNlCiRkaWFnTmV4dD0oR2V0LURhdGUpCmZ1bmN0aW9uIFdyaXRlLVI1NDJIYW5nRGlhZyhbc3RyaW5nXSRSZWFzb24pewogICAgV3JpdGUtSG9zdCAiUjU0Ml9IQU5HX0RJQUdfQkVHSU4gcmVhc29uPSRSZWFzb24gYXQ9JCgoR2V0LURhdGUpLlRvVW5pdmVyc2FsVGltZSgpLlRvU3RyaW5nKCdvJykpIGFwcFBpZD0kKCRwcm9jLklkKSIKICAgIHRyeXsKICAgICAgICAkdD1XaW5kb3ctVGV4dCAkbWFpbgogICAgICAgICRmbGF0PSgkdCAtcmVwbGFjZSAiYHI/YG4iLCcgfCAnKQogICAgICAgIGlmKCRmbGF0Lkxlbmd0aC1ndDE4MDApeyRmbGF0PSRmbGF0LlN1YnN0cmluZygwLDE4MDApfQogICAgICAgIFdyaXRlLUhvc3QgIlI1NDJfSEFOR19NQUlOICRmbGF0IgogICAgfWNhdGNoe1dyaXRlLUhvc3QgIlI1NDJfSEFOR19NQUlOX0VSUk9SICQoJF8uRXhjZXB0aW9uLk1lc3NhZ2UpIn0KICAgIHRyeXsKICAgICAgICAkaWI9RmluZC1OYW1lQ29udGFpbnMgJG1haW4gJ9Cj0YHRgtCw0L3QvtCy0LjRgtGMINGB0LHQvtGA0LrRgycKICAgICAgICBpZigkaWIpe1dyaXRlLUhvc3QgIlI1NDJfSEFOR19JTlNUQUxMIGVuYWJsZWQ9JCgkaWIuQ3VycmVudC5Jc0VuYWJsZWQpIG9mZnNjcmVlbj0kKCRpYi5DdXJyZW50LklzT2Zmc2NyZWVuKSBuYW1lPSQoJGliLkN1cnJlbnQuTmFtZSkifQogICAgICAgIGVsc2V7V3JpdGUtSG9zdCAnUjU0Ml9IQU5HX0lOU1RBTEwgbWlzc2luZyd9CiAgICB9Y2F0Y2h7V3JpdGUtSG9zdCAiUjU0Ml9IQU5HX0lOU1RBTExfRVJST1IgJCgkXy5FeGNlcHRpb24uTWVzc2FnZSkifQogICAgdHJ5ewogICAgICAgICRtYXJrZXI9Sm9pbi1QYXRoICRlbnY6UHJvZ3JhbURhdGEgJ01lcnpvUjU0Mk9uZURyaXZlRHVtbXkubWFya2VyJwogICAgICAgIFdyaXRlLUhvc3QgIlI1NDJfSEFOR19PTkVEUklWRV9NQVJLRVIgZXhpc3RzPSQoVGVzdC1QYXRoICRtYXJrZXIpIHBhdGg9JG1hcmtlciIKICAgIH1jYXRjaHt9CiAgICB0cnl7CiAgICAgICAgJGFsbD1HZXQtQ2ltSW5zdGFuY2UgV2luMzJfUHJvY2VzcwogICAgICAgICRpbnRlcmVzdGluZz0kYWxsIHwgV2hlcmUtT2JqZWN0IHsKICAgICAgICAgICAgJF8uUHJvY2Vzc0lkIC1lcSAkcHJvYy5JZCAtb3IgJF8uUGFyZW50UHJvY2Vzc0lkIC1lcSAkcHJvYy5JZCAtb3IKICAgICAgICAgICAgJF8uTmFtZSAtbWF0Y2ggJ14oTWVyem98T25lRHJpdmV8Y29uc2VudHxzY1wuZXhlfGNtZFwuZXhlfHBvd2Vyc2hlbGxcLmV4ZXxwd3NoXC5leGV8Y29uaG9zdFwuZXhlfFJ1bnRpbWVCcm9rZXJcLmV4ZXx0YXNraG9zdHdcLmV4ZXxUaVdvcmtlclwuZXhlKScKICAgICAgICB9IHwgU29ydC1PYmplY3QgUHJvY2Vzc0lkCiAgICAgICAgZm9yZWFjaCgkcCBpbiAkaW50ZXJlc3RpbmcpewogICAgICAgICAgICAkY21kPSgkcC5Db21tYW5kTGluZSAtcmVwbGFjZSAiYHI/YG4iLCcgJykKICAgICAgICAgICAgaWYoJGNtZCAtYW5kICRjbWQuTGVuZ3RoLWd0NzAwKXskY21kPSRjbWQuU3Vic3RyaW5nKDAsNzAwKX0KICAgICAgICAgICAgV3JpdGUtSG9zdCAiUjU0Ml9IQU5HX1BST0MgcGlkPSQoJHAuUHJvY2Vzc0lkKSBwcGlkPSQoJHAuUGFyZW50UHJvY2Vzc0lkKSBuYW1lPSQoJHAuTmFtZSkgY21kPSRjbWQiCiAgICAgICAgfQogICAgfWNhdGNoe1dyaXRlLUhvc3QgIlI1NDJfSEFOR19QUk9DX0VSUk9SICQoJF8uRXhjZXB0aW9uLk1lc3NhZ2UpIn0KICAgIHRyeXsKICAgICAgICBmb3JlYWNoKCR3IGluIFtTeXN0ZW0uV2luZG93cy5BdXRvbWF0aW9uLkF1dG9tYXRpb25FbGVtZW50XTo6Um9vdEVsZW1lbnQuRmluZEFsbChbU3lzdGVtLldpbmRvd3MuQXV0b21hdGlvbi5UcmVlU2NvcGVdOjpDaGlsZHJlbixbU3lzdGVtLldpbmRvd3MuQXV0b21hdGlvbi5Db25kaXRpb25dOjpUcnVlQ29uZGl0aW9uKSl7CiAgICAgICAgICAgIHRyeXskbj0kdy5DdXJyZW50Lk5hbWU7JHdwaWQ9JHcuQ3VycmVudC5Qcm9jZXNzSWQ7JGN0PSR3LkN1cnJlbnQuQ29udHJvbFR5cGUuUHJvZ3JhbW1hdGljTmFtZTskb2ZmPSR3LkN1cnJlbnQuSXNPZmZzY3JlZW59Y2F0Y2h7Y29udGludWV9CiAgICAgICAgICAgIGlmKCRuKXsKICAgICAgICAgICAgICAgICRuPSgkbiAtcmVwbGFjZSAiYHI/YG4iLCcgJyk7aWYoJG4uTGVuZ3RoLWd0MzAwKXskbj0kbi5TdWJzdHJpbmcoMCwzMDApfQogICAgICAgICAgICAgICAgV3JpdGUtSG9zdCAiUjU0Ml9IQU5HX1dJTkRPVyBwaWQ9JHdwaWQgdHlwZT0kY3Qgb2Zmc2NyZWVuPSRvZmYgbmFtZT0kbiIKICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH1jYXRjaHtXcml0ZS1Ib3N0ICJSNTQyX0hBTkdfV0lORE9XU19FUlJPUiAkKCRfLkV4Y2VwdGlvbi5NZXNzYWdlKSJ9CiAgICB0cnl7CiAgICAgICAgJGN1dD0oR2V0LURhdGUpLkFkZE1pbnV0ZXMoLTUpCiAgICAgICAgJHJvb3RzPUAoJHBvcnRhYmxlLCRlbnY6VEVNUCwoSm9pbi1QYXRoICRlbnY6TE9DQUxBUFBEQVRBICdNZXJ6byBXaW5kb3dzIE9wdGltaXplcicpLChKb2luLVBhdGggJGVudjpBUFBEQVRBICdNZXJ6byBXaW5kb3dzIE9wdGltaXplcicpKSB8IFdoZXJlLU9iamVjdCB7JF8gLWFuZCAoVGVzdC1QYXRoICRfKX0gfCBTZWxlY3QtT2JqZWN0IC1VbmlxdWUKICAgICAgICAkZmlsZXM9Zm9yZWFjaCgkciBpbiAkcm9vdHMpewogICAgICAgICAgICBHZXQtQ2hpbGRJdGVtICRyIC1SZWN1cnNlIC1GaWxlIC1FcnJvckFjdGlvbiBTaWxlbnRseUNvbnRpbnVlIHwgV2hlcmUtT2JqZWN0IHskXy5MYXN0V3JpdGVUaW1lIC1nZSAkY3V0IC1hbmQgKCRfLkV4dGVuc2lvbiAtaW4gJy5sb2cnLCcuanNvbicsJy50eHQnKX0KICAgICAgICB9CiAgICAgICAgZm9yZWFjaCgkZiBpbiAoJGZpbGVzIHwgU29ydC1PYmplY3QgTGFzdFdyaXRlVGltZSAtRGVzY2VuZGluZyB8IFNlbGVjdC1PYmplY3QgLUZpcnN0IDEyKSl7CiAgICAgICAgICAgIFdyaXRlLUhvc3QgIlI1NDJfSEFOR19GSUxFIHRpbWU9JCgkZi5MYXN0V3JpdGVUaW1lLlRvU3RyaW5nKCdvJykpIHNpemU9JCgkZi5MZW5ndGgpIHBhdGg9JCgkZi5GdWxsTmFtZSkiCiAgICAgICAgICAgIGlmKCRmLkxlbmd0aC1ndDAgLWFuZCAkZi5MZW5ndGgtbHQxMDQ4NTc2KXsKICAgICAgICAgICAgICAgIHRyeXsKICAgICAgICAgICAgICAgICAgICAkdGFpbD1HZXQtQ29udGVudCAkZi5GdWxsTmFtZSAtVGFpbCA1IC1FcnJvckFjdGlvbiBTdG9wCiAgICAgICAgICAgICAgICAgICAgZm9yZWFjaCgkbGluZSBpbiAkdGFpbCl7JHM9W3N0cmluZ10kbGluZTtpZigkcy5MZW5ndGgtZ3Q1MDApeyRzPSRzLlN1YnN0cmluZygwLDUwMCl9O1dyaXRlLUhvc3QgIlI1NDJfSEFOR19GSUxFX1RBSUwgJHMifQogICAgICAgICAgICAgICAgfWNhdGNoe30KICAgICAgICAgICAgfQogICAgICAgIH0KICAgIH1jYXRjaHtXcml0ZS1Ib3N0ICJSNTQyX0hBTkdfRklMRVNfRVJST1IgJCgkXy5FeGNlcHRpb24uTWVzc2FnZSkifQogICAgV3JpdGUtSG9zdCAiUjU0Ml9IQU5HX0RJQUdfRU5EIHJlYXNvbj0kUmVhc29uIgp9CidALlRyaW0oKQppZigoJHNyYy5TcGxpdCgkc3RhdGVPbGQpLkNvdW50LTEpLW5lMSl7dGhyb3cgJ1I1NC4yIHY1IHN0YXRlIGFuY2hvciBtaXNtYXRjaCd9CiRzcmM9JHNyYy5SZXBsYWNlKCRzdGF0ZU9sZCwkc3RhdGVOZXcpCgokcG9sbE9sZD1AJwogICAgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyA1MDAKICAgICR3aW5zPUdldC1Qcm9jZXNzV2luZG93cyAkcHJvYy5JZAonQC5UcmltKCkKJHBvbGxOZXc9QCcKICAgIFN0YXJ0LVNsZWVwIC1NaWxsaXNlY29uZHMgNTAwCiAgICBpZigoR2V0LURhdGUpLWdlJGRpYWdOZXh0KXtXcml0ZS1SNTQySGFuZ0RpYWcgJ3BvbGwnOyRkaWFnTmV4dD0oR2V0LURhdGUpLkFkZFNlY29uZHMoNSl9CiAgICAkd2lucz1HZXQtUHJvY2Vzc1dpbmRvd3MgJHByb2MuSWQKJ0AuVHJpbSgpCmlmKCgkc3JjLlNwbGl0KCRwb2xsT2xkKS5Db3VudC0xKS1uZTEpe3Rocm93ICdSNTQuMiB2NSBwb2xsIGFuY2hvciBtaXNtYXRjaCd9CiRzcmM9JHNyYy5SZXBsYWNlKCRwb2xsT2xkLCRwb2xsTmV3KQoKJHRpbWVvdXRPbGQ9ImlmKCEkY29tcGxldGVkKXt0cnl7JHByb2MuS2lsbCgpfWNhdGNoe307dGhyb3cgJ1I1NC4yIEdBTUUgcGFja2FnZSBkaWQgbm90IGNvbXBsZXRlIHdpdGhpbiB0aW1lb3V0J30iCiR0aW1lb3V0TmV3PSJpZighJGNvbXBsZXRlZCl7V3JpdGUtUjU0MkhhbmdEaWFnICd0aW1lb3V0Jzt0cnl7JHByb2MuS2lsbCgpfWNhdGNoe307dGhyb3cgJ1I1NC4yIEdBTUUgcGFja2FnZSBkaWQgbm90IGNvbXBsZXRlIHdpdGhpbiBkaWFnbm9zdGljIHRpbWVvdXQnfSIKaWYoKCRzcmMuU3BsaXQoJHRpbWVvdXRPbGQpLkNvdW50LTEpLW5lMSl7dGhyb3cgJ1I1NC4yIHY1IHRpbWVvdXQgYW5jaG9yIG1pc21hdGNoJ30KJHNyYz0kc3JjLlJlcGxhY2UoJHRpbWVvdXRPbGQsJHRpbWVvdXROZXcpCgokdG1wPUpvaW4tUGF0aCAkZW52OlJVTk5FUl9URU1QICdyNTRfMl9nYW1lX211dGF0aW9uX2FjY2VwdGFuY2VfdjVfZXhwYW5kZWQucHMxJwpTZXQtQ29udGVudCAkdG1wICRzcmMgLUVuY29kaW5nIFVURjgKJiAkdG1wIC1BcnRpZmFjdERpciAkQXJ0aWZhY3REaXIKaWYoJExBU1RFWElUQ09ERS1uZTApe3Rocm93ICJSNTQuMiBHQU1FIG11dGF0aW9uIHY1IGZhaWxlZDogJExBU1RFWElUQ09ERSJ9Cg=='
+$replacement=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($b64))
 $v5=$v4.Substring(0,$tailStart)+$replacement
 $tmpWrapper=Join-Path $env:RUNNER_TEMP 'r54_2_game_mutation_acceptance_v5_wrapper.ps1'
 Set-Content $tmpWrapper $v5 -Encoding UTF8
