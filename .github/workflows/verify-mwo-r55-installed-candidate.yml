@@ -1,0 +1,77 @@
+name: Verify MWO R55 Installed Candidate
+
+on:
+  push:
+    branches: [mwo-r55-process-stability]
+    paths:
+      - 'optimizer/R55_GAME_RECOVERY_STATUS.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: mwo-r55-installed-candidate
+  cancel-in-progress: true
+
+jobs:
+  installed:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-process-stability
+          fetch-depth: 0
+      - name: Resolve exact GAME-green candidate
+        id: source
+        shell: pwsh
+        run: |
+          $status='.\optimizer\R55_GAME_RECOVERY_STATUS.json'
+          if(!(Test-Path $status)){ throw 'R55 GAME status missing' }
+          $j=Get-Content $status -Raw | ConvertFrom-Json
+          if($j.conclusion-ne'success' -or $j.gameFullMutation-ne'success' -or $j.recoveryRestoreAll-ne'success' -or $j.recoveryStateVerification-ne'success'){ throw 'R55 GAME/Recovery acceptance is not exact-green' }
+          if([long]$j.buildRun-le0){ throw 'R55 build run missing from GAME status' }
+          "run_id=$($j.buildRun)" >> $env:GITHUB_OUTPUT
+          "build_head=$($j.buildHead)" >> $env:GITHUB_OUTPUT
+          Write-Host "R55_GAME_GREEN_CANDIDATE_RESOLVED run=$($j.buildRun) head=$($j.buildHead)"
+      - name: Download exact R55 candidate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE
+          path: artifact
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Install, compare payload, and launch
+        id: installed
+        continue-on-error: true
+        shell: pwsh
+        run: .\optimizer\scripts\r55_installed_candidate_acceptance.ps1 -ArtifactDir '.\artifact' -BuildRun ${{ steps.source.outputs.run_id }} -BuildHead '${{ steps.source.outputs.build_head }}'
+      - name: Persist installed candidate status
+        if: always()
+        shell: pwsh
+        env:
+          INSTALLED_OUTCOME: ${{ steps.installed.outcome }}
+          BUILD_RUN: ${{ steps.source.outputs.run_id }}
+          BUILD_HEAD: ${{ steps.source.outputs.build_head }}
+        run: |
+          $status='.\optimizer\R55_INSTALLED_CANDIDATE_STATUS.json'
+          $fresh=$false
+          if(Test-Path $status){
+            try {$j=Get-Content $status -Raw|ConvertFrom-Json;$fresh=($j.conclusion-eq'success' -and $j.installedVersion-eq'0.1.55.0' -and $j.payloadMatch-eq'success' -and $j.launch-eq'success' -and [long]$j.buildRun-eq[long]$env:BUILD_RUN)} catch {}
+          }
+          if($env:INSTALLED_OUTCOME-ne'success' -or !$fresh){
+            [ordered]@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=$env:BUILD_RUN;buildHead=$env:BUILD_HEAD;installedOutcome=$env:INSTALLED_OUTCOME;error='R55 installed candidate acceptance failed.'}|ConvertTo-Json|Set-Content $status -Encoding UTF8
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_INSTALLED_CANDIDATE_STATUS.json';Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-process-stability;git reset --hard origin/mwo-r55-process-stability;Copy-Item $saved $status -Force;git add $status;git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record R55 installed candidate run $env:GITHUB_RUN_ID";git push origin HEAD:mwo-r55-process-stability
+            if($LASTEXITCODE-eq0){$pushed=$true;break};Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist R55 installed candidate status'}
+          if($env:INSTALLED_OUTCOME-ne'success' -or !$fresh){exit 1}
