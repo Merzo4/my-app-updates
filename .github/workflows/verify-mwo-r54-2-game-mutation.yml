@@ -14,6 +14,7 @@ on:
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v8.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v9.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v10.ps1'
+      - 'optimizer/scripts/r54_2_game_mutation_acceptance_v11.ps1'
       - 'optimizer/triggers/r54-2-game-mutation.txt'
 
 permissions:
@@ -44,7 +45,7 @@ jobs:
         id: mutation
         continue-on-error: true
         shell: pwsh
-        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v10.ps1 -ArtifactDir '.\artifact'
+        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v11.ps1 -ArtifactDir '.\artifact'
       - name: Record R54.2 mutation status
         if: always()
         shell: pwsh
@@ -53,8 +54,8 @@ jobs:
         run: |
           $status='optimizer/R54_2_GAME_MUTATION_STATUS.json'
           $fresh=$false
-          if(Test-Path $status){try {$j=Get-Content $status -Raw|ConvertFrom-Json;$fresh=($j.conclusion -eq 'success' -and [long]$j.buildRun -eq 32270447478)} catch {}}
-          if($env:MUTATION_OUTCOME -ne 'success' -or !$fresh){@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=32270447478;artifactId=9372048444;mutationOutcome=$env:MUTATION_OUTCOME;error='Disposable GAME mutation acceptance failed or did not create a fresh success status; inspect workflow log.'}|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8}else{$j=Get-Content $status -Raw|ConvertFrom-Json;$j|Add-Member -NotePropertyName databaseId -NotePropertyValue ([long]$env:GITHUB_RUN_ID) -Force;$j|Add-Member -NotePropertyName headSha -NotePropertyValue $env:GITHUB_SHA -Force;$j|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8}
+          if(Test-Path $status){try {$j=Get-Content $status -Raw|ConvertFrom-Json;$fresh=($j.conclusion -eq 'success' -and [long]$j.buildRun -eq 32270447478 -and $j.recoveryRestoreAll -eq 'success' -and $j.recoveryStateVerification -eq 'success')} catch {}}
+          if($env:MUTATION_OUTCOME -ne 'success' -or !$fresh){@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=32270447478;artifactId=9372048444;mutationOutcome=$env:MUTATION_OUTCOME;error='Disposable GAME + production RestoreAll acceptance failed or did not create a fresh success status; inspect workflow log.'}|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8}else{$j=Get-Content $status -Raw|ConvertFrom-Json;$j|Add-Member -NotePropertyName databaseId -NotePropertyValue ([long]$env:GITHUB_RUN_ID) -Force;$j|Add-Member -NotePropertyName headSha -NotePropertyValue $env:GITHUB_SHA -Force;$j|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8}
           $saved=Join-Path $env:RUNNER_TEMP 'R54_2_GAME_MUTATION_STATUS.json';Copy-Item $status $saved -Force
           git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           $pushed=$false
