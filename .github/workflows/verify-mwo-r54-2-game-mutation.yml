@@ -10,6 +10,7 @@ on:
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v2.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v4.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v6.ps1'
+      - 'optimizer/scripts/r54_2_game_mutation_acceptance_v7.ps1'
       - 'optimizer/triggers/r54-2-game-mutation.txt'
 
 permissions:
@@ -40,7 +41,7 @@ jobs:
         id: mutation
         continue-on-error: true
         shell: pwsh
-        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v6.ps1 -ArtifactDir '.\artifact'
+        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v7.ps1 -ArtifactDir '.\artifact'
       - name: Record R54.2 mutation status
         if: always()
         shell: pwsh
@@ -74,7 +75,18 @@ jobs:
           }
           $saved=Join-Path $env:RUNNER_TEMP 'R54_2_GAME_MUTATION_STATUS.json';Copy-Item $status $saved -Force
           git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch origin merzo-windows-optimizer;git reset --hard origin/merzo-windows-optimizer
-          Copy-Item $saved $status -Force;git add $status;git diff --cached --quiet
-          if($LASTEXITCODE-ne0){git commit -m "Record R54.2 GAME mutation run $env:GITHUB_RUN_ID";git push origin HEAD:merzo-windows-optimizer}
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin merzo-windows-optimizer
+            git reset --hard origin/merzo-windows-optimizer
+            Copy-Item $saved $status -Force
+            git add $status
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record R54.2 GAME mutation run $env:GITHUB_RUN_ID"
+            git push origin HEAD:merzo-windows-optimizer
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist R54.2 mutation status after retries'}
           if($env:MUTATION_OUTCOME -ne 'success' -or !$fresh){exit 1}
