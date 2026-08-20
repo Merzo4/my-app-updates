@@ -1,0 +1,67 @@
+name: Verify MWO R54 Public OTA v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/verify-mwo-r54-public-ota-v2.yml'
+      - 'optimizer/scripts/r54_acceptance_v3_runner.ps1'
+      - 'optimizer/triggers/r54-verify-v2.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r54-public-ota-v2
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Run public R53 to R54 acceptance with exact MWO release + catalog JSON rules
+        id: accept
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\optimizer\scripts\r54_acceptance_v3_runner.ps1
+
+      - name: Record R54 v2 acceptance status
+        if: always()
+        shell: pwsh
+        run: |
+          $status='optimizer/R54_OTA_ACCEPTANCE_STATUS.json'
+          if(!(Test-Path $status)){
+            $fallback=@{
+              conclusion='failure'
+              createdAt=(Get-Date).ToUniversalTime().ToString('o')
+              databaseId=[long]$env:GITHUB_RUN_ID
+              headSha=$env:GITHUB_SHA
+              error='R54 v2 acceptance did not create status file'
+            } | ConvertTo-Json -Compress
+            Set-Content $status $fallback -Encoding UTF8
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R54_OTA_ACCEPTANCE_STATUS.json'
+          Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Copy-Item $saved $status -Force
+          git add $status
+          git diff --cached --quiet
+          if($LASTEXITCODE-ne0){
+            git commit -m "Record R54 v2 OTA acceptance run $env:GITHUB_RUN_ID"
+            git push origin HEAD:merzo-windows-optimizer
+          }
+          if('${{ steps.accept.outcome }}'-ne'success'){exit 1}

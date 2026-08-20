@@ -1,0 +1,40 @@
+name: DIAG R52 gaming debloat source
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/diag-r52-gaming-debloat-source.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  diag:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - name: Reconstruct R51 and capture debloat/process source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          .\optimizer\scripts\r51_release_v2.ps1
+          if([string]::IsNullOrWhiteSpace($env:SOURCE_ROOT)){throw 'SOURCE_ROOT missing'}
+          $out='.\optimizer\R52_GAMING_DEBLOAT_DIAG.txt'
+          "=== FILES ===" | Set-Content $out -Encoding UTF8
+          Get-ChildItem $env:SOURCE_ROOT -Recurse -File -Include *.cs | Where-Object { $_.Name -match 'Appx|Debloat|Startup|Service|Task|ViewModel|Elevation' } | ForEach-Object { $_.FullName.Replace($env:SOURCE_ROOT,'') } | Add-Content $out
+          "`n=== APPX / DEBLOAT ===" | Add-Content $out
+          Get-ChildItem $env:SOURCE_ROOT -Recurse -File -Include *.cs | Select-String -Pattern 'Appx|DebloatApps|DebloatStatusText|PackageName|Get-AppxPackage|Remove-AppxPackage' -Context 6,16 | ForEach-Object { $_.ToString() } | Add-Content $out
+          "`n=== APPLY PROFILE ===" | Add-Content $out
+          Get-ChildItem $env:SOURCE_ROOT -Recurse -File -Include *.cs | Select-String -Pattern 'ApplySelectedTweaksAsync|merzoGame|merzo_game|SelectMerzo|gamingNetworkMode|ServiceAuditItems|ScheduledTaskAuditItems' -Context 8,20 | ForEach-Object { $_.ToString() } | Add-Content $out
+          "`n=== STARTUP PROCESS ===" | Add-Content $out
+          Get-ChildItem $env:SOURCE_ROOT -Recurse -File -Include *.cs | Select-String -Pattern 'ProcessReduction|StartupOptimizer|StartupItems|process_safe|process_lite' -Context 6,14 | ForEach-Object { $_.ToString() } | Add-Content $out
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $out
+          git commit -m 'diag: capture R51 gaming debloat engines'
+          git push

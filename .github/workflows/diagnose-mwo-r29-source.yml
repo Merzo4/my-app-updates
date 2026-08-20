@@ -1,0 +1,64 @@
+name: Diagnose MWO R29 post-R28 source
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/diagnose-mwo-r29-source.yml']
+  workflow_dispatch:
+
+permissions: { contents: read }
+
+jobs:
+  snapshot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name
+          if($parts.Count-ne 29){throw 'Source parts missing'}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))}
+          [IO.File]::WriteAllBytes('r29diag.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r29diag.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force r29diag|Out-Null;tar -xf r29diag.tar.xz -C r29diag
+          $sln=Get-ChildItem r29diag -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1
+          if(-not$sln){throw 'Solution missing'}
+          "SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
+
+      - name: Apply current production patches through R28
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw
+          $s=$s.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R28 UX SelfTest').Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          python optimizer/patches/r24_update_center.py
+          python optimizer/patches/r28_patch_compat.py
+          python optimizer/patches/r24_compile_fix.py
+          python optimizer/patches/r26_ota_repair.py
+          python optimizer/patches/r27_privacy_engine.py
+          python optimizer/patches/r28_profiles_updates_cleanup_ux.py
+          if($LASTEXITCODE-ne 0){throw 'Production patch chain failed'}
+
+      - name: Package source snapshot
+        shell: pwsh
+        run: |
+          $out=Join-Path $env:RUNNER_TEMP 'r29-source'
+          New-Item -ItemType Directory -Force $out|Out-Null
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'src') (Join-Path $out 'src') -Recurse -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'data') (Join-Path $out 'data') -Recurse -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'installer') (Join-Path $out 'installer') -Recurse -Force
+          Copy-Item (Join-Path $env:SOURCE_ROOT 'build') (Join-Path $out 'build') -Recurse -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MWO-R29-POST-R28-SOURCE-SNAPSHOT
+          path: ${{ runner.temp }}/r29-source

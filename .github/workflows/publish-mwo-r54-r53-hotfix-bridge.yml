@@ -1,0 +1,204 @@
+name: Publish MWO R54 R53 HOTFIX BRIDGE
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - 'optimizer/triggers/r54-publish.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: mwo-r54-r53-hotfix-bridge-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve exact green R54 bridge production run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=optimizer/R54_CI_STATUS.json
+          test -f "$status"
+          conclusion=$(jq -r '.conclusion' "$status")
+          gates=$(jq -r '.gates' "$status")
+          artifact=$(jq -r '.artifact' "$status")
+          publicVersion=$(jq -r '.publicVersion' "$status")
+          fileVersion=$(jq -r '.fileVersion' "$status")
+          runid=$(jq -r '.databaseId' "$status")
+          head=$(jq -r '.headSha' "$status")
+          test "$conclusion" = success
+          test "$gates" = success
+          test "$artifact" = success
+          test "$publicVersion" = '0.1.54'
+          test "$fileVersion" = '0.1.54.0'
+          test -n "$runid" && test "$runid" != null
+          test -n "$head" && test "$head" != null
+          live=$(gh run view "$runid" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,workflowName)
+          test "$(echo "$live" | jq -r '.status')" = completed
+          test "$(echo "$live" | jq -r '.conclusion')" = success
+          test "$(echo "$live" | jq -r '.headSha')" = "$head"
+          test "$(echo "$live" | jq -r '.workflowName')" = 'Merzo Windows Optimizer R54 R53 HOTFIX BRIDGE'
+          echo "runid=$runid" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo R54_EXACT_GREEN_RUN_PASS
+
+      - name: Download exact verified R54 bridge artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.source.outputs.runid }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r54-release
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name MerzoWindowsOptimizer-0.1.54-R53-HOTFIX-BRIDGE \
+            --dir r54-release
+          for f in \
+            MerzoWindowsOptimizerSetup-win-x64.exe \
+            MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+            MerzoWindowsOptimizer-portable-win-x64.zip \
+            MerzoWindowsOptimizer-portable-win-x64.zip.sha256 \
+            R53_RELEASE_NOTES.md; do
+            test -f "r54-release/$f"
+          done
+          echo R54_EXACT_ARTIFACT_DOWNLOAD_PASS
+
+      - name: Verify R54 artifact SHA-256 sidecars
+        id: hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd r54-release
+          installer=$(sha256sum MerzoWindowsOptimizerSetup-win-x64.exe | awk '{print $1}')
+          portable=$(sha256sum MerzoWindowsOptimizer-portable-win-x64.zip | awk '{print $1}')
+          grep -qi "$installer" MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          grep -qi "$portable" MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          echo "installer=$installer" >> "$GITHUB_OUTPUT"
+          echo "portable=$portable" >> "$GITHUB_OUTPUT"
+          echo R54_ARTIFACT_SHA_PASS
+
+      - name: Create exact R54 release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          git cat-file -e "$TARGET^{commit}"
+          if git ls-remote --exit-code --tags origin refs/tags/mwo-v0.1.54 >/dev/null 2>&1; then
+            remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.54 | awk '{print $1}')
+            test "$remote" = "$TARGET"
+          else
+            git tag mwo-v0.1.54 "$TARGET"
+            git push origin refs/tags/mwo-v0.1.54
+          fi
+          echo R54_EXACT_TAG_PASS
+
+      - name: Publish stable R54 bridge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view mwo-v0.1.54 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'R54 release exists; exact public verification follows'
+          else
+            gh release create mwo-v0.1.54 \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title 'Merzo Windows Optimizer 0.1.54 — R53 GAME Hotfix Bridge' \
+              --notes-file r54-release/R53_RELEASE_NOTES.md \
+              r54-release/MerzoWindowsOptimizerSetup-win-x64.exe \
+              r54-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+              r54-release/MerzoWindowsOptimizer-portable-win-x64.zip \
+              r54-release/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          fi
+
+      - name: Verify public stable R54 bridge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_SHA: ${{ steps.hashes.outputs.installer }}
+          PORTABLE_SHA: ${{ steps.hashes.outputs.portable }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.54")
+          echo "$json" | jq -e '.draft == false and .prerelease == false and .tag_name == "mwo-v0.1.54"' >/dev/null
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
+          test "$latest" = 'mwo-v0.1.54'
+          for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+            echo "$json" | jq -e --arg n "$n" '.assets[] | select(.name == $n)' >/dev/null
+          done
+          installer=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizerSetup-win-x64.exe") | .digest')
+          portable=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizer-portable-win-x64.zip") | .digest')
+          test "$installer" = "sha256:$INSTALLER_SHA"
+          test "$portable" = "sha256:$PORTABLE_SHA"
+          remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.54 | awk '{print $1}')
+          test "$remote" = "$TARGET"
+          echo R54_PUBLIC_RELEASE_PASS
+
+  acceptance:
+    needs: publish
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Public installed R53 to R54 real-updater acceptance
+        id: accept
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\optimizer\scripts\r54_public_ota_acceptance.ps1
+
+      - name: Record R54 public OTA acceptance
+        if: always()
+        shell: pwsh
+        run: |
+          $status='optimizer/R54_OTA_ACCEPTANCE_STATUS.json'
+          if(!(Test-Path $status)){
+            $fallback=@{
+              conclusion='failure'
+              createdAt=(Get-Date).ToUniversalTime().ToString('o')
+              databaseId=[long]$env:GITHUB_RUN_ID
+              headSha=$env:GITHUB_SHA
+              error='R54 acceptance script did not create status file'
+            } | ConvertTo-Json -Compress
+            Set-Content $status $fallback -Encoding UTF8
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R54_OTA_ACCEPTANCE_STATUS.json'
+          Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Copy-Item $saved $status -Force
+          git add $status
+          git diff --cached --quiet
+          if($LASTEXITCODE-ne0){
+            git commit -m "Record R54 public OTA acceptance run $env:GITHUB_RUN_ID"
+            git push origin HEAD:merzo-windows-optimizer
+          }
+          if('${{ steps.accept.outcome }}'-ne'success'){exit 1}

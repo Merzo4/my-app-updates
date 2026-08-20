@@ -1,0 +1,90 @@
+name: Merzo Windows Optimizer R25 ONLINE UPDATE TEST
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/build-mwo-r25-online-test.yml']
+
+permissions: { contents: write }
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$parts=Get-ChildItem 'optimizer/source-min/R21.part*'|Sort-Object Name;if($parts.Count-ne 29){throw 'Source parts missing'}
+          $b=[Text.StringBuilder]::new();foreach($p in $parts){[void]$b.Append(((Get-Content $p.FullName -Raw)-replace '\s',''))};[IO.File]::WriteAllBytes('r25.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r25.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant();if($h-ne'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){throw "Source SHA mismatch $h"}
+          New-Item -ItemType Directory -Force r25|Out-Null;tar -xf r25.tar.xz -C r25;$sln=Get-ChildItem r25 -Recurse -Filter MerzoWindowsOptimizer.sln|Select-Object -First 1;if(-not$sln){throw 'Solution missing'};"SOURCE_ROOT=$($sln.Directory.FullName)">>$env:GITHUB_ENV
+
+      - name: Production feed + R24 updater + R25 marker
+        shell: pwsh
+        run: |
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs';$s=Get-Content $f -Raw;$s=$s.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R25 SelfTest').Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");';$new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");';if($s.Contains($old)){$s=$s.Replace($old,$new)};Set-Content $f $s -Encoding UTF8
+          python optimizer/patches/r24_update_center.py;if($LASTEXITCODE-ne 0){throw 'Updater patch failed'};python optimizer/patches/r24_compile_fix.py;if($LASTEXITCODE-ne 0){throw 'Compatibility patch failed'};python optimizer/patches/r25_online_test.py;if($LASTEXITCODE-ne 0){throw 'R25 marker failed'}
+
+      - name: Branded icon
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          @'
+          from PIL import Image,ImageDraw
+          from pathlib import Path
+          import os
+          o=Path(os.environ['SOURCE_ROOT'])/'assets'/'MerzoWindowsOptimizer.ico';o.parent.mkdir(parents=True,exist_ok=True);im=Image.new('RGBA',(256,256),(10,16,22,255));d=ImageDraw.Draw(im);t=(83,216,197,255);w=(238,247,247,255);p=(19,30,40,255);d.rounded_rectangle((12,12,244,244),radius=52,fill=p,outline=t,width=10);d.ellipse((42,42,214,214),outline=(47,94,98,255),width=5);d.line((62,176,62,91,104,142,128,105,152,142,194,91,194,176),fill=w,width=16);d.polygon([(143,45),(117,104),(143,104),(126,154),(188,84),(156,84),(176,45)],fill=t);im.save(o,format='ICO',sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          '@|Set-Content icon.py -Encoding UTF8;python icon.py
+
+      - name: Build 0.1.25 + SelfTest
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT;try{& .\build\Build-Production.ps1 -Version '0.1.25';if($LASTEXITCODE-ne 0){throw 'Build failed'}}finally{Pop-Location}
+
+      - name: Ship clean runtime DLLs
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:SOURCE_ROOT 'dist\app';$core=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Core\bin\Release\net10.0\MerzoOptimizer.Core.dll';$windows=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.Windows\bin\Release\net10.0-windows\MerzoOptimizer.Windows.dll';$helper=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.ElevatedHelper\bin\Release\net10.0-windows\win-x64\MerzoOptimizer.ElevatedHelper.dll';foreach($f in @($core,$windows,$helper)){if(-not(Test-Path $f)){throw "Missing $f"}};Copy-Item $core (Join-Path $app 'MerzoOptimizer.Core.dll') -Force;Copy-Item $windows (Join-Path $app 'MerzoOptimizer.Windows.dll') -Force;Copy-Item $helper (Join-Path $app 'MerzoOptimizer.ElevatedHelper.dll') -Force
+
+      - name: Runtime + online-update gates
+        shell: pwsh
+        run: |
+          $d=Join-Path $env:RUNNER_TEMP smoke;New-Item -ItemType Directory -Force $d|Out-Null;'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup></Project>'|Set-Content (Join-Path $d Smoke.csproj);'using System.Reflection;foreach(var p in args){var a=Assembly.LoadFrom(Path.GetFullPath(p));Console.WriteLine($"OK {Path.GetFileName(p)} types={a.GetTypes().Length}");}'|Set-Content (Join-Path $d Program.cs);$app=Join-Path $env:SOURCE_ROOT 'dist\app';dotnet run --project (Join-Path $d Smoke.csproj) -c Release -- (Join-Path $app 'MerzoOptimizer.Core.dll') (Join-Path $app 'MerzoOptimizer.Windows.dll') (Join-Path $app 'MerzoOptimizer.ElevatedHelper.dll');if($LASTEXITCODE-ne 0){throw 'Metadata smoke failed'};$vm=Get-Content (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') -Raw;foreach($t in @('IsUpdateBusy','LaunchVerifiedInstallerAndRestart','Verb = "runas"')){if(-not$vm.Contains($t)){throw "Missing updater token $t"}};$x=Get-Content (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw;if(-not$x.Contains('ONLINE UPDATE TEST')){throw 'R25 marker missing'}
+
+      - name: Rebuild portable
+        shell: pwsh
+        run: |
+          $a=Join-Path $env:SOURCE_ROOT 'dist\app';$z=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip';if(Test-Path $z){Remove-Item $z -Force};Compress-Archive -Path (Join-Path $a '*') -DestinationPath $z -CompressionLevel Optimal
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y;if($LASTEXITCODE-ne 0){throw 'Inno failed'};$i=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe')|?{Test-Path $_}|select -First 1;if(-not$i){throw 'ISCC missing'};"ISCC=$i">>$env:GITHUB_ENV
+
+      - name: Installer + hashes
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT;try{&$env:ISCC '/DMyAppVersion=0.1.25' '.\installer\MerzoWindowsOptimizer.iss';if($LASTEXITCODE-ne 0){throw 'Installer failed'};$e='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe';$z='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip';$eh=(Get-FileHash $e -Algorithm SHA256).Hash.ToLowerInvariant();$zh=(Get-FileHash $z -Algorithm SHA256).Hash.ToLowerInvariant();"$eh  MerzoWindowsOptimizerSetup-win-x64.exe"|Set-Content "$e.sha256" -Encoding ascii;"$zh  MerzoWindowsOptimizer-portable-win-x64.zip"|Set-Content "$z.sha256" -Encoding ascii;Write-Host "R25_INSTALLER_SHA256=$eh"}finally{Pop-Location}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.25-R25-ONLINE-TEST
+          path: |
+            r25/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r25/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r25/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r25/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+
+      - name: Publish R25 ONLINE UPDATE TEST
+        shell: pwsh
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          $tag='mwo-v0.1.25';$d=Join-Path $env:SOURCE_ROOT dist;gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null;if($LASTEXITCODE-ne 0){gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.25 (R25 ONLINE UPDATE TEST)' --notes 'Purpose-built end-to-end OTA test release. R24 should discover this release, download the installer, require matching GitHub SHA-256, request UAC, update in place and restart visibly as R25 ONLINE UPDATE TEST.'};gh release upload $tag (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe') (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256') (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip') (Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256') --repo $env:GITHUB_REPOSITORY --clobber;if($LASTEXITCODE-ne 0){throw 'Release failed'}

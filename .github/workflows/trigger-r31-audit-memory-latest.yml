@@ -1,0 +1,16 @@
+name: Trigger R31 audit memory latest
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/trigger-r31-audit-memory-latest.yml']
+permissions:
+  contents: read
+  actions: write
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch final R31 production workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run build-mwo-r31-audit-memory.yml --repo "$GITHUB_REPOSITORY" --ref merzo-windows-optimizer

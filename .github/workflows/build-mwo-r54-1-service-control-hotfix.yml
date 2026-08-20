@@ -1,0 +1,85 @@
+name: Merzo Windows Optimizer R54.1 SERVICE CONTROL HOTFIX
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/build-mwo-r54-1-service-control-hotfix.yml'
+      - 'optimizer/triggers/r54-1-service-control.txt'
+      - 'optimizer/scripts/r54_1_service_control_hotfix_release.ps1'
+      - 'optimizer/patches/r54_1_service_control_hotfix.py'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r54-1-service-control
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Run R54.1 production gates
+        id: gates
+        continue-on-error: true
+        shell: pwsh
+        run: .\optimizer\scripts\r54_1_service_control_hotfix_release.ps1
+      - name: Upload verified R54.1 artifact
+        id: artifact
+        if: steps.gates.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.54.1-SERVICE-CONTROL-HOTFIX
+          path: |
+            r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r49/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r49/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+            r49/dist/R53_RELEASE_NOTES.md
+          if-no-files-found: error
+      - name: Record R54.1 CI status
+        if: always()
+        shell: pwsh
+        env:
+          GATES_OUTCOME: ${{ steps.gates.outcome }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+        run: |
+          $ok=($env:GATES_OUTCOME -eq 'success' -and $env:ARTIFACT_OUTCOME -eq 'success')
+          $payload=@{
+            conclusion=$(if($ok){'success'}else{'failure'})
+            createdAt=(Get-Date).ToUniversalTime().ToString('o')
+            databaseId=[long]$env:GITHUB_RUN_ID
+            headSha=$env:GITHUB_SHA
+            gates=$env:GATES_OUTCOME
+            artifact=$env:ARTIFACT_OUTCOME
+            publicVersion='0.1.54.1'
+            fileVersion='0.1.54.1'
+            purpose='R54 service Start/Undo via SCM; fix Distributed Link Tracking Client registry ACL rollback'
+          } | ConvertTo-Json -Compress
+          $saved=Join-Path $env:RUNNER_TEMP 'R54_1_CI_STATUS.json'
+          Set-Content $saved $payload -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Copy-Item $saved '.\optimizer\R54_1_CI_STATUS.json' -Force
+          git add optimizer/R54_1_CI_STATUS.json
+          git diff --cached --quiet
+          if($LASTEXITCODE-ne0){
+            git commit -m "Record R54.1 CI status run $env:GITHUB_RUN_ID"
+            git push origin HEAD:merzo-windows-optimizer
+          }
+      - name: Fail when R54.1 is not releasable
+        if: always() && (steps.gates.outcome != 'success' || steps.artifact.outcome != 'success')
+        shell: pwsh
+        run: exit 1

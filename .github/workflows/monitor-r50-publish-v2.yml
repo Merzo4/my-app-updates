@@ -1,0 +1,53 @@
+name: Monitor R50 publish V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/monitor-r50-publish-v2.yml']
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read latest R50 publish result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow publish-mwo-r50-from-verified-artifact.yml --branch merzo-windows-optimizer --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          [ -n "$id" ] || { echo 'publish run not found'; exit 1; }
+          for i in $(seq 1 60); do
+            status=$(gh run view "$id" --repo "$GITHUB_REPOSITORY" --json status --jq '.status')
+            [ "$status" = completed ] && break
+            sleep 10
+          done
+          gh run view "$id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > /tmp/R50_PUBLISH_STATUS_V2.json
+          conclusion=$(jq -r '.conclusion' /tmp/R50_PUBLISH_STATUS_V2.json)
+          if [ "$conclusion" != success ]; then
+            gh run view "$id" --repo "$GITHUB_REPOSITORY" --log-failed > /tmp/R50_PUBLISH_FAILED_V2.log || true
+          else
+            : > /tmp/R50_PUBLISH_FAILED_V2.log
+          fi
+      - name: Save status on clean non-workflow branch
+        run: |
+          set -euo pipefail
+          git fetch origin mwo-r50-release-source
+          git switch -C mwo-r50-release-source origin/mwo-r50-release-source
+          mkdir -p optimizer
+          cp /tmp/R50_PUBLISH_STATUS_V2.json optimizer/R50_PUBLISH_STATUS_V2.json
+          cp /tmp/R50_PUBLISH_FAILED_V2.log optimizer/R50_PUBLISH_FAILED_V2.log
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R50_PUBLISH_STATUS_V2.json optimizer/R50_PUBLISH_FAILED_V2.log
+          git commit -m 'diag: record final R50 OTA publish result' || true
+          git push origin HEAD:mwo-r50-release-source

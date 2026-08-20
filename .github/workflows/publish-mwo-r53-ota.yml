@@ -1,0 +1,285 @@
+name: Publish MWO R53 OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/publish-mwo-r53-ota.yml'
+      - 'optimizer/triggers/r53-publish.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve exact green R53 production run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=optimizer/R53_CI_STATUS.json
+          test -f "$status"
+          conclusion=$(jq -r '.conclusion' "$status")
+          runid=$(jq -r '.databaseId' "$status")
+          head=$(jq -r '.headSha' "$status")
+          test "$conclusion" = success
+          test -n "$runid" && test "$runid" != null
+          test -n "$head" && test "$head" != null
+
+          live=$(gh run view "$runid" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,workflowName)
+          test "$(echo "$live" | jq -r '.status')" = completed
+          test "$(echo "$live" | jq -r '.conclusion')" = success
+          test "$(echo "$live" | jq -r '.headSha')" = "$head"
+          test "$(echo "$live" | jq -r '.workflowName')" = 'Merzo Windows Optimizer R53 PROCESS CLEAN START'
+          echo "runid=$runid" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo R53_EXACT_GREEN_RUN_PASS
+
+      - name: Download exact verified R53 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.source.outputs.runid }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r53-release
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name MerzoWindowsOptimizer-0.1.53-R53-PROCESS-CLEAN-START \
+            --dir r53-release
+          for f in \
+            MerzoWindowsOptimizerSetup-win-x64.exe \
+            MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+            MerzoWindowsOptimizer-portable-win-x64.zip \
+            MerzoWindowsOptimizer-portable-win-x64.zip.sha256 \
+            R53_RELEASE_NOTES.md; do
+            test -f "r53-release/$f"
+          done
+
+      - name: Verify artifact SHA-256 sidecars
+        id: hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd r53-release
+          installer=$(sha256sum MerzoWindowsOptimizerSetup-win-x64.exe | awk '{print $1}')
+          portable=$(sha256sum MerzoWindowsOptimizer-portable-win-x64.zip | awk '{print $1}')
+          grep -qi "$installer" MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          grep -qi "$portable" MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          echo "installer=$installer" >> "$GITHUB_OUTPUT"
+          echo "portable=$portable" >> "$GITHUB_OUTPUT"
+          echo R53_ARTIFACT_SHA_PASS
+
+      - name: Create exact R53 release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          git cat-file -e "$TARGET^{commit}"
+          if git ls-remote --exit-code --tags origin refs/tags/mwo-v0.1.53 >/dev/null 2>&1; then
+            remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.53 | awk '{print $1}')
+            test "$remote" = "$TARGET"
+          else
+            git tag mwo-v0.1.53 "$TARGET"
+            git push origin refs/tags/mwo-v0.1.53
+          fi
+          echo R53_TAG_PASS
+
+      - name: Publish stable R53 release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view mwo-v0.1.53 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'R53 release already exists; keeping exact published assets'
+          else
+            gh release create mwo-v0.1.53 \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title 'Merzo Windows Optimizer 0.1.53 (R53 PROCESS + CLEAN START)' \
+              --notes-file r53-release/R53_RELEASE_NOTES.md \
+              r53-release/MerzoWindowsOptimizerSetup-win-x64.exe \
+              r53-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+              r53-release/MerzoWindowsOptimizer-portable-win-x64.zip \
+              r53-release/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          fi
+
+      - name: Verify public OTA release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_SHA: ${{ steps.hashes.outputs.installer }}
+          PORTABLE_SHA: ${{ steps.hashes.outputs.portable }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.53")
+          echo "$json" | jq -e '.draft == false and .prerelease == false and .tag_name == "mwo-v0.1.53"' >/dev/null
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
+          test "$latest" = 'mwo-v0.1.53'
+          for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+            echo "$json" | jq -e --arg n "$n" '.assets[] | select(.name == $n)' >/dev/null
+          done
+          installer=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizerSetup-win-x64.exe") | .digest')
+          portable=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizer-portable-win-x64.zip") | .digest')
+          test "$installer" = "sha256:$INSTALLER_SHA"
+          test "$portable" = "sha256:$PORTABLE_SHA"
+          remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.53 | awk '{print $1}')
+          test "$remote" = "$TARGET"
+          echo R53_PUBLIC_OTA_RELEASE_PASS
+
+  acceptance:
+    needs: publish
+    if: always() && needs.publish.result == 'success'
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download public R52 and R53 installers
+        id: public
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $latest=(gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | ConvertFrom-Json)
+          if($latest.tag_name -ne 'mwo-v0.1.53'){throw "Latest release is not R53: $($latest.tag_name)"}
+          New-Item -ItemType Directory -Force public-r52,public-r53 | Out-Null
+          gh release download mwo-v0.1.52 --repo $env:GITHUB_REPOSITORY --dir public-r52 --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe'
+          gh release download mwo-v0.1.53 --repo $env:GITHUB_REPOSITORY --dir public-r53 --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe' --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'
+          foreach($f in @('public-r52/MerzoWindowsOptimizerSetup-win-x64.exe','public-r53/MerzoWindowsOptimizerSetup-win-x64.exe','public-r53/MerzoWindowsOptimizerSetup-win-x64.exe.sha256')){if(!(Test-Path $f)){throw "Missing public installer asset: $f"}}
+          $sha=(Get-FileHash 'public-r53/MerzoWindowsOptimizerSetup-win-x64.exe' -Algorithm SHA256).Hash.ToLowerInvariant()
+          $side=(Get-Content 'public-r53/MerzoWindowsOptimizerSetup-win-x64.exe.sha256' -Raw).ToLowerInvariant()
+          if(-not $side.Contains($sha)){throw 'Public R53 installer SHA sidecar mismatch'}
+          "R53_PUBLIC_SHA=$sha" >> $env:GITHUB_ENV
+          Write-Host "R53_PUBLIC_INSTALLER_PASS sha=$sha"
+
+      - name: Install public R52 and verify its OTA feed contract
+        id: feed
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup='public-r52/MerzoWindowsOptimizerSetup-win-x64.exe'
+          if(!(Test-Path $setup)){throw 'Public R52 installer missing'}
+          $p=Start-Process $setup -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -PassThru -Wait
+          if($p.ExitCode -ne 0){throw "R52 install exit $($p.ExitCode)"}
+          Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+          $entries=@()
+          foreach($rp in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')){
+            $entries += Get-ItemProperty $rp -ErrorAction SilentlyContinue | Where-Object {$_.DisplayName -like '*Merzo*Windows*Optimizer*'}
+          }
+          $entry=$entries | Sort-Object DisplayVersion -Descending | Select-Object -First 1
+          $exe=$null
+          if($entry -and $entry.InstallLocation){$candidate=Join-Path $entry.InstallLocation 'MerzoWindowsOptimizer.exe'; if(Test-Path $candidate){$exe=Get-Item $candidate}}
+          if(!$exe){
+            foreach($base in @($env:LOCALAPPDATA,$env:ProgramFiles,${env:ProgramFiles(x86)})){
+              if($base -and (Test-Path $base)){
+                $hit=Get-ChildItem $base -Filter MerzoWindowsOptimizer.exe -Recurse -ErrorAction SilentlyContinue | Where-Object {$_.FullName -notmatch '\\Temp\\'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+                if($hit){$exe=$hit; break}
+              }
+            }
+          }
+          if(!$exe){throw 'Installed public R52 executable not found'}
+          $version=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName).FileVersion
+          if(-not $version.StartsWith('0.1.52')){throw "Baseline FileVersion is not R52: $version"}
+          "R52_EXE=$($exe.FullName)" >> $env:GITHUB_ENV
+          Write-Host "R52_INSTALLED_BASELINE_PASS path=$($exe.FullName) version=$version"
+
+          $cfg=Join-Path $exe.DirectoryName 'data\update_settings.json'
+          if(Test-Path $cfg){Write-Host ('R52_UPDATE_SETTINGS=' + (Get-Content $cfg -Raw))}
+          $winDll=Join-Path $exe.DirectoryName 'MerzoOptimizer.Windows.dll'
+          if(!(Test-Path $winDll)){throw 'R52 updater assembly missing'}
+          $asm=[Reflection.Assembly]::LoadFrom($winDll)
+          $type=$asm.GetTypes() | Where-Object {$_.FullName -match 'GitHubUpdateService$'} | Select-Object -First 1
+          if(!$type){throw 'R52 GitHubUpdateService type missing'}
+          Write-Host ('R52_UPDATER_TYPE=' + $type.FullName)
+          Write-Host ('R52_UPDATER_CTORS=' + (($type.GetConstructors() | ForEach-Object {$_.ToString()}) -join ' | '))
+          Write-Host ('R52_UPDATER_METHODS=' + (($type.GetMethods([Reflection.BindingFlags]'Public,Instance,Static,DeclaredOnly') | ForEach-Object {$_.ToString()}) -join ' | '))
+
+          $bytes=[IO.File]::ReadAllBytes($winDll)
+          $ascii=[Text.Encoding]::ASCII.GetString($bytes)
+          $unicode=[Text.Encoding]::Unicode.GetString($bytes)
+          if(($ascii -notmatch 'Merzo4') -and ($unicode -notmatch 'Merzo4')){throw 'R52 updater owner contract missing'}
+          if(($ascii -notmatch 'my-app-updates') -and ($unicode -notmatch 'my-app-updates')){throw 'R52 updater repository contract missing'}
+          Write-Host 'R52_UPDATE_FEED_CONTRACT_PASS'
+
+      - name: Execute public R52 to R53 OTA installer migration
+        id: upgrade
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if([string]::IsNullOrWhiteSpace($env:R52_EXE) -or !(Test-Path $env:R52_EXE)){throw 'Installed R52 baseline unavailable'}
+          $setup='public-r53/MerzoWindowsOptimizerSetup-win-x64.exe'
+          if(!(Test-Path $setup)){throw 'Public R53 installer unavailable'}
+          Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          $p=Start-Process $setup -ArgumentList '/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-' -PassThru -Wait
+          if($p.ExitCode -ne 0){throw "R53 OTA installer exit $($p.ExitCode)"}
+          Start-Sleep -Seconds 3
+          $canonical=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
+          if(!(Test-Path $canonical)){throw "Program Files migration missing: $canonical"}
+          $version=[Diagnostics.FileVersionInfo]::GetVersionInfo($canonical).FileVersion
+          if($version -ne '0.1.53.0'){throw "Installed R53 FileVersion mismatch: $version"}
+
+          $entries=@()
+          foreach($rp in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')){
+            $entries += Get-ItemProperty $rp -ErrorAction SilentlyContinue | Where-Object {$_.DisplayName -like '*Merzo*Windows*Optimizer*'}
+          }
+          $current=$entries | Where-Object {$_.InstallLocation -and ((Join-Path $_.InstallLocation 'MerzoWindowsOptimizer.exe') -eq $canonical)} | Select-Object -First 1
+          if(!$current){throw 'R53 uninstall/install registry does not point to canonical Program Files location'}
+          Write-Host "R53_CANONICAL_INSTALL_PASS path=$canonical version=$version"
+          if($env:R52_EXE -ne $canonical -and (Test-Path $env:R52_EXE)){Write-Host "R53_LEGACY_PATH_RESIDUAL_INFO=$env:R52_EXE"}
+          Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Write-Host 'R52_TO_R53_PUBLIC_OTA_MIGRATION_PASS'
+
+      - name: Record R53 public OTA acceptance
+        if: always()
+        shell: pwsh
+        env:
+          PUBLIC_OUTCOME: ${{ steps.public.outcome }}
+          FEED_OUTCOME: ${{ steps.feed.outcome }}
+          UPGRADE_OUTCOME: ${{ steps.upgrade.outcome }}
+        run: |
+          $ok=($env:PUBLIC_OUTCOME -eq 'success' -and $env:FEED_OUTCOME -eq 'success' -and $env:UPGRADE_OUTCOME -eq 'success')
+          $conclusion=if($ok){'success'}else{'failure'}
+          $payload=@{
+            conclusion=$conclusion
+            createdAt=(Get-Date).ToUniversalTime().ToString('o')
+            databaseId=[long]$env:GITHUB_RUN_ID
+            headSha=$env:GITHUB_SHA
+            publicRelease=$env:PUBLIC_OUTCOME
+            r52FeedContract=$env:FEED_OUTCOME
+            r52ToR53Upgrade=$env:UPGRADE_OUTCOME
+            installerSha=$env:R53_PUBLIC_SHA
+          } | ConvertTo-Json -Compress
+          Set-Content optimizer/R53_OTA_STATUS.json $payload -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R53_OTA_STATUS.json
+          git diff --cached --quiet
+          if($LASTEXITCODE -ne 0){
+            git commit -m "Record R53 public OTA acceptance run $env:GITHUB_RUN_ID"
+            git pull --rebase origin merzo-windows-optimizer
+            git push origin HEAD:merzo-windows-optimizer
+          }
+          if(!$ok){exit 1}

@@ -1,0 +1,1 @@
+{"createdAt":"2026-08-19T08:21:22.6728300Z","databaseId":32232085574,"conclusion":"failure","artifact":"skipped","gates":"failure","purpose":"R54 service Start/Undo via SCM; fix Distributed Link Tracking Client registry ACL rollback","fileVersion":"0.1.54.1","publicVersion":"0.1.54.1","headSha":"74c3138e40f72aa6191bd966a70e1e7b58bb3d03"}

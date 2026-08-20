@@ -1,0 +1,43 @@
+name: Diagnose Merzo Windows Optimizer Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/diagnose-merzo-windows-optimizer-source.yml'
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Reconstruct partial archive and inspect
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parts = Get-ChildItem 'optimizer/source/MerzoWindowsOptimizer_R21_Source.tar.xz.b64.part*' | Sort-Object Name
+          $b64 = ''
+          foreach ($p in $parts) {
+            $text = (Get-Content $p.FullName -Raw) -replace '[^A-Za-z0-9+/=]', ''
+            $b64 += $text
+          }
+          $b64 = $b64.Replace('=', '')
+          switch ($b64.Length % 4) { 0 {} 2 {$b64+='=='} 3 {$b64+='='} default { throw 'Bad base64 length' } }
+          [IO.File]::WriteAllBytes('r21.tar.xz', [Convert]::FromBase64String($b64))
+          New-Item -ItemType Directory -Force 'r21src' | Out-Null
+          tar -xf 'r21.tar.xz' -C 'r21src'
+          $tarExit = $LASTEXITCODE
+          Write-Host "tar exit: $tarExit"
+          Write-Host 'Extracted files:'
+          Get-ChildItem 'r21src' -Recurse -File | ForEach-Object { Write-Host $_.FullName }
+          $sln = Get-ChildItem 'r21src' -Recurse -Filter '*.sln' | Select-Object -First 1
+          if (-not $sln) { throw 'Solution missing from recoverable archive' }
+          Write-Host "SOLUTION=$($sln.FullName)"
+          dotnet restore $sln.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Restore failed' }
+          dotnet build $sln.FullName -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }

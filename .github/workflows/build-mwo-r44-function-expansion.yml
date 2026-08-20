@@ -1,0 +1,245 @@
+name: Merzo Windows Optimizer R44 FUNCTION EXPANSION
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/build-mwo-r44-function-expansion.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Restore trusted source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*' | Sort-Object Name
+          if($parts.Count -ne 29){ throw 'Source parts missing' }
+          $b=[Text.StringBuilder]::new()
+          foreach($p in $parts){ [void]$b.Append(((Get-Content $p.FullName -Raw) -replace '\s','')) }
+          [IO.File]::WriteAllBytes('r44.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r44.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h -ne 'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){ throw "Source SHA mismatch $h" }
+          New-Item -ItemType Directory -Force r44 | Out-Null
+          tar -xf r44.tar.xz -C r44
+          $sln=Get-ChildItem r44 -Recurse -Filter MerzoWindowsOptimizer.sln | Select-Object -First 1
+          if(-not $sln){ throw 'Solution missing' }
+          "SOURCE_ROOT=$($sln.Directory.FullName)" >> $env:GITHUB_ENV
+
+      - name: Apply cumulative R24-R44
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $f=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs'
+          $s=Get-Content $f -Raw
+          $s=$s.Replace('"releases/latest", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"','"releases?per_page=50", "digest", "sha256:", "SHA256.HashDataAsync", "FixedTimeEquals"')
+          $old='if (!string.IsNullOrWhiteSpace(owner) || !string.IsNullOrWhiteSpace(repo)) failures.Add("Release feed should remain intentionally unconfigured in transferable DEV package.");'
+          $new='var prefix = root.TryGetProperty("release_tag_prefix", out var prefixEl) ? prefixEl.GetString() : null; var assetName = root.TryGetProperty("asset_name_contains", out var assetEl) ? assetEl.GetString() : null; if (!string.Equals(owner, "Merzo4", StringComparison.Ordinal) || !string.Equals(repo, "my-app-updates", StringComparison.Ordinal)) failures.Add("Production release feed must be Merzo4/my-app-updates."); if (!string.Equals(prefix, "mwo-v", StringComparison.Ordinal)) failures.Add("Production release tag prefix must be mwo-v."); if (!string.Equals(assetName, "MerzoWindowsOptimizerSetup-win-x64.exe", StringComparison.Ordinal)) failures.Add("Production installer asset name is incorrect.");'
+          if($s.Contains($old)){ $s=$s.Replace($old,$new) }
+          Set-Content $f $s -Encoding UTF8
+          $patches=@(
+            'r24_update_center.py','r24_compile_fix.py','r26_ota_repair.py','r27_privacy_engine.py',
+            'r28_profiles_updates_cleanup_ux.py','r29_operation_center.py','r29_compile_fix.py',
+            'r30_major_update.py','r30_policy_fix.py','r31_audit_memory.py','r32_performance_engine.py',
+            'r33_stability_hotfix.py','r34_ultra_process_feedback.py','r34_task_extension.py',
+            'r35_readability_ui.py','r36_gaming_ui_polish.py','r37_operation_ui.py','r37_network_center.py',
+            'r37_finalize.py','r38_gaming_catalog.py','r38_gaming_network.py','r38_gaming_ui.py','r38_finalize.py',
+            'r39_gaming_build_catalog.py','r39_gaming_build_engine.py','r39_gaming_build_ui.py','r39_finalize.py',
+            'r40_network_binding_hotfix.py','r42_full_ui_rework.py','r42_window_contract_fix.py','r43_true_full_ui.py',
+            'r44_function_expansion.py'
+          )
+          foreach($p in $patches){
+            python (Join-Path 'optimizer/patches' $p)
+            if($LASTEXITCODE -ne 0){ throw "Patch failed: $p" }
+          }
+          $self=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\Program.cs'
+          $ss=Get-Content $self -Raw
+          $ss=[regex]::Replace($ss,'Merzo Windows Optimizer — PRODUCTION R\d+[^"\r\n]*SelfTest','Merzo Windows Optimizer — PRODUCTION R44 FUNCTION EXPANSION SelfTest')
+          $ss=$ss.Replace('SCAN FIRST + LITE BUILD SelfTest R20','PRODUCTION R44 FUNCTION EXPANSION SelfTest')
+          Set-Content $self $ss -Encoding UTF8
+
+      - name: Build 0.1.44 without Obfuscar
+        shell: pwsh
+        run: |
+          Push-Location $env:SOURCE_ROOT
+          try {
+            & .\build\Build-Production.ps1 -Version '0.1.44' -SkipObfuscation
+            if($LASTEXITCODE -ne 0){ throw 'Production build failed' }
+          } finally { Pop-Location }
+
+      - name: Core SelfTest
+        shell: pwsh
+        run: |
+          dotnet run --project (Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.SelfTest\MerzoOptimizer.SelfTest.csproj') -c Release
+          if($LASTEXITCODE -ne 0){ throw 'Core SelfTest failed' }
+
+      - name: R44 functional and regression gates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=$env:SOURCE_ROOT
+          $dist=Join-Path $root 'dist\app'
+          foreach($name in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
+            $p=Join-Path $dist $name
+            if(-not(Test-Path $p)){ throw "Missing assembly $name" }
+            $v=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString()
+            if($v -ne '0.1.44.0'){ throw "$name version $v" }
+          }
+          $exe=Join-Path $dist 'MerzoWindowsOptimizer.exe'
+          $fv=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+          if(-not $fv.FileVersion.StartsWith('0.1.44')){ throw "EXE version $($fv.FileVersion)" }
+
+          $x=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
+          foreach($t in @(
+            'Width="1000" Height="600"','MinWidth="880" MinHeight="520"','Production R44','0.1.44','R44',
+            'Smart Audit 2.0','Privacy / Telemetry Center 2.0','Profiles 2.0','Startup Manager 2.0','Debloat 2.0',
+            'SmartAuditOverallText','SmartAuditPrivacyText','SmartAuditPerformanceText','SmartAuditGamingText','SmartAuditStartupText','SmartAuditServicesText','SmartAuditCleanupText',
+            'ProfilePlanText','PrivacyCoverageText','StartupManagerSummaryText','DebloatClassificationText',
+            'ApplyPrivacySafeCommand','ApplyPrivacyStrictCommand','ApplyPrivacyMaximumCommand',
+            'GAME SAFE','GAME PERFORMANCE','GAME EXTREME','GAME LAB','ProgressBar Value="{Binding NetworkProgress, Mode=OneWay}"'
+          )){ if(-not $x.Contains($t)){ throw "R44 UI gate missing: $t" } }
+          foreach($legacy in @('СЛЕДУЮЩИЕ ЭТАПЫ','Обзор системы','SYSTEM HEALTH')){ if($x.Contains($legacy)){ throw "Legacy layout survived: $legacy" } }
+          if($x.Contains('ProgressBar Value="{Binding NetworkProgress}"')){ throw 'Unsafe NetworkProgress binding survived' }
+
+          $vm=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') -Raw
+          foreach($t in @(
+            'UpdateR44IntelligenceSummary','SmartAuditOverallText','SmartAuditPrivacyText','SmartAuditPerformanceText','SmartAuditGamingText',
+            'PrivacyCoverageText','ProfilePlanText','StartupManagerSummaryText','DebloatClassificationText',
+            'gaming_build_safe','gaming_build_performance','gaming_build_extreme','gaming_build_lab',
+            'RestoreGamingNetworkAsync','ApplySelectedTweaksCommand','RestoreAllCommand'
+          )){ if(-not $vm.Contains($t)){ throw "R44 VM gate missing: $t" } }
+
+          foreach($marker in @('R38_GAMING_EXTREME.marker','R39_GAMING_BUILD.marker','R40_NETWORK_BINDING_HOTFIX.marker','R42_FULL_UI_REWORK.marker','R43_TRUE_FULL_UI.marker','R44_FUNCTION_EXPANSION.marker')){
+            if(-not(Test-Path (Join-Path $root $marker))){ throw "Marker missing $marker" }
+          }
+
+          $tweaks=Get-Content (Join-Path $root 'data\tweaks.json') -Raw | ConvertFrom-Json
+          $services=Get-Content (Join-Path $root 'data\service_rules.json') -Raw | ConvertFrom-Json
+          $tasks=Get-Content (Join-Path $root 'data\task_rules.json') -Raw | ConvertFrom-Json
+          if($tweaks.Count -lt 188){ throw "Tweak catalog regression $($tweaks.Count)" }
+          if($services.Count -lt 39){ throw "Service catalog regression $($services.Count)" }
+          if($tasks.Count -lt 24){ throw "Task catalog regression $($tasks.Count)" }
+          $privacySafe=@($tweaks|Where-Object {$_.profile_tags -contains 'privacy_safe'}).Count
+          $privacyStrict=@($tweaks|Where-Object {$_.profile_tags -contains 'privacy_strict'}).Count
+          $privacyMax=@($tweaks|Where-Object {$_.profile_tags -contains 'privacy_maximum'}).Count
+          if($privacySafe-lt10 -or $privacyStrict-lt10 -or $privacyMax-lt10){throw "Privacy catalog unexpectedly small SAFE=$privacySafe STRICT=$privacyStrict MAX=$privacyMax"}
+          $settings=Get-Content (Join-Path $root 'data\update_settings.json') -Raw|ConvertFrom-Json
+          if(-not$settings.auto_check -or $settings.auto_download -or $settings.auto_install){throw 'Update confirmation policy regressed'}
+          $notes=Get-Content (Join-Path $root 'data\release_notes.json') -Raw|ConvertFrom-Json
+          if($notes.version-ne'0.1.44'){throw 'Release notes version gate failed'}
+          if(Get-ChildItem $dist -Recurse -File|?{$_.Name -match 'Obfuscar'}){throw 'Obfuscar artifact found'}
+          Write-Host "R44 STATIC GATES PASS tweaks=$($tweaks.Count) services=$($services.Count) tasks=$($tasks.Count) privacy=$privacySafe/$privacyStrict/$privacyMax"
+
+      - name: Verify R43 shell baseline and 12 page tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          @'
+          import os, xml.etree.ElementTree as ET
+          from pathlib import Path
+          root=Path(os.environ['SOURCE_ROOT'])
+          p=root/'src'/'MerzoOptimizer.App'/'MainWindow.xaml'
+          tree=ET.parse(p); r=tree.getroot(); ns='{http://schemas.microsoft.com/winfx/2006/xaml/presentation}'; xn='{http://schemas.microsoft.com/winfx/2006/xaml}'
+          main=None
+          for el in r.iter(ns+'TabControl'):
+              if el.attrib.get(xn+'Name')=='MainTabs': main=el; break
+          if main is None: raise SystemExit('MainTabs missing')
+          pages=[c for c in list(main) if c.tag==ns+'TabItem']
+          if len(pages)!=12: raise SystemExit(f'Expected 12 top-level pages, got {len(pages)}')
+          text=p.read_text(encoding='utf-8-sig')
+          for token in ['Главная','Аудит системы','Оптимизация','Автозагрузка','Очистка / Debloat','Службы / задачи','Питание','Обновления','Восстановление','Журнал','Gaming / Developer','Repair / Network']:
+              if token not in text: raise SystemExit('R43 navigation baseline missing '+token)
+          print('R44 PAGE/SHELL GATE PASS pages=12')
+          '@ | python
+          if($LASTEXITCODE-ne0){throw 'R44 page tree gate failed'}
+          $dir=Join-Path $env:SOURCE_ROOT 'src\MerzoOptimizer.App'
+          foreach($f in Get-ChildItem $dir -Recurse -Filter *.xaml|?{$_.FullName -notmatch '\\(bin|obj)\\'}){
+            try{[xml](Get-Content $f.FullName -Raw)|Out-Null}catch{throw "Malformed XAML: $($f.FullName) :: $($_.Exception.Message)"}
+          }
+
+      - name: Dispatcher runtime smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$smoke=Join-Path $env:RUNNER_TEMP 'r44-dispatcher';New-Item -ItemType Directory -Force $smoke|Out-Null
+          $core=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Core.dll'))
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup><Reference Include="MerzoOptimizer.Core"><HintPath>$core</HintPath><Private>true</Private></Reference></ItemGroup></Project>
+          "@|Set-Content (Join-Path $smoke 'Smoke.csproj') -Encoding UTF8
+          @'
+          using MerzoOptimizer.Core.Dispatching; using var d=new AsyncOperationDispatcher(2); var v=await d.RunAsync("r44-generic",_=>Task.FromResult(44)); if(v!=44) throw new Exception(); await d.RunAsync("r44-void",_=>Task.CompletedTask); Console.WriteLine("R44_DISPATCHER_PASS");
+          '@|Set-Content (Join-Path $smoke 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $smoke 'Smoke.csproj') -c Release
+          if($LASTEXITCODE-ne0){throw 'Dispatcher smoke failed'}
+
+      - name: Network contract runtime smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$smoke=Join-Path $env:RUNNER_TEMP 'r44-network';New-Item -ItemType Directory -Force $smoke|Out-Null
+          $core=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Core.dll'));$win=[Security.SecurityElement]::Escape((Join-Path $env:SOURCE_ROOT 'dist\app\MerzoOptimizer.Windows.dll'))
+          @"
+          <Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup><ItemGroup><Reference Include="MerzoOptimizer.Core"><HintPath>$core</HintPath><Private>true</Private></Reference><Reference Include="MerzoOptimizer.Windows"><HintPath>$win</HintPath><Private>true</Private></Reference></ItemGroup></Project>
+          "@|Set-Content (Join-Path $smoke 'Smoke.csproj') -Encoding UTF8
+          @'
+          using MerzoOptimizer.Core.Network; using MerzoOptimizer.Windows.Elevation; using MerzoOptimizer.Windows.Network; var t=Path.Combine(Path.GetTempPath(),"merzo-r44-net");Directory.CreateDirectory(t);await using var b=new ElevatedOperationBroker(t,t,t);INetworkRepairService s=new WindowsNetworkRepairService(b);var r=await s.DiagnoseAsync();foreach(var m in new[]{"ApplyGamingNetworkSafeAsync","ApplyGamingNetworkExtremeAsync","RestoreGamingNetworkAsync"})if(typeof(INetworkRepairService).GetMethod(m)is null)throw new Exception(m);Console.WriteLine("R44_NETWORK_PASS "+r.AdapterName);
+          '@|Set-Content (Join-Path $smoke 'Program.cs') -Encoding UTF8
+          dotnet run --project (Join-Path $smoke 'Smoke.csproj') -c Release
+          if($LASTEXITCODE-ne0){throw 'Network smoke failed'}
+
+      - name: Full EXE startup smoke
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$exe=Join-Path $env:SOURCE_ROOT 'dist\app\MerzoWindowsOptimizer.exe';$p=Start-Process -FilePath $exe -WorkingDirectory (Split-Path $exe) -PassThru;Start-Sleep -Seconds 20;if($p.HasExited){throw "App exited $($p.ExitCode)"};Stop-Process -Id $p.Id -Force;Write-Host 'R44 FULL EXE STARTUP PASS'
+
+      - name: Rebuild portable ZIP
+        shell: pwsh
+        run: |
+          $a=Join-Path $env:SOURCE_ROOT 'dist\app';$z=Join-Path $env:SOURCE_ROOT 'dist\MerzoWindowsOptimizer-portable-win-x64.zip';if(Test-Path $z){Remove-Item $z -Force};Compress-Archive -Path (Join-Path $a '*') -DestinationPath $z -CompressionLevel Optimal
+
+      - name: Build installer and SHA256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';$iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe')|?{Test-Path $_}|Select-Object -First 1;if(-not$iscc){throw 'ISCC missing'}
+          Push-Location $env:SOURCE_ROOT
+          try{& $iscc '/DMyAppVersion=0.1.44' '.\installer\MerzoWindowsOptimizer.iss';if($LASTEXITCODE-ne0){throw 'Installer build failed'};$e='.\dist\MerzoWindowsOptimizerSetup-win-x64.exe';$z='.\dist\MerzoWindowsOptimizer-portable-win-x64.zip';if(-not(Test-Path $e)-or-not(Test-Path $z)){throw 'Payload missing'};$eh=(Get-FileHash $e -Algorithm SHA256).Hash.ToLowerInvariant();$zh=(Get-FileHash $z -Algorithm SHA256).Hash.ToLowerInvariant();"$eh  MerzoWindowsOptimizerSetup-win-x64.exe"|Set-Content "$e.sha256" -Encoding ascii;"$zh  MerzoWindowsOptimizer-portable-win-x64.zip"|Set-Content "$z.sha256" -Encoding ascii;Write-Host "R44_INSTALLER_SHA256=$eh";Write-Host "R44_PORTABLE_SHA256=$zh"}finally{Pop-Location}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.44-R44-FUNCTION-EXPANSION
+          path: |
+            r44/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r44/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r44/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            r44/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+
+      - name: Publish mwo-v0.1.44
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop';$tag='mwo-v0.1.44';$d=Join-Path $env:SOURCE_ROOT 'dist';gh release delete $tag --repo $env:GITHUB_REPOSITORY --yes 2>$null;if($LASTEXITCODE-ne0){$global:LASTEXITCODE=0};git push origin ":refs/tags/$tag" 2>$null;if($LASTEXITCODE-ne0){$global:LASTEXITCODE=0}
+          $notes=Join-Path $env:RUNNER_TEMP 'r44-notes.txt'
+          @'
+          R44 FUNCTION EXPANSION
+
+          • Smart Audit 2.0 — персональный сводный аудит Privacy / Performance / Gaming / Startup / Services / Cleanup.
+          • Profiles 2.0 — предварительный план применения до любых изменений Windows.
+          • Privacy / Telemetry Center 2.0 — SAFE / STRICT / MAXIMUM на существующем обратимом privacy engine.
+          • Startup Manager 2.0 — управляемые Run-записи + общий аудит остальных источников без ложных обещаний управления ими.
+          • Debloat 2.0 — классификация Appx; удаление намеренно остаётся audit-only до гарантированного Undo.
+          • Полностью сохранены R43 UI baseline, Snapshot → Apply → Verify → Log → Undo/Restore, Gaming, Network и Update Center.
+          '@|Set-Content $notes -Encoding UTF8
+          $files=@((Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe'),(Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'),(Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip'),(Join-Path $d 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256'))
+          gh release create $tag --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Merzo Windows Optimizer 0.1.44 (R44 FUNCTION EXPANSION)' --notes-file $notes @files
+          if($LASTEXITCODE-ne0){throw 'Release publish failed'}

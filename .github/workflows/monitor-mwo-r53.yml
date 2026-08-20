@@ -1,0 +1,38 @@
+name: Monitor MWO R53
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - 'optimizer/triggers/r53-monitor.txt'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Capture R53 production, publish and acceptance runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          production=$(gh run list --workflow build-mwo-r53-process-clean-start.yml --branch merzo-windows-optimizer --limit 3 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
+          publish=$(gh run list --workflow publish-mwo-r53-ota.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
+          publishHf1=$(gh run list --workflow publish-mwo-r53-hf1.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          verify=$(gh run list --workflow verify-mwo-r53-ota.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          verifyV3=$(gh run list --workflow verify-mwo-r53-ota-v3.yml --branch merzo-windows-optimizer --limit 5 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          jq -n --argjson production "$production" --argjson publish "$publish" --argjson publishHf1 "$publishHf1" --argjson verify "$verify" --argjson verifyV3 "$verifyV3" '{production:$production,publish:$publish,publishHf1:$publishHf1,verify:$verify,verifyV3:$verifyV3}' > optimizer/R53_ACTIONS_STATUS.json
+          cat optimizer/R53_ACTIONS_STATUS.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add optimizer/R53_ACTIONS_STATUS.json
+          git commit -m 'diag: record R53 Actions status' || true
+          git pull --rebase origin merzo-windows-optimizer
+          git push origin HEAD:merzo-windows-optimizer

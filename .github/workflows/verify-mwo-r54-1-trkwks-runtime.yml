@@ -1,0 +1,56 @@
+name: Verify MWO R54.1 TrkWks Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/verify-mwo-r54-1-trkwks-runtime.yml'
+      - 'optimizer/scripts/r54_1_trkwks_runtime_acceptance.ps1'
+      - 'optimizer/triggers/r54-1-trkwks-runtime.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: mwo-r54-1-trkwks-runtime
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact green R54.1 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.54.1-SERVICE-CONTROL-HOTFIX
+          path: artifact
+          run-id: 32232868999
+          github-token: ${{ github.token }}
+      - name: Run real TrkWks SCM apply + restore
+        id: accept
+        continue-on-error: true
+        shell: pwsh
+        run: .\optimizer\scripts\r54_1_trkwks_runtime_acceptance.ps1 -ArtifactDir '.\artifact'
+      - name: Record R54.1 TrkWks runtime status
+        if: always()
+        shell: pwsh
+        run: |
+          $status='optimizer/R54_1_TRKWKS_RUNTIME_STATUS.json'
+          if(!(Test-Path $status)){
+            @{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;error='Runtime acceptance did not create status'} | ConvertTo-Json -Compress | Set-Content $status -Encoding UTF8
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R54_1_TRKWKS_RUNTIME_STATUS.json'
+          Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Copy-Item $saved $status -Force
+          git add $status
+          git diff --cached --quiet
+          if($LASTEXITCODE-ne0){git commit -m "Record R54.1 TrkWks runtime run $env:GITHUB_RUN_ID"; git push origin HEAD:merzo-windows-optimizer}
+          if('${{ steps.accept.outcome }}'-ne'success'){exit 1}

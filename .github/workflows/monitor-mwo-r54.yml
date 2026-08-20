@@ -1,0 +1,40 @@
+name: Monitor MWO R54 Bridge
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - 'optimizer/triggers/r54-monitor.txt'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Capture R54 bridge runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          build=$(gh run list --workflow build-mwo-r54-r53-hotfix-bridge.yml --branch merzo-windows-optimizer --limit 8 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName)
+          publish=$(gh run list --workflow publish-mwo-r54-r53-hotfix-bridge.yml --branch merzo-windows-optimizer --limit 8 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          verifyV2=$(gh run list --workflow verify-mwo-r54-public-ota-v2.yml --branch merzo-windows-optimizer --limit 8 --json databaseId,status,conclusion,headSha,createdAt,url,workflowName 2>/dev/null || echo '[]')
+          jq -n --argjson build "$build" --argjson publish "$publish" --argjson verifyV2 "$verifyV2" '{build:$build,publish:$publish,verifyV2:$verifyV2}' > optimizer/R54_ACTIONS_STATUS.json
+          cat optimizer/R54_ACTIONS_STATUS.json
+          saved="$RUNNER_TEMP/R54_ACTIONS_STATUS.json"
+          cp optimizer/R54_ACTIONS_STATUS.json "$saved"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          cp "$saved" optimizer/R54_ACTIONS_STATUS.json
+          git add optimizer/R54_ACTIONS_STATUS.json
+          git commit -m 'diag: record R54 Actions status' || true
+          git push origin HEAD:merzo-windows-optimizer

@@ -1,0 +1,41 @@
+name: Merzo Windows Optimizer R52 GAME WOW
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/build-mwo-r52-game-wow.yml'
+      - 'optimizer/triggers/r52-game-wow-v4.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r52-game-wow
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - name: Run complete R52 GAME WOW V4 production gates
+        shell: pwsh
+        run: .\optimizer\scripts\r52_game_release_v4.ps1
+      - name: Upload verified R52 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.52-R52-GAME-WOW
+          path: |
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip
+            ${{ env.R49_ROOT }}/dist/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+            ${{ env.R49_ROOT }}/dist/R52_RELEASE_NOTES.md
+          if-no-files-found: error

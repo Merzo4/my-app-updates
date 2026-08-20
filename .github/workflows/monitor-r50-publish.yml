@@ -1,0 +1,42 @@
+name: Monitor R50 publish
+
+on:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/monitor-r50-publish.yml']
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for newest R50 release-carrier publish and save result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sleep 10
+          id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow publish-mwo-r50-from-verified-artifact.yml --branch merzo-windows-optimizer --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          [ -n "$id" ] || { echo 'publish run not found'; exit 1; }
+          for i in $(seq 1 60); do
+            status=$(gh run view "$id" --repo "$GITHUB_REPOSITORY" --json status --jq '.status')
+            [ "$status" = "completed" ] && break
+            sleep 10
+          done
+          gh run view "$id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > optimizer/R50_PUBLISH_STATUS.json
+          conclusion=$(jq -r '.conclusion' optimizer/R50_PUBLISH_STATUS.json)
+          if [ "$conclusion" != success ]; then
+            gh run view "$id" --repo "$GITHUB_REPOSITORY" --log-failed > optimizer/R50_PUBLISH_FAILED.log || true
+          else
+            rm -f optimizer/R50_PUBLISH_FAILED.log
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R50_PUBLISH_STATUS.json optimizer/R50_PUBLISH_FAILED.log 2>/dev/null || true
+          git commit -m 'diag: record newest R50 release-carrier publish result' || true
+          git push || true

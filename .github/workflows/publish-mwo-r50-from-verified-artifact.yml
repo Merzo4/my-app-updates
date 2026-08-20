@@ -1,0 +1,108 @@
+name: Publish MWO R50 from verified artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/publish-mwo-r50-from-verified-artifact.yml']
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download exact verified R50 artifact by immutable artifact id
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p r50-release
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/9314244097/zip" > r50-artifact.zip
+          unzip -q r50-artifact.zip -d r50-release
+          test -f r50-release/MerzoWindowsOptimizerSetup-win-x64.exe
+          test -f r50-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          test -f r50-release/MerzoWindowsOptimizer-portable-win-x64.zip
+          test -f r50-release/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          test -f r50-release/R50_RELEASE_NOTES.md
+
+      - name: Verify exact CI-proven SHA-256
+        run: |
+          set -euo pipefail
+          cd r50-release
+          installer=$(sha256sum MerzoWindowsOptimizerSetup-win-x64.exe | awk '{print $1}')
+          portable=$(sha256sum MerzoWindowsOptimizer-portable-win-x64.zip | awk '{print $1}')
+          echo "installer=$installer"
+          echo "portable=$portable"
+          test "$installer" = "0a5101d45885af82997d91f310cae97f96270c5522e5b4d82ab97adef5eb3f26"
+          test "$portable" = "106e4ab75b585dfebb354c41d30519490dd21b04a6b74596ffb7caaa7fbaa170"
+          grep -qi "0a5101d45885af82997d91f310cae97f96270c5522e5b4d82ab97adef5eb3f26" MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          grep -qi "106e4ab75b585dfebb354c41d30519490dd21b04a6b74596ffb7caaa7fbaa170" MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          echo "R50_ARTIFACT_SHA_VERIFIED"
+
+      - name: Build release-carrier commit with no workflow delta and push exact tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          build="b0c0abfba1e66d92fad727ed4f91939eb08637e1"
+          base="mwo-v0.1.49"
+          git fetch origin "$build" "$base" --tags
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          if git ls-remote --exit-code --tags origin refs/tags/mwo-v0.1.50 >/dev/null 2>&1; then
+            echo "R50 tag already exists"
+          else
+            git checkout -B r50-release-carrier "$base"
+            git diff --binary "$base" "$build" -- . ':(exclude).github/workflows/**' > /tmp/r50-nonworkflow.patch
+            test -s /tmp/r50-nonworkflow.patch
+            git apply --index /tmp/r50-nonworkflow.patch
+            git commit -m 'release: R50 source carrier from verified build without workflow delta'
+            carrier=$(git rev-parse HEAD)
+            echo "carrier=$carrier"
+            if git diff --name-only "$base" "$carrier" | grep -E '^\.github/workflows/' ; then
+              echo 'workflow delta detected in carrier' >&2
+              exit 1
+            fi
+            git tag mwo-v0.1.50 "$carrier"
+            git push origin refs/tags/mwo-v0.1.50
+          fi
+          echo "R50_TAG_READY"
+
+      - name: Publish stable R50 release from existing tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view mwo-v0.1.50 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "R50 release already exists"
+          else
+            gh release create mwo-v0.1.50 \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "Merzo Windows Optimizer 0.1.50 (R50 UI RELIABILITY)" \
+              --notes-file r50-release/R50_RELEASE_NOTES.md \
+              r50-release/MerzoWindowsOptimizerSetup-win-x64.exe \
+              r50-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+              r50-release/MerzoWindowsOptimizer-portable-win-x64.zip \
+              r50-release/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          fi
+
+      - name: Verify OTA-visible public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.50")
+          echo "$json" | jq -e '.draft == false and .prerelease == false' >/dev/null
+          for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+            echo "$json" | jq -e --arg n "$n" '.assets[] | select(.name == $n)' >/dev/null
+          done
+          echo "R50_PUBLIC_OTA_RELEASE_PASS"

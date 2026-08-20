@@ -1,0 +1,49 @@
+name: Attach R43 UI contract fix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/attach-r43-ui-contract-fix.yml']
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Attach contract fix after R43 rework
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('optimizer/patches/r43_true_full_ui.py')
+          s=p.read_text(encoding='utf-8')
+          marker='# R43_UI_CONTRACT_FIX_CHAIN'
+          if marker not in s:
+              s += '''\n\n# R43_UI_CONTRACT_FIX_CHAIN\nfrom pathlib import Path as _R43P\n_r43fix = _R43P(__file__).with_name("r43_ui_contract_fix.py")\nexec(compile(_r43fix.read_text(encoding="utf-8"), str(_r43fix), "exec"))\n'''
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/patches/r43_true_full_ui.py
+          if git diff --cached --quiet; then
+            echo 'R43 contract fix already attached'
+          else
+            git commit -m 'Chain R43 UI contract fix after full rework'
+            git push origin HEAD:merzo-windows-optimizer
+          fi
+      - name: Dispatch full R43 release gates
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run build-mwo-r43-true-full-ui.yml --ref merzo-windows-optimizer
+
+# R43 dashboard wording pass

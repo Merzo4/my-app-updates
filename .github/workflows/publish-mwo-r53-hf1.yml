@@ -1,0 +1,197 @@
+name: Publish MWO R53.1 HOTFIX1 OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths:
+      - '.github/workflows/publish-mwo-r53-hf1.yml'
+      - 'optimizer/triggers/r53-hf1-publish.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: mwo-r53-hf1-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve exact green R53.1 production run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=optimizer/R53_CI_STATUS.json
+          test -f "$status"
+          conclusion=$(jq -r '.conclusion' "$status")
+          gates=$(jq -r '.gates' "$status")
+          artifact=$(jq -r '.artifact' "$status")
+          runid=$(jq -r '.databaseId' "$status")
+          head=$(jq -r '.headSha' "$status")
+          test "$conclusion" = success
+          test "$gates" = success
+          test "$artifact" = success
+          test -n "$runid" && test "$runid" != null
+          test -n "$head" && test "$head" != null
+          live=$(gh run view "$runid" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,workflowName)
+          test "$(echo "$live" | jq -r '.status')" = completed
+          test "$(echo "$live" | jq -r '.conclusion')" = success
+          test "$(echo "$live" | jq -r '.headSha')" = "$head"
+          test "$(echo "$live" | jq -r '.workflowName')" = 'Merzo Windows Optimizer R53 PROCESS CLEAN START'
+          echo "runid=$runid" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+          echo R53_HF1_EXACT_GREEN_RUN_PASS
+
+      - name: Download exact verified R53.1 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.source.outputs.runid }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p r53-hf1-release
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name MerzoWindowsOptimizer-0.1.53.1-R53-HOTFIX1 \
+            --dir r53-hf1-release
+          for f in \
+            MerzoWindowsOptimizerSetup-win-x64.exe \
+            MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+            MerzoWindowsOptimizer-portable-win-x64.zip \
+            MerzoWindowsOptimizer-portable-win-x64.zip.sha256 \
+            R53_RELEASE_NOTES.md; do
+            test -f "r53-hf1-release/$f"
+          done
+
+      - name: Verify R53.1 artifact SHA-256 sidecars
+        id: hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd r53-hf1-release
+          installer=$(sha256sum MerzoWindowsOptimizerSetup-win-x64.exe | awk '{print $1}')
+          portable=$(sha256sum MerzoWindowsOptimizer-portable-win-x64.zip | awk '{print $1}')
+          grep -qi "$installer" MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+          grep -qi "$portable" MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          echo "installer=$installer" >> "$GITHUB_OUTPUT"
+          echo "portable=$portable" >> "$GITHUB_OUTPUT"
+          echo R53_HF1_ARTIFACT_SHA_PASS
+
+      - name: Create exact R53.1 release tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin --tags
+          git cat-file -e "$TARGET^{commit}"
+          if git ls-remote --exit-code --tags origin refs/tags/mwo-v0.1.53.1 >/dev/null 2>&1; then
+            remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.53.1 | awk '{print $1}')
+            test "$remote" = "$TARGET"
+          else
+            git tag mwo-v0.1.53.1 "$TARGET"
+            git push origin refs/tags/mwo-v0.1.53.1
+          fi
+          echo R53_HF1_TAG_PASS
+
+      - name: Publish stable R53.1 hotfix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view mwo-v0.1.53.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'R53.1 release already exists; verifying existing exact release'
+          else
+            gh release create mwo-v0.1.53.1 \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title 'Merzo Windows Optimizer 0.1.53.1 (R53 HOTFIX 1)' \
+              --notes-file r53-hf1-release/R53_RELEASE_NOTES.md \
+              r53-hf1-release/MerzoWindowsOptimizerSetup-win-x64.exe \
+              r53-hf1-release/MerzoWindowsOptimizerSetup-win-x64.exe.sha256 \
+              r53-hf1-release/MerzoWindowsOptimizer-portable-win-x64.zip \
+              r53-hf1-release/MerzoWindowsOptimizer-portable-win-x64.zip.sha256
+          fi
+
+      - name: Verify public R53.1 OTA release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALLER_SHA: ${{ steps.hashes.outputs.installer }}
+          PORTABLE_SHA: ${{ steps.hashes.outputs.portable }}
+          TARGET: ${{ steps.source.outputs.head }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/mwo-v0.1.53.1")
+          echo "$json" | jq -e '.draft == false and .prerelease == false and .tag_name == "mwo-v0.1.53.1"' >/dev/null
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
+          test "$latest" = 'mwo-v0.1.53.1'
+          for n in MerzoWindowsOptimizerSetup-win-x64.exe MerzoWindowsOptimizerSetup-win-x64.exe.sha256 MerzoWindowsOptimizer-portable-win-x64.zip MerzoWindowsOptimizer-portable-win-x64.zip.sha256; do
+            echo "$json" | jq -e --arg n "$n" '.assets[] | select(.name == $n)' >/dev/null
+          done
+          installer=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizerSetup-win-x64.exe") | .digest')
+          portable=$(echo "$json" | jq -r '.assets[] | select(.name=="MerzoWindowsOptimizer-portable-win-x64.zip") | .digest')
+          test "$installer" = "sha256:$INSTALLER_SHA"
+          test "$portable" = "sha256:$PORTABLE_SHA"
+          remote=$(git ls-remote --tags origin refs/tags/mwo-v0.1.53.1 | awk '{print $1}')
+          test "$remote" = "$TARGET"
+          echo R53_HF1_PUBLIC_RELEASE_PASS
+
+  acceptance:
+    needs: publish
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Test installed public R53 to R53.1 OTA
+        id: accept
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\optimizer\scripts\r53_hf1_ota_acceptance.ps1
+
+      - name: Record R53.1 public OTA acceptance
+        if: always()
+        shell: pwsh
+        run: |
+          $status='optimizer/R53_HF1_OTA_STATUS.json'
+          if(!(Test-Path $status)){
+            $fallback=@{
+              conclusion='failure'
+              createdAt=(Get-Date).ToUniversalTime().ToString('o')
+              databaseId=[long]$env:GITHUB_RUN_ID
+              headSha=$env:GITHUB_SHA
+              error='R53.1 acceptance script did not create status file'
+            } | ConvertTo-Json -Compress
+            Set-Content $status $fallback -Encoding UTF8
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R53_HF1_OTA_STATUS.json'
+          Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin merzo-windows-optimizer
+          git reset --hard origin/merzo-windows-optimizer
+          Copy-Item $saved $status -Force
+          git add $status
+          git diff --cached --quiet
+          if($LASTEXITCODE-ne0){
+            git commit -m "Record R53.1 public OTA acceptance run $env:GITHUB_RUN_ID"
+            git push origin HEAD:merzo-windows-optimizer
+          }
+          if('${{ steps.accept.outcome }}'-ne'success'){exit 1}

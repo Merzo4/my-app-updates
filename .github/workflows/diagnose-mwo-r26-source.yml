@@ -1,0 +1,39 @@
+name: Diagnose Merzo Windows Optimizer R26 Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [merzo-windows-optimizer]
+    paths: ['.github/workflows/diagnose-mwo-r26-source.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  source-snapshot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore trusted R21 source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parts=Get-ChildItem 'optimizer/source-min/R21.part*' | Sort-Object Name
+          if($parts.Count -ne 29){ throw "Source parts missing: $($parts.Count)" }
+          $b=[Text.StringBuilder]::new()
+          foreach($p in $parts){ [void]$b.Append(((Get-Content $p.FullName -Raw) -replace '\s','')) }
+          [IO.File]::WriteAllBytes('r26-source.tar.xz',[Convert]::FromBase64String($b.ToString()))
+          $h=(Get-FileHash r26-source.tar.xz -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($h -ne 'ce9ca7f8f44464c42165e0a79f3053062dfbe2e0df6b0b8517d1ac7510070d2d'){ throw "Source SHA mismatch $h" }
+          New-Item -ItemType Directory -Force restored | Out-Null
+          tar -xf r26-source.tar.xz -C restored
+          $sln=Get-ChildItem restored -Recurse -Filter MerzoWindowsOptimizer.sln | Select-Object -First 1
+          if(-not $sln){ throw 'Solution missing' }
+          Copy-Item $sln.Directory.FullName source -Recurse
+          Write-Host "SOURCE=$($sln.Directory.FullName)"
+      - name: Upload restored source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-R21-trusted-source-snapshot
+          path: source
+          retention-days: 3
