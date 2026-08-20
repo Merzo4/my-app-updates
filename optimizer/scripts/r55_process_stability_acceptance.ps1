@@ -45,19 +45,30 @@ try
     using (var run = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run"))
         run!.SetValue(valueName, $"\"{synthetic}\" 127.0.0.1 -n 20", RegistryValueKind.String);
 
+    var analyzer = new WindowsProcessStabilityAnalyzer();
+    var options = new ProcessStabilityAuditOptions([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)]);
+    var points = new List<string>();
+    var baselineSeen = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+    var progress = new InlineProgress<ProcessStabilityProgress>(p =>
+    {
+        points.Add($"{p.SampleIndex}:{p.ProcessCount}");
+        Console.WriteLine($"R55_SYNTHETIC_SAMPLE index={p.SampleIndex} elapsed={p.Elapsed.TotalMilliseconds:0} count={p.ProcessCount}");
+        if (p.SampleIndex == 1) baselineSeen.TrySetResult(true);
+    });
+
+    // Critical ordering contract: inventory + sample #1 must finish first. Only
+    // then is the synthetic process allowed to appear, so it cannot be hidden in
+    // the baseline even when Scheduled Task inventory takes several seconds.
     var delayed = Task.Run(async () =>
     {
-        await Task.Delay(800);
+        await baselineSeen.Task;
+        await Task.Delay(350);
         child = Process.Start(new ProcessStartInfo(synthetic, "127.0.0.1 -n 20") { UseShellExecute = false, CreateNoWindow = true });
         if (child is null) throw new Exception("synthetic child did not start");
         actualFamily = child.ProcessName;
         Console.WriteLine($"R55_SYNTHETIC_CHILD_STARTED pid={child.Id} processName={actualFamily} image={synthetic}");
     });
 
-    var analyzer = new WindowsProcessStabilityAnalyzer();
-    var options = new ProcessStabilityAuditOptions([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(4)]);
-    var points = new List<string>();
-    var progress = new Progress<ProcessStabilityProgress>(p => points.Add($"{p.SampleIndex}:{p.ProcessCount}"));
     var report = await analyzer.RunAsync(options, progress, CancellationToken.None);
     await delayed;
 
@@ -66,8 +77,9 @@ try
     if (row is null)
     {
         var observed = string.Join(", ", report.Deltas.Select(x => $"{x.FamilyName}(+{x.AddedPeak},{x.Source})"));
-        throw new Exception($"synthetic delayed family '{actualFamily}' was not detected; deltas=[{observed}]");
+        throw new Exception($"synthetic delayed family '{actualFamily}' was not detected; samples=[{string.Join(";", points)}] deltas=[{observed}]");
     }
+    if (row.BaselineCount != 0) throw new Exception($"synthetic leaked into baseline: {row.BaselineCount}");
     if (row.AddedPeak < 1) throw new Exception($"synthetic AddedPeak={row.AddedPeak}");
     if (!row.Source.StartsWith("Автозагрузка:", StringComparison.Ordinal)) throw new Exception($"synthetic source={row.Source} family={row.FamilyName} evidence={row.Evidence}");
     if (row.Classification is not ("Проверить" or "Необязательный")) throw new Exception($"synthetic classification={row.Classification}");
@@ -84,7 +96,7 @@ try
 
     if (report.Samples.Count != 3) throw new Exception($"samples={report.Samples.Count}");
     if (report.PeakCount < report.BaselineCount) throw new Exception("invalid peak count");
-    Console.WriteLine($"R55_SYNTHETIC_DELAYED_PASS family={row.FamilyName} added={row.AddedPeak} source={row.Source} class={row.Classification}");
+    Console.WriteLine($"R55_SYNTHETIC_DELAYED_PASS family={row.FamilyName} baseline={row.BaselineCount} added={row.AddedPeak} source={row.Source} class={row.Classification}");
     Console.WriteLine($"R55_SYNTHETIC_PATH_PASS path={synthetic}");
     Console.WriteLine($"R55_PROTECTED_SYSTEM_PASS family={svchost.FamilyName} class={svchost.Classification}");
     Console.WriteLine($"R55_SAMPLE_CURVE_PASS baseline={report.BaselineCount} final={report.FinalCount} peak={report.PeakCount} samples={report.Samples.Count}");
@@ -96,6 +108,11 @@ finally
     try { child?.Dispose(); } catch { }
     try { using var run = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", writable: true); run?.DeleteValue(valueName, false); } catch { }
     try { File.Delete(synthetic); Directory.Delete(tempDir, false); } catch { }
+}
+
+sealed class InlineProgress<T>(Action<T> handler) : IProgress<T>
+{
+    public void Report(T value) => handler(value);
 }
 '@
 Set-Content (Join-Path $work 'Program.cs') $program -Encoding UTF8
