@@ -12,6 +12,7 @@ on:
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v6.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v7.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v8.ps1'
+      - 'optimizer/scripts/r54_2_game_mutation_acceptance_v9.ps1'
       - 'optimizer/triggers/r54-2-game-mutation.txt'
 
 permissions:
@@ -42,7 +43,7 @@ jobs:
         id: mutation
         continue-on-error: true
         shell: pwsh
-        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v8.ps1 -ArtifactDir '.\artifact'
+        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v9.ps1 -ArtifactDir '.\artifact'
       - name: Record R54.2 mutation status
         if: always()
         shell: pwsh
@@ -52,42 +53,19 @@ jobs:
           $status='optimizer/R54_2_GAME_MUTATION_STATUS.json'
           $fresh=$false
           if(Test-Path $status){
-            try {
-              $j=Get-Content $status -Raw|ConvertFrom-Json
-              $fresh=($j.conclusion -eq 'success' -and [long]$j.buildRun -eq 32270447478)
-            } catch {}
+            try {$j=Get-Content $status -Raw|ConvertFrom-Json;$fresh=($j.conclusion -eq 'success' -and [long]$j.buildRun -eq 32270447478)} catch {}
           }
           if($env:MUTATION_OUTCOME -ne 'success' -or !$fresh){
-            @{
-              conclusion='failure'
-              createdAt=(Get-Date).ToUniversalTime().ToString('o')
-              databaseId=[long]$env:GITHUB_RUN_ID
-              headSha=$env:GITHUB_SHA
-              buildRun=32270447478
-              artifactId=9372048444
-              mutationOutcome=$env:MUTATION_OUTCOME
-              error='Disposable GAME mutation acceptance failed or did not create a fresh success status; inspect workflow log.'
-            }|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8
-          } else {
-            $j=Get-Content $status -Raw|ConvertFrom-Json
-            $j|Add-Member -NotePropertyName databaseId -NotePropertyValue ([long]$env:GITHUB_RUN_ID) -Force
-            $j|Add-Member -NotePropertyName headSha -NotePropertyValue $env:GITHUB_SHA -Force
-            $j|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8
-          }
+            @{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=32270447478;artifactId=9372048444;mutationOutcome=$env:MUTATION_OUTCOME;error='Disposable GAME mutation acceptance failed or did not create a fresh success status; inspect workflow log.'}|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8
+          } else {$j=Get-Content $status -Raw|ConvertFrom-Json;$j|Add-Member -NotePropertyName databaseId -NotePropertyValue ([long]$env:GITHUB_RUN_ID) -Force;$j|Add-Member -NotePropertyName headSha -NotePropertyValue $env:GITHUB_SHA -Force;$j|ConvertTo-Json -Compress|Set-Content $status -Encoding UTF8}
           $saved=Join-Path $env:RUNNER_TEMP 'R54_2_GAME_MUTATION_STATUS.json';Copy-Item $status $saved -Force
           git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           $pushed=$false
           for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
-            git fetch origin merzo-windows-optimizer
-            git reset --hard origin/merzo-windows-optimizer
-            Copy-Item $saved $status -Force
-            git add $status
-            git diff --cached --quiet
+            git fetch origin merzo-windows-optimizer;git reset --hard origin/merzo-windows-optimizer;Copy-Item $saved $status -Force;git add $status;git diff --cached --quiet
             if($LASTEXITCODE-eq0){$pushed=$true;break}
-            git commit -m "Record R54.2 GAME mutation run $env:GITHUB_RUN_ID"
-            git push origin HEAD:merzo-windows-optimizer
-            if($LASTEXITCODE-eq0){$pushed=$true;break}
-            Start-Sleep -Seconds $attempt
+            git commit -m "Record R54.2 GAME mutation run $env:GITHUB_RUN_ID";git push origin HEAD:merzo-windows-optimizer
+            if($LASTEXITCODE-eq0){$pushed=$true;break};Start-Sleep -Seconds $attempt
           }
           if(!$pushed){throw 'Could not persist R54.2 mutation status after retries'}
           if($env:MUTATION_OUTCOME -ne 'success' -or !$fresh){exit 1}
