@@ -45,12 +45,16 @@ $a=Get-Content $analyzerPath -Raw
 foreach($token in @('Production R55 · 0.1.55','R55 PROCESS STABILITY','Аудит 15 минут','ProcessStabilityRows','RunProcessStabilityAuditCommand')){
     if(-not(($x+"`n"+$v).Contains($token))){throw "R55 UI/VM contract missing: $token"}
 }
-foreach($token in @('ProcessStabilityAuditOptions.Production','BuildSourceInventory','ReadScheduledTaskActions','ReadServiceImages','Не трогать','Драйвер / оставить','Необязательный')){
+foreach($token in @('ProcessStabilityAuditOptions.Production','BuildSourceInventory','ReadScheduledTaskActions','ReadServiceImages','Не трогать','Драйвер / оставить','Необязательный','Registry.CurrentUser','Registry.LocalMachine','writable: false','Process.GetProcesses()')){
     if(-not$a.Contains($token)){throw "R55 analyzer contract missing: $token"}
 }
-foreach($forbidden in @('Kill(','Stop-Process','SetValue("Start"','ChangeServiceConfig(')){
+# The analyzer may terminate ONLY its own bounded child PowerShell probe when
+# Get-ScheduledTask hangs. It must not contain code that mutates Windows service
+# configuration, startup registry state, scheduled tasks, or arbitrary processes.
+foreach($forbidden in @('Stop-Process','ChangeServiceConfig(','SetValue("Start"','DeleteValue(','CreateSubKey(','Set-ScheduledTask','Disable-ScheduledTask','Unregister-ScheduledTask','ServiceControllerStatus')){
     if($a.Contains($forbidden)){throw "R55 analyzer must remain read-only: $forbidden"}
 }
+if(($a.Split('p.Kill(entireProcessTree: true)').Count-1)-gt1){throw 'R55 analyzer has unexpected process termination paths'}
 Write-Host 'R55_READONLY_SOURCE_CONTRACT_PASS'
 
 # XAML must remain structurally valid before compiling.
