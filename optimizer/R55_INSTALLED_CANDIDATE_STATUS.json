@@ -1,0 +1,10 @@
+{
+  "conclusion": "failure",
+  "createdAt": "2026-08-20T09:54:20.8547057Z",
+  "databaseId": 32356206554,
+  "headSha": "0780868c8739a88147e42bcb37d84f492b6d2b8a",
+  "buildRun": "32355454110",
+  "buildHead": "d99d61fd5f34eb1ca5331359343c950b33fc3681",
+  "installedOutcome": "failure",
+  "error": "R55 installed candidate acceptance failed."
+}
