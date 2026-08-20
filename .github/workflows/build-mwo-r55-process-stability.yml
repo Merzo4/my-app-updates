@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: mwo-r55-process-stability-build
+  cancel-in-progress: true
+
 jobs:
   build-and-accept:
     runs-on: windows-latest
@@ -71,7 +75,8 @@ jobs:
             r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe
             r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
             r49/dist/*.zip
-          if-no-files-found: warn
+            r49/dist/*.zip.sha256
+          if-no-files-found: error
           retention-days: 14
 
       - name: Record R55 CI status
@@ -91,13 +96,22 @@ jobs:
             artifactName='MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE'
             installerSha=$env:R55_INSTALLER_SHA
           }
-          $status | ConvertTo-Json | Set-Content .\optimizer\R55_CI_STATUS.json -Encoding UTF8
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_CI_STATUS.json'
+          $status | ConvertTo-Json | Set-Content $saved -Encoding UTF8
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add optimizer/R55_CI_STATUS.json
-          if(-not (git diff --cached --quiet)){
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-process-stability
+            git reset --hard origin/mwo-r55-process-stability
+            Copy-Item $saved .\optimizer\R55_CI_STATUS.json -Force
+            git add optimizer/R55_CI_STATUS.json
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
             git commit -m "Record R55 CI run $env:GITHUB_RUN_ID"
-            git pull --rebase origin mwo-r55-process-stability
             git push origin HEAD:mwo-r55-process-stability
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
           }
+          if(!$pushed){ throw 'Could not persist R55 CI status' }
           if(-not$ok){ throw 'R55 CI acceptance is not green' }
