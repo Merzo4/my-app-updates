@@ -43,14 +43,15 @@ jobs:
         id: delayed
         if: steps.build.outcome == 'success'
         shell: pwsh
-        run: .\optimizer\scripts\r55_process_stability_acceptance.ps1 -SourceRoot $env:SOURCE_ROOT
+        run: .\optimizer\scripts\r55_process_stability_acceptance.ps1 -SourceRoot $env:R55_ROOT
 
       - name: Verify packaged identity
         id: identity
         if: steps.build.outcome == 'success'
         shell: pwsh
         run: |
-          $root=$env:SOURCE_ROOT
+          $root=$env:R55_ROOT
+          if([string]::IsNullOrWhiteSpace($root)){ throw 'R55_ROOT missing after production build' }
           $app=Join-Path $root 'dist\app\MerzoWindowsOptimizer.dll'
           $installer='.\r49\dist\MerzoWindowsOptimizerSetup-win-x64.exe'
           $shaFile=$installer+'.sha256'
