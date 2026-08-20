@@ -1,0 +1,96 @@
+name: Verify MWO R55 GAME Recovery
+
+on:
+  push:
+    branches: [mwo-r55-process-stability]
+    paths:
+      - 'optimizer/R55_CI_STATUS.json'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: mwo-r55-game-recovery
+  cancel-in-progress: true
+
+jobs:
+  game-recovery:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-process-stability
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Resolve exact green R55 candidate
+        id: source
+        shell: pwsh
+        run: |
+          $status='.\optimizer\R55_CI_STATUS.json'
+          if(!(Test-Path $status)){ throw 'R55 CI status missing' }
+          $j=Get-Content $status -Raw | ConvertFrom-Json
+          if($j.conclusion-ne'success'){ throw "R55 candidate is not green: $($j.conclusion)" }
+          if($j.build-ne'success' -or $j.delayedProcessAcceptance-ne'success' -or $j.packagedIdentity-ne'success' -or $j.artifactUpload-ne'success'){ throw 'R55 CI component gates are incomplete' }
+          if([long]$j.databaseId-le0){ throw 'R55 candidate run ID missing' }
+          "run_id=$($j.databaseId)" >> $env:GITHUB_OUTPUT
+          "build_head=$($j.headSha)" >> $env:GITHUB_OUTPUT
+          Write-Host "R55_EXACT_CANDIDATE_RESOLVED run=$($j.databaseId) head=$($j.headSha)"
+
+      - name: Download exact R55 candidate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE
+          path: artifact
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Run disposable GAME plus production RestoreAll
+        id: mutation
+        continue-on-error: true
+        shell: pwsh
+        run: .\optimizer\scripts\r55_game_recovery_acceptance.ps1 -ArtifactDir '.\artifact' -BuildRun ${{ steps.source.outputs.run_id }} -BuildHead '${{ steps.source.outputs.build_head }}'
+
+      - name: Persist R55 GAME recovery status
+        if: always()
+        shell: pwsh
+        env:
+          MUTATION_OUTCOME: ${{ steps.mutation.outcome }}
+          BUILD_RUN: ${{ steps.source.outputs.run_id }}
+          BUILD_HEAD: ${{ steps.source.outputs.build_head }}
+        run: |
+          $status='.\optimizer\R55_GAME_RECOVERY_STATUS.json'
+          $fresh=$false
+          if(Test-Path $status){
+            try {
+              $j=Get-Content $status -Raw | ConvertFrom-Json
+              $fresh=($j.conclusion-eq'success' -and $j.recoveryRestoreAll-eq'success' -and $j.recoveryStateVerification-eq'success' -and $j.gameFullMutation-eq'success' -and [long]$j.buildRun-eq[long]$env:BUILD_RUN)
+            } catch {}
+          }
+          if($env:MUTATION_OUTCOME-ne'success' -or !$fresh){
+            [ordered]@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=$env:BUILD_RUN;buildHead=$env:BUILD_HEAD;mutationOutcome=$env:MUTATION_OUTCOME;error='R55 disposable GAME + production RestoreAll acceptance failed.'} | ConvertTo-Json | Set-Content $status -Encoding UTF8
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_GAME_RECOVERY_STATUS.json'
+          Copy-Item $status $saved -Force
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-process-stability
+            git reset --hard origin/mwo-r55-process-stability
+            Copy-Item $saved $status -Force
+            git add $status
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record R55 GAME recovery run $env:GITHUB_RUN_ID"
+            git push origin HEAD:mwo-r55-process-stability
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){ throw 'Could not persist R55 GAME recovery status' }
+          if($env:MUTATION_OUTCOME-ne'success' -or !$fresh){ exit 1 }
