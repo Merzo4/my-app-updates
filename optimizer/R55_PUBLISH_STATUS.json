@@ -1,0 +1,11 @@
+{
+  "conclusion": "failure",
+  "createdAt": "2026-08-20T10:04:08.2137910Z",
+  "databaseId": 32357036610,
+  "headSha": "8b4648784319e41c9d761927b146799d4b3e172d",
+  "buildRun": 32355454110,
+  "buildHead": "d99d61fd5f34eb1ca5331359343c950b33fc3681",
+  "artifactId": 9401609214,
+  "tag": "mwo-v0.1.55",
+  "error": "R55 publication controller did not produce a success status."
+}
