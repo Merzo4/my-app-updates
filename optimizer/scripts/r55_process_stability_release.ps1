@@ -2,9 +2,20 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 
 $controller='.\optimizer\scripts\r54_2_onedrive_game_reliability_release.ps1'
+$deepBase='.\optimizer\scripts\r49_release.ps1'
 if(!(Test-Path $controller)){throw 'R55 inherited R54.2 controller missing'}
+if(!(Test-Path $deepBase)){throw 'R55 inherited R49 production base missing'}
 $original=Get-Content $controller -Raw
 $patched=$original
+$deepOriginal=Get-Content $deepBase -Raw
+$deepPatched=$deepOriginal
+
+# R50+ controllers were designed as cumulative version wrappers and progressively
+# rewrite the R49 version. R55 adds its finalizer before the inherited R49
+# source/build gates, so the deep gate and Build-Production version must agree
+# with the final R55 identity instead of stopping at the previous R54 value.
+if(($deepPatched.Split('0.1.49').Count-1)-lt3){throw 'R55 deep R49 version anchors missing'}
+$deepPatched=$deepPatched.Replace('0.1.49','0.1.55')
 
 # Inject R55 immediately after the exact R54.2 finalizer in the inherited patch chain.
 $chainNeedle="''r54_2_version_finalize.py'')"
@@ -12,8 +23,8 @@ $chainReplacement="''r54_2_version_finalize.py'',''r55_process_stability.py'',''
 if(($patched.Split($chainNeedle).Count-1)-ne1){throw 'R55 patch-chain anchor mismatch'}
 $patched=$patched.Replace($chainNeedle,$chainReplacement)
 
-# The inherited controller still generates the exact R54.2 baseline first, but the
-# build/version gates must validate the new cumulative feature release.
+# The inherited controller still contributes the exact R54.2 reliability patches,
+# but build/version gates validate the new cumulative feature release.
 $versionLine='$patched=$patched.Replace(''0.1.54.1'',''0.1.54.2'')'
 $versionNew='$patched=$patched.Replace(''0.1.54.1'',''0.1.55'')'
 if(($patched.Split($versionLine).Count-1)-ne1){throw 'R55 inherited build-version anchor mismatch'}
@@ -34,6 +45,7 @@ $patched=$patched.Replace("version-ne'0.1.54.2'","version-ne'0.1.55.0'")
 $patched=$patched.Replace('R54.2 ONEDRIVE + GAME RELIABILITY','R55 PROCESS STABILITY')
 
 try {
+    Set-Content $deepBase $deepPatched -Encoding UTF8
     Set-Content $controller $patched -Encoding UTF8
     & $controller
     if($LASTEXITCODE -ne 0){throw "R55 inherited production controller failed: $LASTEXITCODE"}
@@ -64,4 +76,5 @@ try {
 }
 finally {
     Set-Content $controller $original -Encoding UTF8
+    Set-Content $deepBase $deepOriginal -Encoding UTF8
 }
