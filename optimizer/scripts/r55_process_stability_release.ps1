@@ -112,7 +112,11 @@ $zh=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 if((Get-Content "$installer.sha256" -Raw)-notmatch[regex]::Escape($ih)){throw 'R55 installer sidecar mismatch'}
 if((Get-Content "$zip.sha256" -Raw)-notmatch[regex]::Escape($zh)){throw 'R55 portable sidecar mismatch'}
 
+# Export both the R55-specific root and the legacy name. This keeps current
+# workflows explicit while allowing reruns of earlier acceptance definitions to
+# consume the exact same rebuilt tree safely.
 "R55_ROOT=$root" >> $env:GITHUB_ENV
+"SOURCE_ROOT=$root" >> $env:GITHUB_ENV
 "R55_INSTALLER_SHA=$ih" >> $env:GITHUB_ENV
 "R55_PORTABLE_SHA=$zh" >> $env:GITHUB_ENV
 Write-Host 'R55_PROCESS_STABILITY_ALL_BUILD_GATES_PASS'
