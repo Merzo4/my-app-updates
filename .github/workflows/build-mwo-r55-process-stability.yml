@@ -1,0 +1,103 @@
+name: Build MWO R55 Process Stability
+
+on:
+  push:
+    branches: [mwo-r55-process-stability]
+    paths:
+      - 'optimizer/patches/r55_process_stability.py'
+      - 'optimizer/patches/r55_version_finalize.py'
+      - 'optimizer/scripts/r55_process_stability_release.ps1'
+      - 'optimizer/scripts/r55_process_stability_acceptance.ps1'
+      - '.github/workflows/build-mwo-r55-process-stability.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-accept:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-process-stability
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build exact cumulative R55
+        id: build
+        shell: pwsh
+        run: .\optimizer\scripts\r55_process_stability_release.ps1
+
+      - name: Synthetic delayed-process acceptance
+        id: delayed
+        if: steps.build.outcome == 'success'
+        shell: pwsh
+        run: .\optimizer\scripts\r55_process_stability_acceptance.ps1 -SourceRoot $env:SOURCE_ROOT
+
+      - name: Verify packaged identity
+        id: identity
+        if: steps.build.outcome == 'success'
+        shell: pwsh
+        run: |
+          $root=$env:SOURCE_ROOT
+          $app=Join-Path $root 'dist\app\MerzoWindowsOptimizer.dll'
+          $installer='.\r49\dist\MerzoWindowsOptimizerSetup-win-x64.exe'
+          $shaFile=$installer+'.sha256'
+          if(!(Test-Path $app)){ throw 'R55 app dll missing' }
+          if(!(Test-Path $installer)){ throw 'R55 installer missing' }
+          if(!(Test-Path $shaFile)){ throw 'R55 installer sidecar missing' }
+          $ver=[Reflection.AssemblyName]::GetAssemblyName($app).Version.ToString()
+          if($ver-ne'0.1.55.0'){ throw "R55 packaged version=$ver" }
+          $sha=(Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $declared=((Get-Content $shaFile -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
+          if($sha-ne$declared){ throw "R55 installer SHA mismatch actual=$sha declared=$declared" }
+          "R55_INSTALLER_SHA=$sha" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "R55_PACKAGED_IDENTITY_PASS version=$ver sha=$sha"
+
+      - name: Upload verified R55 candidate
+        id: artifact
+        if: steps.build.outcome == 'success' && steps.delayed.outcome == 'success' && steps.identity.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE
+          path: |
+            r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe
+            r49/dist/MerzoWindowsOptimizerSetup-win-x64.exe.sha256
+            r49/dist/*.zip
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Record R55 CI status
+        if: always()
+        shell: pwsh
+        run: |
+          $ok=('${{ steps.build.outcome }}'-eq'success' -and '${{ steps.delayed.outcome }}'-eq'success' -and '${{ steps.identity.outcome }}'-eq'success' -and '${{ steps.artifact.outcome }}'-eq'success')
+          $status=[ordered]@{
+            conclusion=if($ok){'success'}else{'failure'}
+            createdAt=(Get-Date).ToUniversalTime().ToString('o')
+            databaseId=[long]$env:GITHUB_RUN_ID
+            headSha=$env:GITHUB_SHA
+            build='${{ steps.build.outcome }}'
+            delayedProcessAcceptance='${{ steps.delayed.outcome }}'
+            packagedIdentity='${{ steps.identity.outcome }}'
+            artifactUpload='${{ steps.artifact.outcome }}'
+            artifactName='MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE'
+            installerSha=$env:R55_INSTALLER_SHA
+          }
+          $status | ConvertTo-Json | Set-Content .\optimizer\R55_CI_STATUS.json -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add optimizer/R55_CI_STATUS.json
+          if(-not (git diff --cached --quiet)){
+            git commit -m "Record R55 CI run $env:GITHUB_RUN_ID"
+            git pull --rebase origin mwo-r55-process-stability
+            git push origin HEAD:mwo-r55-process-stability
+          }
+          if(-not$ok){ throw 'R55 CI acceptance is not green' }
