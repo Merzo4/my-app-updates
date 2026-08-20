@@ -17,6 +17,7 @@ $diag=@'
 $diagNext=(Get-Date)
 $mainOneDriveAnswered=$false
 $mainApplyAnswered=$false
+$mainOneDriveLeftAcknowledged=$false
 function Invoke-R542ExactButton([System.Windows.Automation.AutomationElement]$Root,[string]$Name,[string]$Reason){
     foreach($e in (Get-Desc $Root)){
         try{$n=$e.Current.Name;$ct=$e.Current.ControlType;$enabled=$e.Current.IsEnabled;$off=$e.Current.IsOffscreen}catch{continue}
@@ -25,6 +26,22 @@ function Invoke-R542ExactButton([System.Windows.Automation.AutomationElement]$Ro
         }
     }
     Write-Host "R542_INLINE_ACTION_MISSING reason=$Reason button=$Name"
+    return $false
+}
+function Invoke-R542ButtonNearText([System.Windows.Automation.AutomationElement]$Root,[string]$Anchor,[string]$ButtonName,[string]$Reason){
+    $anchorEl=Find-NameContains $Root $Anchor
+    if(!$anchorEl){Write-Host "R542_INLINE_ANCHOR_MISSING reason=$Reason anchor=$Anchor";return $false}
+    $cur=$anchorEl
+    for($depth=0;$depth-lt8 -and $cur;$depth++){
+        foreach($e in (Get-Desc $cur)){
+            try{$n=$e.Current.Name;$ct=$e.Current.ControlType;$enabled=$e.Current.IsEnabled;$off=$e.Current.IsOffscreen}catch{continue}
+            if($n -eq $ButtonName -and $ct -eq [System.Windows.Automation.ControlType]::Button -and $enabled -and !$off){
+                if(Invoke-Element $e){Write-Host "R542_INLINE_CONTEXT_ACTION reason=$Reason anchor=$Anchor button=$ButtonName depth=$depth";return $true}
+            }
+        }
+        try{$cur=[System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($cur)}catch{$cur=$null}
+    }
+    Write-Host "R542_INLINE_CONTEXT_ACTION_MISSING reason=$Reason anchor=$Anchor button=$ButtonName"
     return $false
 }
 function Handle-R542MainInlinePrompt{
@@ -37,13 +54,17 @@ function Handle-R542MainInlinePrompt{
         if(Invoke-R542ExactButton $main 'Да' 'apply-package-confirm'){$script:mainApplyAnswered=$true;Start-Sleep -Milliseconds 500}
         return
     }
+    if(!$mainOneDriveLeftAcknowledged -and $txt -match 'OneDrive оставлен' -and $txt -match 'ВАЖНО'){
+        if(Invoke-R542ButtonNearText $main 'OneDrive оставлен' 'Понятно' 'onedrive-left-warning'){$script:mainOneDriveLeftAcknowledged=$true;Start-Sleep -Milliseconds 500}
+        return
+    }
 }
 function Write-R542HangDiag([string]$Reason){
     Write-Host "R542_HANG_DIAG_BEGIN reason=$Reason at=$((Get-Date).ToUniversalTime().ToString('o')) appPid=$($proc.Id)"
     try{
         $t=Window-Text $main
         $flat=($t -replace "`r?`n",' | ')
-        if($flat.Length-gt2200){$flat=$flat.Substring(0,2200)}
+        if($flat.Length-gt3200){$flat=$flat.Substring(0,3200)}
         Write-Host "R542_HANG_MAIN $flat"
     }catch{Write-Host "R542_HANG_MAIN_ERROR $($_.Exception.Message)"}
     try{
