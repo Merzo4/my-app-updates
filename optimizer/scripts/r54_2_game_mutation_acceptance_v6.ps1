@@ -15,6 +15,29 @@ $stateOld='$seenBusy=$false;$fatal=$false;$fatalText='''';$dialogs=[Collections.
 if(!$src.Contains($stateOld)){throw 'R54.2 v6 state anchor mismatch'}
 $diag=@'
 $diagNext=(Get-Date)
+$mainOneDriveAnswered=$false
+$mainApplyAnswered=$false
+function Invoke-R542ExactButton([System.Windows.Automation.AutomationElement]$Root,[string]$Name,[string]$Reason){
+    foreach($e in (Get-Desc $Root)){
+        try{$n=$e.Current.Name;$ct=$e.Current.ControlType;$enabled=$e.Current.IsEnabled;$off=$e.Current.IsOffscreen}catch{continue}
+        if($n -eq $Name -and $ct -eq [System.Windows.Automation.ControlType]::Button -and $enabled -and !$off){
+            if(Invoke-Element $e){Write-Host "R542_INLINE_ACTION reason=$Reason button=$Name";return $true}
+        }
+    }
+    Write-Host "R542_INLINE_ACTION_MISSING reason=$Reason button=$Name"
+    return $false
+}
+function Handle-R542MainInlinePrompt{
+    try{$txt=Window-Text $main}catch{return}
+    if(!$mainOneDriveAnswered -and $txt -match 'OneDrive установлен, но настроенный аккаунт не обнаружен' -and $txt -match 'Да — удалить только приложение OneDrive'){
+        if(Invoke-R542ExactButton $main 'Да' 'onedrive-unconfigured'){$script:mainOneDriveAnswered=$true;Start-Sleep -Milliseconds 500}
+        return
+    }
+    if(!$mainApplyAnswered -and $txt -match 'Применить выбранный пакет'){
+        if(Invoke-R542ExactButton $main 'Да' 'apply-package-confirm'){$script:mainApplyAnswered=$true;Start-Sleep -Milliseconds 500}
+        return
+    }
+}
 function Write-R542HangDiag([string]$Reason){
     Write-Host "R542_HANG_DIAG_BEGIN reason=$Reason at=$((Get-Date).ToUniversalTime().ToString('o')) appPid=$($proc.Id)"
     try{
@@ -54,36 +77,15 @@ function Write-R542HangDiag([string]$Reason){
             }
         }
     }catch{Write-Host "R542_HANG_WINDOWS_ERROR $($_.Exception.Message)"}
-    try{
-        $cut=(Get-Date).AddMinutes(-5)
-        $roots=@($portable,$env:TEMP,(Join-Path $env:LOCALAPPDATA 'Merzo Windows Optimizer'),(Join-Path $env:APPDATA 'Merzo Windows Optimizer')) | Where-Object {$_ -and (Test-Path $_)} | Select-Object -Unique
-        $files=foreach($r in $roots){
-            Get-ChildItem $r -Recurse -File -ErrorAction SilentlyContinue | Where-Object {$_.LastWriteTime -ge $cut -and ($_.Extension -in '.log','.json','.txt')}
-        }
-        foreach($f in ($files | Sort-Object LastWriteTime -Descending | Select-Object -First 16)){
-            Write-Host "R542_HANG_FILE time=$($f.LastWriteTime.ToString('o')) size=$($f.Length) path=$($f.FullName)"
-            if($f.Length-gt0 -and $f.Length-lt1048576){
-                try{
-                    foreach($line in (Get-Content $f.FullName -Tail 6 -ErrorAction Stop)){
-                        $s=[string]$line
-                        if($s.Length-gt600){$s=$s.Substring(0,600)}
-                        Write-Host "R542_HANG_FILE_TAIL $s"
-                    }
-                }catch{}
-            }
-        }
-    }catch{Write-Host "R542_HANG_FILES_ERROR $($_.Exception.Message)"}
     Write-Host "R542_HANG_DIAG_END reason=$Reason"
 }
 '@.Trim()
 $src=$src.Replace($stateOld,$stateOld+"`r`n"+$diag)
 
 $pollOld="    Start-Sleep -Milliseconds 500`r`n    `$wins=Get-ProcessWindows `$proc.Id"
-if(!$src.Contains($pollOld)){
-    $pollOld="    Start-Sleep -Milliseconds 500`n    `$wins=Get-ProcessWindows `$proc.Id"
-}
+if(!$src.Contains($pollOld)){$pollOld="    Start-Sleep -Milliseconds 500`n    `$wins=Get-ProcessWindows `$proc.Id"}
 if(!$src.Contains($pollOld)){throw 'R54.2 v6 poll anchor mismatch'}
-$pollNew="    Start-Sleep -Milliseconds 500`r`n    if((Get-Date)-ge`$diagNext){Write-R542HangDiag 'poll';`$diagNext=(Get-Date).AddSeconds(5)}`r`n    `$wins=Get-ProcessWindows `$proc.Id"
+$pollNew="    Start-Sleep -Milliseconds 500`r`n    Handle-R542MainInlinePrompt`r`n    if((Get-Date)-ge`$diagNext){Write-R542HangDiag 'poll';`$diagNext=(Get-Date).AddSeconds(5)}`r`n    `$wins=Get-ProcessWindows `$proc.Id"
 if($pollOld.Contains("`n") -and !$pollOld.Contains("`r`n")){$pollNew=$pollNew.Replace("`r`n","`n")}
 $src=$src.Replace($pollOld,$pollNew)
 
