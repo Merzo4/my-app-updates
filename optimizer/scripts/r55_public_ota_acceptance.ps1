@@ -105,11 +105,11 @@ try{
 
   Stop-MerzoApp;$app=Start-Process $r55.FullName -PassThru;Start-Sleep -Seconds 6;$app.Refresh();if($app.HasExited){throw "R55 exited during launch acceptance: $($app.ExitCode)"};Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue;$status.r55Launch='success';Write-Host "R55_PUBLIC_LAUNCH_PASS pid=$($app.Id)"
 
-  # Strong public-binary gate: exercise installed R55 through the inherited GAME -> production RestoreAll -> restored-state acceptance.
+  # Strong public-binary gate: exercise installed R55 through the same R55-aware GAME -> production RestoreAll wrapper used for the exact pre-public candidate.
   $installedArtifact=Join-Path $env:RUNNER_TEMP ('mwo-r55-installed-smoke-'+[guid]::NewGuid().ToString('N'));New-Item -ItemType Directory -Force $installedArtifact|Out-Null
   $installedZip=Join-Path $installedArtifact 'MerzoWindowsOptimizer-portable-win-x64.zip';Compress-Archive -Path (Join-Path $r55.DirectoryName '*') -DestinationPath $installedZip -CompressionLevel Fastest -Force
   $installedZipSha=(Get-FileHash $installedZip -Algorithm SHA256).Hash.ToLowerInvariant();Set-Content (Join-Path $installedArtifact 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256') ($installedZipSha+'  MerzoWindowsOptimizer-portable-win-x64.zip') -Encoding ASCII
-  & '.\optimizer\scripts\r54_2_game_mutation_acceptance_v12.ps1' -ArtifactDir $installedArtifact
+  & '.\optimizer\scripts\r55_game_recovery_acceptance.ps1' -ArtifactDir $installedArtifact -BuildRun $approvedRun -BuildHead $approvedHead
   if($LASTEXITCODE-ne0){throw "Installed public R55 GAME + Recovery smoke failed: $LASTEXITCODE"}
   $status.installedGameRecovery='success';Write-Host 'R55_INSTALLED_PUBLIC_GAME_RECOVERY_PASS'
 
