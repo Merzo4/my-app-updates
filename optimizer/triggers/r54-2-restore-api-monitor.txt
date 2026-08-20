@@ -1,0 +1,3 @@
+R54.2 restore API monitor
+2026-08-20
+trigger=1
