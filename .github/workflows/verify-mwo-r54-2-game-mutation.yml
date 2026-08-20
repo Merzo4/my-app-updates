@@ -15,6 +15,7 @@ on:
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v9.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v10.ps1'
       - 'optimizer/scripts/r54_2_game_mutation_acceptance_v11.ps1'
+      - 'optimizer/scripts/r54_2_game_mutation_acceptance_v12.ps1'
       - 'optimizer/triggers/r54-2-game-mutation.txt'
 
 permissions:
@@ -45,7 +46,7 @@ jobs:
         id: mutation
         continue-on-error: true
         shell: pwsh
-        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v11.ps1 -ArtifactDir '.\artifact'
+        run: .\optimizer\scripts\r54_2_game_mutation_acceptance_v12.ps1 -ArtifactDir '.\artifact'
       - name: Record R54.2 mutation status
         if: always()
         shell: pwsh
