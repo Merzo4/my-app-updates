@@ -1,0 +1,16 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-08-20T09:53:06.6040709Z",
+  "databaseId": 32356008151,
+  "headSha": "fa47b414a6ee870bb6365e9de373d60b4c934df0",
+  "buildRun": 32355454110,
+  "buildHead": "d99d61fd5f34eb1ca5331359343c950b33fc3681",
+  "candidateVersion": "0.1.55.0",
+  "portableSha": "044900a8ab3ed17cb3441a0afff2627229de19b7b1fb32b405256b01f818dbe5",
+  "oneDriveSyntheticNonzero": "success",
+  "oneDriveSetupOnlyDetection": "success",
+  "gameFullMutation": "success",
+  "undoContractProbe": "production-restore-all-success",
+  "recoveryRestoreAll": "success",
+  "recoveryStateVerification": "success"
+}
