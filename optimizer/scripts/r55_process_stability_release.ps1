@@ -22,7 +22,7 @@ $baselineVersion=[Reflection.AssemblyName]::GetAssemblyName($baselineDll).Versio
 if($baselineVersion-ne'0.1.54.2'){throw "R55 baseline DLL version=$baselineVersion"}
 Write-Host 'R55_EXACT_R542_BASELINE_PASS'
 
-foreach($patch in @('r55_process_stability.py','r55_version_finalize.py')){
+foreach($patch in @('r55_process_stability.py','r55_compile_fix.py','r55_version_finalize.py')){
     python (Join-Path $PWD "optimizer\patches\$patch")
     if($LASTEXITCODE-ne0){throw "R55 patch failed: $patch"}
 }
