@@ -1,0 +1,8 @@
+{
+  "headSha": "7fb49eeab0181f850d0b7d4abf449f8752596d74",
+  "databaseId": 32357392477,
+  "conclusion": "failure",
+  "acceptOutcome": "failure",
+  "createdAt": "2026-08-20T10:09:23.7184692Z",
+  "error": "Public R54.2 to R55 OTA acceptance did not create a fresh fully-green status; inspect run log."
+}
