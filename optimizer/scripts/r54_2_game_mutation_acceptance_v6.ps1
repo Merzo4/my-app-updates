@@ -18,6 +18,7 @@ $diagNext=(Get-Date)
 $mainOneDriveAnswered=$false
 $mainApplyAnswered=$false
 $mainOneDriveLeftAcknowledged=$false
+$mainGameResultAcknowledged=$false
 function Invoke-R542ExactButton([System.Windows.Automation.AutomationElement]$Root,[string]$Name,[string]$Reason){
     foreach($e in (Get-Desc $Root)){
         try{$n=$e.Current.Name;$ct=$e.Current.ControlType;$enabled=$e.Current.IsEnabled;$off=$e.Current.IsOffscreen}catch{continue}
@@ -56,6 +57,15 @@ function Handle-R542MainInlinePrompt{
     }
     if(!$mainOneDriveLeftAcknowledged -and $txt -match 'OneDrive оставлен' -and $txt -match 'ВАЖНО'){
         if(Invoke-R542ButtonNearText $main 'OneDrive оставлен' 'Понятно' 'onedrive-left-warning'){$script:mainOneDriveLeftAcknowledged=$true;Start-Sleep -Milliseconds 500}
+        return
+    }
+    if(!$mainGameResultAcknowledged -and $txt -match 'профиль применён' -and $txt -match 'Gaming Build применён:'){
+        Write-Host 'R54_2_GAME_RESULT_OVERLAY_PASS'
+        if(Invoke-R542ButtonNearText $main 'профиль применён' 'Понятно' 'game-result'){
+            $script:mainGameResultAcknowledged=$true
+            $script:completed=$true
+            Start-Sleep -Milliseconds 500
+        }
         return
     }
 }
