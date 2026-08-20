@@ -1,80 +1,116 @@
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 
-$controller='.\optimizer\scripts\r54_2_onedrive_game_reliability_release.ps1'
-$deepBase='.\optimizer\scripts\r49_release.ps1'
-if(!(Test-Path $controller)){throw 'R55 inherited R54.2 controller missing'}
-if(!(Test-Path $deepBase)){throw 'R55 inherited R49 production base missing'}
-$original=Get-Content $controller -Raw
-$patched=$original
-$deepOriginal=Get-Content $deepBase -Raw
-$deepPatched=$deepOriginal
+# R55 deliberately does NOT rewrite the historical R49-R54 wrappers. First run
+# the already-proven exact R54.2 production controller unchanged, then apply the
+# new feature layer to that finished source tree and build a fresh 0.1.55.
+$baseline='.\optimizer\scripts\r54_2_onedrive_game_reliability_release.ps1'
+if(!(Test-Path $baseline)){throw 'R55 exact R54.2 baseline controller missing'}
 
-# R50+ controllers were designed as cumulative version wrappers and progressively
-# rewrite the R49 version. R55 adds its finalizer before the inherited R49
-# source/build gates, so the deep gate and Build-Production version must agree
-# with the final R55 identity instead of stopping at the previous R54 value.
-if(($deepPatched.Split('0.1.49').Count-1)-lt3){throw 'R55 deep R49 version anchors missing'}
-$deepPatched=$deepPatched.Replace('0.1.49','0.1.55')
+& $baseline
+if($LASTEXITCODE-ne0){throw "R55 exact R54.2 baseline failed: $LASTEXITCODE"}
+if([string]::IsNullOrWhiteSpace($env:SOURCE_ROOT)){throw 'R55 SOURCE_ROOT missing after R54.2 baseline'}
+$root=$env:SOURCE_ROOT
 
-# Inject R55 immediately after the exact R54.2 finalizer in the inherited patch chain.
-$chainNeedle="''r54_2_version_finalize.py'')"
-$chainReplacement="''r54_2_version_finalize.py'',''r55_process_stability.py'',''r55_version_finalize.py'')"
-if(($patched.Split($chainNeedle).Count-1)-ne1){throw 'R55 patch-chain anchor mismatch'}
-$patched=$patched.Replace($chainNeedle,$chainReplacement)
+# Prove the inherited source really is the already-accepted R54.2 baseline before
+# adding anything new.
+$baselineUi=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
+$baselineDll=Join-Path $root 'dist\app\MerzoWindowsOptimizer.dll'
+if(-not$baselineUi.Contains('Production R54.2 · 0.1.54.2')){throw 'R55 baseline visible identity is not R54.2'}
+if(!(Test-Path $baselineDll)){throw 'R55 baseline app DLL missing'}
+$baselineVersion=[Reflection.AssemblyName]::GetAssemblyName($baselineDll).Version.ToString()
+if($baselineVersion-ne'0.1.54.2'){throw "R55 baseline DLL version=$baselineVersion"}
+Write-Host 'R55_EXACT_R542_BASELINE_PASS'
 
-# The inherited controller still contributes the exact R54.2 reliability patches,
-# but build/version gates validate the new cumulative feature release.
-$versionLine='$patched=$patched.Replace(''0.1.54.1'',''0.1.54.2'')'
-$versionNew='$patched=$patched.Replace(''0.1.54.1'',''0.1.55'')'
-if(($patched.Split($versionLine).Count-1)-ne1){throw 'R55 inherited build-version anchor mismatch'}
-$patched=$patched.Replace($versionLine,$versionNew)
+foreach($patch in @('r55_process_stability.py','r55_version_finalize.py')){
+    python (Join-Path $PWD "optimizer\patches\$patch")
+    if($LASTEXITCODE-ne0){throw "R55 patch failed: $patch"}
+}
 
-$releaseLine='$patched=$patched.Replace(''R54.1'',''R54.2'')'
-$releaseNew='$patched=$patched.Replace(''R54.1'',''R55'')'
-if(($patched.Split($releaseLine).Count-1)-ne1){throw 'R55 inherited release-label anchor mismatch'}
-$patched=$patched.Replace($releaseLine,$releaseNew)
+foreach($rel in @(
+    'R55_PROCESS_STABILITY.marker',
+    'R55_VERSION_FINAL.marker',
+    'src\MerzoOptimizer.Core\Audit\ProcessStabilityModels.cs',
+    'src\MerzoOptimizer.Windows\Processes\WindowsProcessStabilityAnalyzer.cs'
+)){
+    if(!(Test-Path (Join-Path $root $rel))){throw "R55 output missing: $rel"}
+}
 
-# Promote only validation/identity literals inside the controller; keep R54.2
-# patch filenames and recovery markers intact as inherited evidence.
-$patched=$patched.Replace('Production R54.2 · 0.1.54.2','Production R55 · 0.1.55')
-$patched=$patched.Replace('Text=\"R54.2\"','Text=\"R55\"')
-$patched=$patched.Replace('#define MyAppVersion \"0.1.54.2\"','#define MyAppVersion \"0.1.55\"')
-$patched=$patched.Replace('AppVersion=0.1.54.2','AppVersion=0.1.55')
-$patched=$patched.Replace("version-ne'0.1.54.2'","version-ne'0.1.55.0'")
-$patched=$patched.Replace('R54.2 ONEDRIVE + GAME RELIABILITY','R55 PROCESS STABILITY')
+$xamlPath=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'
+$vmPath=Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs'
+$analyzerPath=Join-Path $root 'src\MerzoOptimizer.Windows\Processes\WindowsProcessStabilityAnalyzer.cs'
+$x=Get-Content $xamlPath -Raw
+$v=Get-Content $vmPath -Raw
+$a=Get-Content $analyzerPath -Raw
+foreach($token in @('Production R55 · 0.1.55','R55 PROCESS STABILITY','Аудит 15 минут','ProcessStabilityRows','RunProcessStabilityAuditCommand')){
+    if(-not(($x+"`n"+$v).Contains($token))){throw "R55 UI/VM contract missing: $token"}
+}
+foreach($token in @('ProcessStabilityAuditOptions.Production','BuildSourceInventory','ReadScheduledTaskActions','ReadServiceImages','Не трогать','Драйвер / оставить','Необязательный')){
+    if(-not$a.Contains($token)){throw "R55 analyzer contract missing: $token"}
+}
+foreach($forbidden in @('Kill(','Stop-Process','SetValue("Start"','ChangeServiceConfig(')){
+    if($a.Contains($forbidden)){throw "R55 analyzer must remain read-only: $forbidden"}
+}
+Write-Host 'R55_READONLY_SOURCE_CONTRACT_PASS'
 
+# XAML must remain structurally valid before compiling.
+try{[xml](Get-Content $xamlPath -Raw)|Out-Null}catch{throw "R55 malformed XAML: $($_.Exception.Message)"}
+
+# Build a fresh production payload from the finished R54.2 + R55 source.
+Push-Location $root
 try {
-    Set-Content $deepBase $deepPatched -Encoding UTF8
-    Set-Content $controller $patched -Encoding UTF8
-    & $controller
-    if($LASTEXITCODE -ne 0){throw "R55 inherited production controller failed: $LASTEXITCODE"}
+    & .\build\Build-Production.ps1 -Version '0.1.55' -SkipObfuscation
+    if($LASTEXITCODE-ne0){throw 'R55 Production build failed'}
 
-    if([string]::IsNullOrWhiteSpace($env:SOURCE_ROOT)){throw 'R55 SOURCE_ROOT missing'}
-    $root=$env:SOURCE_ROOT
-    foreach($rel in @('R55_PROCESS_STABILITY.marker','R55_VERSION_FINAL.marker','src\MerzoOptimizer.Core\Audit\ProcessStabilityModels.cs','src\MerzoOptimizer.Windows\Processes\WindowsProcessStabilityAnalyzer.cs')){
-        if(!(Test-Path (Join-Path $root $rel))){throw "R55 output missing: $rel"}
-    }
-    $x=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml') -Raw
-    $v=Get-Content (Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs') -Raw
-    foreach($token in @('Production R55 · 0.1.55','R55 PROCESS STABILITY','Аудит 15 минут','ProcessStabilityRows')){
-        if(-not(($x+"`n"+$v).Contains($token))){throw "R55 UI/VM contract missing: $token"}
-    }
-    $a=Get-Content (Join-Path $root 'src\MerzoOptimizer.Windows\Processes\WindowsProcessStabilityAnalyzer.cs') -Raw
-    foreach($token in @('ProcessStabilityAuditOptions.Production','BuildSourceInventory','ReadScheduledTaskActions','ReadServiceImages','Не трогать','Драйвер / оставить','Необязательный')){
-        if(-not$a.Contains($token)){throw "R55 analyzer contract missing: $token"}
-    }
+    dotnet run --project .\src\MerzoOptimizer.SelfTest\MerzoOptimizer.SelfTest.csproj -c Release
+    if($LASTEXITCODE-ne0){throw 'R55 SelfTest failed'}
+}
+finally { Pop-Location }
 
-    $dist=Join-Path $root 'dist\app'
-    foreach($n in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
-        $p=Join-Path $dist $n
-        if(!(Test-Path $p)){throw "R55 missing $n"}
-        $version=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString()
-        if($version-ne'0.1.55.0'){throw "R55 $n version=$version"}
-    }
-    Write-Host 'R55_PROCESS_STABILITY_ALL_BUILD_GATES_PASS'
+$dist=Join-Path $root 'dist\app'
+foreach($n in @('MerzoWindowsOptimizer.dll','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.dll')){
+    $p=Join-Path $dist $n
+    if(!(Test-Path $p)){throw "R55 missing $n"}
+    $version=[Reflection.AssemblyName]::GetAssemblyName($p).Version.ToString()
+    if($version-ne'0.1.55.0'){throw "R55 $n version=$version"}
 }
-finally {
-    Set-Content $controller $original -Encoding UTF8
-    Set-Content $deepBase $deepOriginal -Encoding UTF8
+Write-Host 'R55_ASSEMBLY_IDENTITY_PASS'
+
+# Finished WPF application must actually stay alive, catching XAML/composition or
+# constructor failures that a compile-only check would miss.
+$exe=Join-Path $dist 'MerzoWindowsOptimizer.exe'
+if(!(Test-Path $exe)){throw 'R55 finished EXE missing'}
+$proc=Start-Process $exe -WorkingDirectory $dist -PassThru
+Start-Sleep 15
+if($proc.HasExited){throw "R55 finished EXE exited $($proc.ExitCode)"}
+Stop-Process -Id $proc.Id -Force
+Write-Host 'R55_FINISHED_APP_LAUNCH_PASS'
+
+# Repackage only the rebuilt R55 payload.
+$zip=Join-Path $root 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+if(Test-Path $zip){Remove-Item $zip -Force}
+Compress-Archive -Path (Join-Path $dist '*') -DestinationPath $zip -CompressionLevel Optimal
+$iscc=@('C:\Program Files (x86)\Inno Setup 6\ISCC.exe','C:\Program Files\Inno Setup 6\ISCC.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1
+if(-not$iscc){throw 'R55 ISCC missing'}
+Push-Location $root
+try {
+    & $iscc '/DMyAppVersion=0.1.55' '.\installer\MerzoWindowsOptimizer.iss'
+    if($LASTEXITCODE-ne0){throw 'R55 installer build failed'}
 }
+finally { Pop-Location }
+
+$installer=Join-Path $root 'dist\MerzoWindowsOptimizerSetup-win-x64.exe'
+if(!(Test-Path $installer)){throw 'R55 installer missing'}
+$ih=(Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+$zh=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+"$ih  MerzoWindowsOptimizerSetup-win-x64.exe" | Set-Content "$installer.sha256" -Encoding ascii
+"$zh  MerzoWindowsOptimizer-portable-win-x64.zip" | Set-Content "$zip.sha256" -Encoding ascii
+if((Get-Content "$installer.sha256" -Raw)-notmatch[regex]::Escape($ih)){throw 'R55 installer sidecar mismatch'}
+if((Get-Content "$zip.sha256" -Raw)-notmatch[regex]::Escape($zh)){throw 'R55 portable sidecar mismatch'}
+
+"R55_ROOT=$root" >> $env:GITHUB_ENV
+"R55_INSTALLER_SHA=$ih" >> $env:GITHUB_ENV
+"R55_PORTABLE_SHA=$zh" >> $env:GITHUB_ENV
+Write-Host 'R55_PROCESS_STABILITY_ALL_BUILD_GATES_PASS'
+Write-Host "R55_INSTALLER_SHA256=$ih"
+Write-Host "R55_PORTABLE_SHA256=$zh"
