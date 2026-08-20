@@ -1,0 +1,12 @@
+{
+  "conclusion": "failure",
+  "createdAt": "2026-08-20T08:57:13.9878921Z",
+  "databaseId": 32351313753,
+  "headSha": "4363d30810cd2327d9cd5ea05fe5e52ad82f0e14",
+  "build": "failure",
+  "delayedProcessAcceptance": "skipped",
+  "packagedIdentity": "skipped",
+  "artifactUpload": "skipped",
+  "artifactName": "MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE",
+  "installerSha": null
+}
