@@ -67,13 +67,29 @@ if($app.HasExited){throw "R55 installed application exited during launch: $($app
 Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
 Write-Host "R55_INSTALLED_LAUNCH_PASS path=$canonical version=$fv"
 
-$entry=@(
+# Some Windows uninstall registry children legitimately have no DisplayName or
+# DisplayVersion. Under StrictMode, direct property access on those objects is
+# an exception, so inspect PSObject.Properties explicitly instead of weakening
+# StrictMode or hiding the registry validation.
+$entries=@(
   Get-ItemProperty 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue
   Get-ItemProperty 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue
   Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue
-) | Where-Object {$_.DisplayName -like '*Merzo*Optimizer*'} | Sort-Object DisplayVersion -Descending | Select-Object -First 1
+)
+$entry=$entries | Where-Object {
+  $p=$_.PSObject.Properties['DisplayName']
+  $p -and [string]$p.Value -like '*Merzo*Optimizer*'
+} | Sort-Object {
+  $p=$_.PSObject.Properties['DisplayVersion']
+  if($p){[string]$p.Value}else{''}
+} -Descending | Select-Object -First 1
 if(!$entry){throw 'R55 uninstall registration missing'}
-if($entry.DisplayVersion -and $entry.DisplayVersion-notlike '0.1.55*'){throw "R55 uninstall DisplayVersion=$($entry.DisplayVersion)"}
+$displayName=[string]$entry.PSObject.Properties['DisplayName'].Value
+$displayVersionProp=$entry.PSObject.Properties['DisplayVersion']
+$displayVersion=if($displayVersionProp){[string]$displayVersionProp.Value}else{''}
+if([string]::IsNullOrWhiteSpace($displayName)){throw 'R55 uninstall DisplayName empty'}
+if(-not[string]::IsNullOrWhiteSpace($displayVersion) -and $displayVersion-notlike '0.1.55*'){throw "R55 uninstall DisplayVersion=$displayVersion"}
+Write-Host "R55_UNINSTALL_REGISTRATION_PASS name=$displayName version=$displayVersion"
 
 [ordered]@{
   conclusion='success'
@@ -89,5 +105,7 @@ if($entry.DisplayVersion -and $entry.DisplayVersion-notlike '0.1.55*'){throw "R5
   payloadMatch='success'
   launch='success'
   uninstallRegistration='success'
+  uninstallDisplayName=$displayName
+  uninstallDisplayVersion=$displayVersion
 } | ConvertTo-Json | Set-Content '.\optimizer\R55_INSTALLED_CANDIDATE_STATUS.json' -Encoding UTF8
 Write-Host 'R55_INSTALLED_CANDIDATE_ACCEPTANCE_PASS'
