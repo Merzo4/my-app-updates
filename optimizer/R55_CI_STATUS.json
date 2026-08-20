@@ -1,12 +1,12 @@
 {
-  "conclusion": "failure",
-  "createdAt": "2026-08-20T09:38:18.9455822Z",
-  "databaseId": 32354776802,
-  "headSha": "fc11d7d4301475000eea19213b412960063b7b8c",
-  "build": "cancelled",
-  "delayedProcessAcceptance": "skipped",
-  "packagedIdentity": "skipped",
-  "artifactUpload": "skipped",
+  "conclusion": "success",
+  "createdAt": "2026-08-20T09:43:24.2881037Z",
+  "databaseId": 32352934175,
+  "headSha": "8fd3d686996790342ffff9e323bfdf5c4002bcef",
+  "build": "success",
+  "delayedProcessAcceptance": "success",
+  "packagedIdentity": "success",
+  "artifactUpload": "success",
   "artifactName": "MerzoWindowsOptimizer-0.1.55-PROCESS-STABILITY-CANDIDATE",
-  "installerSha": null
+  "installerSha": "c3c8848820ffa545a2da1b55c910f3880a389ef834f3b1d1bd01b4dd9ab8267b"
 }
