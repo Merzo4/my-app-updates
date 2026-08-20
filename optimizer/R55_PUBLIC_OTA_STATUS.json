@@ -1,8 +1,18 @@
 {
-  "headSha": "7fb49eeab0181f850d0b7d4abf449f8752596d74",
+  "conclusion": "success",
+  "createdAt": "2026-08-20T10:13:48.0583162Z",
   "databaseId": 32357392477,
-  "conclusion": "failure",
-  "acceptOutcome": "failure",
-  "createdAt": "2026-08-20T10:09:23.7184692Z",
-  "error": "Public R54.2 to R55 OTA acceptance did not create a fresh fully-green status; inspect run log."
+  "headSha": "7fb49eeab0181f850d0b7d4abf449f8752596d74",
+  "publicRelease": "success",
+  "r542Baseline": "success",
+  "r542UpdaterDownload": "success",
+  "r542ToR55Upgrade": "success",
+  "r55FileVersion": "success",
+  "r55PayloadMatch": "success",
+  "r55Launch": "success",
+  "installedGameRecovery": "success",
+  "installerSha": "b845ecd3d46b0f552ae8c80acc48ad2deded6e1801cbe7e28c6a488f0e56fc2f",
+  "portableSha": "044900a8ab3ed17cb3441a0afff2627229de19b7b1fb32b405256b01f818dbe5",
+  "canonicalPath": "C:\\Program Files\\Merzo Windows Optimizer\\MerzoWindowsOptimizer.exe",
+  "error": ""
 }
