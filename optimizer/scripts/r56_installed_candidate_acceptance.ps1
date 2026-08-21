@@ -73,3 +73,7 @@ Write-Host "R56_UNINSTALL_REGISTRATION_PASS name=$displayName version=$displayVe
 
 [ordered]@{conclusion='success';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=$BuildRun;buildHead=$BuildHead;installerSha=$installerSha;portableSha=$portableSha;installedVersion=$fv;canonicalPath=$canonical;payloadMatch='success';launch='real-main-window-success';uninstallRegistration='success';uninstallDisplayName=$displayName;uninstallDisplayVersion=$displayVersion}|ConvertTo-Json|Set-Content '.\optimizer\R56_INSTALLED_CANDIDATE_STATUS.json' -Encoding UTF8
 Write-Host 'R56_INSTALLED_CANDIDATE_ACCEPTANCE_PASS'
+
+# Native helpers used during the test may leave a stale non-zero LASTEXITCODE even
+# after every acceptance assertion has passed. Reset it explicitly for the caller.
+$global:LASTEXITCODE=0
