@@ -1,0 +1,96 @@
+name: Diagnose MWO R55.1 Installer Args Matrix
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r55-1-startup-binding-hotfix]
+    paths:
+      - '.github/workflows/diag-mwo-r55-1-installer-args-matrix.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  installer-args:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: verysilent-update
+            args: '/VERYSILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /SP-'
+          - id: silent-update
+            args: '/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /SP-'
+          - id: silent-update-close
+            args: '/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /SP-'
+          - id: silent-update-close-restart
+            args: '/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP-'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+      - name: Seed exact public R55 baseline
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $repo=$env:GITHUB_REPOSITORY
+          New-Item public-r55 -ItemType Directory -Force|Out-Null
+          gh release download mwo-v0.1.55 --repo $repo --dir public-r55 --pattern 'MerzoWindowsOptimizer-portable-win-x64.zip'
+          if($LASTEXITCODE-ne0){throw 'R55 portable download failed'}
+          $rel=gh api "repos/$repo/releases/tags/mwo-v0.1.55"|ConvertFrom-Json
+          $asset=$rel.assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          $expected=$asset.digest.Substring(7).ToLowerInvariant()
+          $zip=(Resolve-Path 'public-r55/MerzoWindowsOptimizer-portable-win-x64.zip').Path
+          $actual=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual-ne$expected){throw 'R55 portable SHA mismatch'}
+          $dir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer'
+          New-Item $dir -ItemType Directory -Force|Out-Null
+          Expand-Archive $zip (Join-Path $env:RUNNER_TEMP 'r55') -Force
+          Copy-Item (Join-Path $env:RUNNER_TEMP 'r55\*') $dir -Recurse -Force
+          $exe=Join-Path $dir 'MerzoWindowsOptimizer.exe'
+          $ver=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if($ver-ne'0.1.55.0'){throw "Seeded R55 version=$ver"}
+          Write-Host "R551_MATRIX_BASELINE_PASS version=$ver"
+      - name: Download exact public R55.1 installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $repo=$env:GITHUB_REPOSITORY
+          New-Item public-r551 -ItemType Directory -Force|Out-Null
+          gh release download mwo-v0.1.55.1 --repo $repo --dir public-r551 --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe'
+          if($LASTEXITCODE-ne0){throw 'R55.1 installer download failed'}
+          $rel=gh api "repos/$repo/releases/tags/mwo-v0.1.55.1"|ConvertFrom-Json
+          $asset=$rel.assets|Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+          $expected=$asset.digest.Substring(7).ToLowerInvariant()
+          if($expected-ne'bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035'){throw "Unexpected R55.1 public installer SHA=$expected"}
+          $setup=(Resolve-Path 'public-r551/MerzoWindowsOptimizerSetup-win-x64.exe').Path
+          $actual=(Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual-ne$expected){throw 'R55.1 installer SHA mismatch'}
+          Write-Host "R551_MATRIX_INSTALLER_PASS sha=$actual"
+      - name: Run exact installer argument profile
+        shell: pwsh
+        run: |
+          $setup=(Resolve-Path 'public-r551/MerzoWindowsOptimizerSetup-win-x64.exe').Path
+          $args='${{ matrix.args }}'
+          Write-Host "R551_MATRIX_START id=${{ matrix.id }} args=$args"
+          $p=Start-Process $setup -ArgumentList $args -PassThru
+          $deadline=(Get-Date).AddSeconds(75)
+          while(!$p.HasExited -and (Get-Date)-lt$deadline){Start-Sleep -Milliseconds 500;$p.Refresh()}
+          if(!$p.HasExited){
+            $children=Get-CimInstance Win32_Process|Where-Object{$_.Name-like'MerzoWindowsOptimizerSetup*'}|Select-Object ProcessId,ParentProcessId,Name,CommandLine
+            $children|Format-Table -AutoSize|Out-String|Write-Host
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            Get-Process -ErrorAction SilentlyContinue|Where-Object{$_.ProcessName-like'MerzoWindowsOptimizerSetup*'}|Stop-Process -Force -ErrorAction SilentlyContinue
+            throw 'R551_MATRIX_TIMEOUT id=${{ matrix.id }}'
+          }
+          if($p.ExitCode-ne0){throw "R551_MATRIX_EXIT id=${{ matrix.id }} code=$($p.ExitCode)"}
+          $childDeadline=(Get-Date).AddSeconds(20)
+          while((Get-Date)-lt$childDeadline){$children=Get-Process -ErrorAction SilentlyContinue|Where-Object{$_.ProcessName-like'MerzoWindowsOptimizerSetup*'};if(!$children){break};Start-Sleep -Milliseconds 500}
+          if(Get-Process -ErrorAction SilentlyContinue|Where-Object{$_.ProcessName-like'MerzoWindowsOptimizerSetup*'}){throw 'R551_MATRIX_CHILD_STUCK id=${{ matrix.id }}'}
+          $exe=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
+          $ver=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if($ver-ne'0.1.55.1'){throw "R551_MATRIX_VERSION id=${{ matrix.id }} version=$ver"}
+          Write-Host "R551_MATRIX_PASS id=${{ matrix.id }} version=$ver"
