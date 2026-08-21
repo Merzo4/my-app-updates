@@ -25,6 +25,42 @@ jobs:
         with:
           ref: mwo-r55-1-startup-binding-hotfix
           fetch-depth: 0
+      - name: Persist R55.1 promotion RUNNING marker
+        shell: pwsh
+        run: |
+          $ci=Get-Content 'optimizer/R55_1_CI_STATUS.json' -Raw|ConvertFrom-Json
+          if($ci.conclusion-ne'success'){throw 'R55.1 CI status is not green'}
+          $status=[ordered]@{
+            state='running'
+            startedAt=(Get-Date).ToUniversalTime().ToString('o')
+            promotionRun=[long]$env:GITHUB_RUN_ID
+            workflowHead=$env:GITHUB_SHA
+            buildRun=[long]$ci.databaseId
+            buildHead=[string]$ci.headSha
+            artifactId=[long]$ci.artifactId
+            artifactName=[string]$ci.artifactName
+            installerSha=[string]$ci.installerSha
+            portableSha=[string]$ci.portableSha
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_1_PROMOTION_RUNNING.json'
+          $status|ConvertTo-Json|Set-Content $saved -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-1-startup-binding-hotfix
+            git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+            Copy-Item $saved optimizer/R55_1_PROMOTION_RUNNING.json -Force
+            git add optimizer/R55_1_PROMOTION_RUNNING.json
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Mark R55.1 promotion run $env:GITHUB_RUN_ID running"
+            git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist R55.1 promotion RUNNING marker'}
+          Write-Host "R55_1_PROMOTION_RUNNING_PASS run=$env:GITHUB_RUN_ID"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
