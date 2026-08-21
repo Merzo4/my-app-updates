@@ -2,6 +2,10 @@ name: Verify MWO R56 Exact Candidate
 
 on:
   workflow_dispatch:
+  push:
+    branches: [mwo-r56-baseline-process-intelligence]
+    paths:
+      - 'optimizer/R56_CI_STATUS.json'
 
 permissions:
   actions: read
