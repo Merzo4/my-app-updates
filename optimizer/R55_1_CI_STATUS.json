@@ -14,5 +14,5 @@
   "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b",
   "startupBinding": "oneway",
   "strongStartupGate": "real-main-window-plus-no-crash-log",
-  "promotionTrigger": "exact-green"
+  "promotionTrigger": "exact-green-v2"
 }
