@@ -1,0 +1,18 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-08-21T12:02:48.7986573Z",
+  "databaseId": 32479505374,
+  "headSha": "94ec549b5766f597c6eea5291de3e3eabdef4467",
+  "version": "0.1.56",
+  "artifactId": 9445680582,
+  "artifactDigest": "5ca9508f154c63cd9b8b4f709060dda20b44b8ff7290307bc37ffc732a45dae4",
+  "artifactName": "MerzoWindowsOptimizer-0.1.56-BASELINE-PROCESS-INTELLIGENCE-CANDIDATE",
+  "installerSha": "68bbc939a1eeaa25bc1c16109bf8d35de32c63064f3892b313b72446e9885988",
+  "portableSha": "f42457e2bb1c3fcc8e483842856ce8653b9a3b0e4740604354adcdd1033831e2",
+  "startupGate": "real-main-window-success",
+  "classificationGate": "success",
+  "finalBackgroundGate": "success",
+  "liveVsSavedGate": "success",
+  "noNewMutationSurface": "success",
+  "published": false
+}
