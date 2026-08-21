@@ -1,16 +1,27 @@
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 
-# Recreate the exact R55.1 product source through the already-proven production
-# controller, then apply only the diagnostic R56 delta. The intermediate R55.1
-# package is discarded/overwritten; R56 itself is built once after the patch.
+# Recreate the proven R55.1 product source through the established production
+# controller, then apply only the diagnostic R56 delta. GITHUB_ENV is designed
+# for later Actions steps, not for variable handoff back into this wrapper, so
+# resolve and validate the deterministic generated source root directly.
 $baseline='.\optimizer\scripts\r55_1_startup_binding_hotfix_release.ps1'
 if(!(Test-Path $baseline)){throw 'R56 exact R55.1 baseline controller missing'}
 & $baseline
 if($LASTEXITCODE-ne0){throw "R56 exact R55.1 baseline failed: $LASTEXITCODE"}
-if([string]::IsNullOrWhiteSpace($env:R55_1_ROOT)){throw 'R56 R55_1_ROOT missing after exact baseline'}
-$root=$env:R55_1_ROOT
+
+$root=(Resolve-Path '.\r49').Path
+$baselineXaml=Join-Path $root 'src\MerzoOptimizer.App\MainWindow.xaml'
+$baselineVm=Join-Path $root 'src\MerzoOptimizer.App\ViewModels\MainWindowViewModel.cs'
+$baselineAnalyzer=Join-Path $root 'src\MerzoOptimizer.Windows\Processes\WindowsProcessStabilityAnalyzer.cs'
+foreach($p in @($baselineXaml,$baselineVm,$baselineAnalyzer)){
+  if(!(Test-Path $p)){throw "R56 generated R55.1 baseline file missing: $p"}
+}
+$baselineX=Get-Content $baselineXaml -Raw
+if(-not$baselineX.Contains('Production R55.1 · 0.1.55.1')){throw 'R56 generated root is not the proven R55.1 source identity'}
+if(-not$baselineX.Contains('Value="{Binding ProcessStabilityProgress, Mode=OneWay}"')){throw 'R56 generated R55.1 root lost startup OneWay fix'}
 $env:SOURCE_ROOT=$root
+Write-Host "R56_R55_1_BASELINE_ROOT_PASS root=$root"
 
 python (Join-Path $PWD 'optimizer\patches\r56_baseline_process_intelligence.py')
 if($LASTEXITCODE-ne0){throw 'R56 patch failed'}
