@@ -1,0 +1,17 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-08-21T04:47:49.3805252Z",
+  "databaseId": 32447928867,
+  "headSha": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
+  "build": "success",
+  "delayedProcessAcceptance": "success",
+  "packagedIdentity": "success",
+  "artifactUpload": "success",
+  "artifactId": "9434762684",
+  "artifactDigest": "55b64ed1916cf9f922139939dcd442eb6ff37493e152e82d4b350a59103dbef8",
+  "artifactName": "MerzoWindowsOptimizer-0.1.55.1-STARTUP-BINDING-HOTFIX",
+  "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
+  "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b",
+  "startupBinding": "oneway",
+  "strongStartupGate": "real-main-window-plus-no-crash-log"
+}
