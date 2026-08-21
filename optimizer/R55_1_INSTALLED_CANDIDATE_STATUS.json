@@ -1,0 +1,15 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-08-21T06:30:07.9845990Z",
+  "databaseId": 32454489818,
+  "headSha": "22f98872fd18344290eec950001091c88e737372",
+  "buildRun": 32447928867,
+  "buildHead": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
+  "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
+  "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b",
+  "installedVersion": "0.1.55.1",
+  "canonicalPath": "C:\\Program Files\\Merzo Windows Optimizer\\MerzoWindowsOptimizer.exe",
+  "payloadMatch": "success",
+  "launch": "real-main-window-success",
+  "uninstallRegistration": "success"
+}
