@@ -1,8 +1,8 @@
 {
   "state": "running",
-  "startedAt": "2026-08-21T06:28:07.7240625Z",
-  "promotionRun": 32454489818,
-  "workflowHead": "22f98872fd18344290eec950001091c88e737372",
+  "startedAt": "2026-08-21T06:44:50.6587760Z",
+  "promotionRun": 32455630171,
+  "workflowHead": "60836f9c23b770907b29beacc12d526e277ad2ff",
   "buildRun": 32447928867,
   "buildHead": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
   "artifactId": 9434762684,
