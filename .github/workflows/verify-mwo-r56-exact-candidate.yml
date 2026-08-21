@@ -1,0 +1,106 @@
+name: Verify MWO R56 Exact Candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: mwo-r56-exact-candidate
+  cancel-in-progress: true
+
+jobs:
+  installed-candidate:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r56-baseline-process-intelligence
+          fetch-depth: 0
+      - name: Parse and verify GREEN build provenance
+        id: meta
+        shell: pwsh
+        run: |
+          foreach($path in @('optimizer/scripts/r56_installed_candidate_acceptance.ps1','optimizer/scripts/r56_game_recovery_acceptance.ps1')){
+            $tokens=$null;$errors=$null;[System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+            if($errors.Count-gt0){$detail=($errors|ForEach-Object{"$($_.Extent.StartLineNumber): $($_.Message)"})-join'; ';throw "R56 parser gate $path :: $detail"}
+          }
+          $ci=Get-Content optimizer/R56_CI_STATUS.json -Raw|ConvertFrom-Json
+          if($ci.conclusion-ne'success'-or$ci.version-ne'0.1.56'-or$ci.published-ne$false){throw 'R56 build provenance not GREEN/unpublished'}
+          if($ci.startupGate-ne'real-main-window-success'-or$ci.noNewMutationSurface-ne'success'){throw 'R56 build safety gates missing'}
+          "run=$($ci.databaseId)" >> $env:GITHUB_OUTPUT;"head=$($ci.headSha)" >> $env:GITHUB_OUTPUT;"name=$($ci.artifactName)" >> $env:GITHUB_OUTPUT;"installer=$($ci.installerSha)" >> $env:GITHUB_OUTPUT;"portable=$($ci.portableSha)" >> $env:GITHUB_OUTPUT
+          Write-Host "R56_EXACT_PROVENANCE_PASS run=$($ci.databaseId) artifact=$($ci.artifactId)"
+      - name: Download exact build artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item artifact -ItemType Directory -Force|Out-Null
+          gh run download '${{ steps.meta.outputs.run }}' --repo $env:GITHUB_REPOSITORY --name '${{ steps.meta.outputs.name }}' --dir artifact
+          if($LASTEXITCODE-ne0){throw 'R56 exact artifact download failed'}
+          if((Get-FileHash 'artifact\MerzoWindowsOptimizerSetup-win-x64.exe' -Algorithm SHA256).Hash.ToLowerInvariant()-ne'${{ steps.meta.outputs.installer }}'){throw 'R56 downloaded installer SHA mismatch'}
+          if((Get-FileHash 'artifact\MerzoWindowsOptimizer-portable-win-x64.zip' -Algorithm SHA256).Hash.ToLowerInvariant()-ne'${{ steps.meta.outputs.portable }}'){throw 'R56 downloaded portable SHA mismatch'}
+          Write-Host 'R56_EXACT_ARTIFACT_DOWNLOAD_PASS'
+      - name: Fresh Program Files installed-candidate acceptance
+        shell: pwsh
+        run: |
+          .\optimizer\scripts\r56_installed_candidate_acceptance.ps1 -ArtifactDir .\artifact -BuildRun '${{ steps.meta.outputs.run }}' -BuildHead '${{ steps.meta.outputs.head }}' -ExpectedInstallerSha '${{ steps.meta.outputs.installer }}' -ExpectedPortableSha '${{ steps.meta.outputs.portable }}'
+          if($LASTEXITCODE-ne0){throw 'R56 installed candidate acceptance failed'}
+      - name: Persist installed status
+        shell: pwsh
+        run: |
+          $src='optimizer/R56_INSTALLED_CANDIDATE_STATUS.json';if(!(Test-Path $src)){throw 'R56 installed status missing'}
+          $j=Get-Content $src -Raw|ConvertFrom-Json;if($j.conclusion-ne'success'-or$j.launch-ne'real-main-window-success'){throw 'R56 installed status not GREEN'}
+          $saved=Join-Path $env:RUNNER_TEMP 'R56_INSTALLED_CANDIDATE_STATUS.json';Copy-Item $src $saved -Force
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';$pushed=$false
+          for($i=1;$i-le5-and!$pushed;$i++){git fetch origin mwo-r56-baseline-process-intelligence;git reset --hard origin/mwo-r56-baseline-process-intelligence;Copy-Item $saved $src -Force;git add $src;git diff --cached --quiet;if($LASTEXITCODE-eq0){$pushed=$true;break};git commit -m "Record R56 installed acceptance $env:GITHUB_RUN_ID";git push origin HEAD:mwo-r56-baseline-process-intelligence;if($LASTEXITCODE-eq0){$pushed=$true;break};Start-Sleep -Seconds $i}
+          if(!$pushed){throw 'R56 installed status push failed'}
+          Write-Host 'R56_INSTALLED_STATUS_PERSIST_PASS'
+
+  game-recovery:
+    needs: installed-candidate
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r56-baseline-process-intelligence
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Resolve exact GREEN candidate
+        id: meta
+        shell: pwsh
+        run: |
+          $ci=Get-Content optimizer/R56_CI_STATUS.json -Raw|ConvertFrom-Json;$installed=Get-Content optimizer/R56_INSTALLED_CANDIDATE_STATUS.json -Raw|ConvertFrom-Json
+          if($ci.conclusion-ne'success'-or$installed.conclusion-ne'success'){throw 'R56 prerequisite statuses not GREEN'}
+          if([long]$installed.buildRun-ne[long]$ci.databaseId-or$installed.buildHead-ne$ci.headSha-or$installed.installerSha-ne$ci.installerSha-or$installed.portableSha-ne$ci.portableSha){throw 'R56 installed provenance mismatch'}
+          "run=$($ci.databaseId)" >> $env:GITHUB_OUTPUT;"head=$($ci.headSha)" >> $env:GITHUB_OUTPUT;"name=$($ci.artifactName)" >> $env:GITHUB_OUTPUT;"portable=$($ci.portableSha)" >> $env:GITHUB_OUTPUT
+          Write-Host 'R56_GAME_PREREQUISITE_PASS'
+      - name: Download exact artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item artifact -ItemType Directory -Force|Out-Null;gh run download '${{ steps.meta.outputs.run }}' --repo $env:GITHUB_REPOSITORY --name '${{ steps.meta.outputs.name }}' --dir artifact
+          if($LASTEXITCODE-ne0){throw 'R56 GAME exact artifact download failed'}
+          if((Get-FileHash 'artifact\MerzoWindowsOptimizer-portable-win-x64.zip' -Algorithm SHA256).Hash.ToLowerInvariant()-ne'${{ steps.meta.outputs.portable }}'){throw 'R56 GAME portable SHA mismatch'}
+      - name: Exact candidate GAME to production Recovery
+        shell: pwsh
+        run: |
+          .\optimizer\scripts\r56_game_recovery_acceptance.ps1 -ArtifactDir .\artifact -BuildRun '${{ steps.meta.outputs.run }}' -BuildHead '${{ steps.meta.outputs.head }}' -ExpectedPortableSha '${{ steps.meta.outputs.portable }}'
+          if($LASTEXITCODE-ne0){throw 'R56 GAME/Recovery acceptance failed'}
+      - name: Persist GAME Recovery status
+        shell: pwsh
+        run: |
+          $src='optimizer/R56_GAME_RECOVERY_STATUS.json';if(!(Test-Path $src)){throw 'R56 GAME status missing'}
+          $j=Get-Content $src -Raw|ConvertFrom-Json;if($j.conclusion-ne'success'-or$j.recoveryRestoreAll-ne'success'-or$j.recoveryStateVerification-ne'success'){throw 'R56 GAME status not GREEN'}
+          $saved=Join-Path $env:RUNNER_TEMP 'R56_GAME_RECOVERY_STATUS.json';Copy-Item $src $saved -Force
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com';$pushed=$false
+          for($i=1;$i-le5-and!$pushed;$i++){git fetch origin mwo-r56-baseline-process-intelligence;git reset --hard origin/mwo-r56-baseline-process-intelligence;Copy-Item $saved $src -Force;git add $src;git diff --cached --quiet;if($LASTEXITCODE-eq0){$pushed=$true;break};git commit -m "Record R56 GAME Recovery acceptance $env:GITHUB_RUN_ID";git push origin HEAD:mwo-r56-baseline-process-intelligence;if($LASTEXITCODE-eq0){$pushed=$true;break};Start-Sleep -Seconds $i}
+          if(!$pushed){throw 'R56 GAME status push failed'}
+          Write-Host 'R56_EXACT_CANDIDATE_ALL_GATES_PASS'
