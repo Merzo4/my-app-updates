@@ -1,0 +1,79 @@
+name: Promote MWO R55.1 Exact Green
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r55-1-startup-binding-hotfix]
+    paths:
+      - 'optimizer/R55_1_CI_STATUS.json'
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: mwo-r55-1-exact-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Read exact green R55.1 metadata
+        id: meta
+        shell: pwsh
+        run: |
+          $p='optimizer/R55_1_CI_STATUS.json'
+          if(!(Test-Path $p)){throw 'R55.1 CI status missing'}
+          $j=Get-Content $p -Raw|ConvertFrom-Json
+          if($j.conclusion-ne'success'){throw 'R55.1 CI status is not green'}
+          "run_id=$($j.databaseId)" >> $env:GITHUB_OUTPUT
+          "artifact_name=$($j.artifactName)" >> $env:GITHUB_OUTPUT
+          "artifact_id=$($j.artifactId)" >> $env:GITHUB_OUTPUT
+          "artifact_digest=$($j.artifactDigest)" >> $env:GITHUB_OUTPUT
+          "build_head=$($j.headSha)" >> $env:GITHUB_OUTPUT
+          Write-Host "R55_1_PROMOTION_META_PASS run=$($j.databaseId) artifact=$($j.artifactId) head=$($j.headSha)"
+      - name: Download exact green artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: artifact
+          run-id: ${{ steps.meta.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: GAME, install, publish, and public OTA
+        id: promote
+        continue-on-error: true
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .\optimizer\scripts\r55_1_promote_exact.ps1 -ArtifactDir '.\artifact'
+      - name: Persist R55.1 promotion statuses
+        if: always()
+        shell: pwsh
+        run: |
+          $files=@('optimizer/R55_1_GAME_RECOVERY_STATUS.json','optimizer/R55_1_INSTALLED_CANDIDATE_STATUS.json','optimizer/R55_1_PUBLISH_STATUS.json','optimizer/R55_1_PUBLIC_OTA_STATUS.json','optimizer/R55_1_PROMOTION_STATUS.json')
+          $saved=Join-Path $env:RUNNER_TEMP 'r551-status';New-Item $saved -ItemType Directory -Force|Out-Null
+          foreach($f in $files){if(Test-Path $f){Copy-Item $f (Join-Path $saved (Split-Path $f -Leaf)) -Force}}
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-1-startup-binding-hotfix
+            git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+            foreach($f in $files){$src=Join-Path $saved (Split-Path $f -Leaf);if(Test-Path $src){Copy-Item $src $f -Force;git add $f}}
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record R55.1 promotion run $env:GITHUB_RUN_ID"
+            git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist R55.1 promotion statuses'}
+          if('${{ steps.promote.outcome }}'-ne'success'){exit 1}
