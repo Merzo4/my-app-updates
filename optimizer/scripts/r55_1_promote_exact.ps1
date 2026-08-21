@@ -9,7 +9,11 @@ try{
   if(!$run-or[string]::IsNullOrWhiteSpace($head)-or!$artifactId-or[string]::IsNullOrWhiteSpace($ih)-or[string]::IsNullOrWhiteSpace($ph)){throw 'R55.1 CI provenance incomplete'}
   $api=gh api "repos/$repo/actions/artifacts/$artifactId"|ConvertFrom-Json
   if([long]$api.id-ne$artifactId-or$api.name-ne$artifactName-or$api.expired){throw 'R55.1 artifact API identity invalid'}
-  if($api.PSObject.Properties['digest']-and![string]::IsNullOrWhiteSpace([string]$api.digest)-and[string]$api.digest-ne$artifactDigest){throw "R55.1 artifact digest mismatch API=$($api.digest) CI=$artifactDigest"}
+  if($api.PSObject.Properties['digest']-and![string]::IsNullOrWhiteSpace([string]$api.digest)){
+    $apiDigest=([string]$api.digest).ToLowerInvariant().Replace('sha256:','')
+    $ciDigest=$artifactDigest.ToLowerInvariant().Replace('sha256:','')
+    if($apiDigest-ne$ciDigest){throw "R55.1 artifact digest mismatch API=$($api.digest) CI=$artifactDigest"}
+  }
   $installer=Get-ChildItem $ArtifactDir -Recurse -File -Filter 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1;$portable=Get-ChildItem $ArtifactDir -Recurse -File -Filter 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1;$iside=Get-ChildItem $ArtifactDir -Recurse -File -Filter 'MerzoWindowsOptimizerSetup-win-x64.exe.sha256'|Select-Object -First 1;$pside=Get-ChildItem $ArtifactDir -Recurse -File -Filter 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256'|Select-Object -First 1
   if(!$installer-or!$portable-or!$iside-or!$pside){throw 'R55.1 exact artifact payload incomplete'}
   $aih=(Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant();$aph=(Get-FileHash $portable.FullName -Algorithm SHA256).Hash.ToLowerInvariant();if($aih-ne$ih-or$aph-ne$ph){throw 'R55.1 exact artifact file SHA mismatch'}
