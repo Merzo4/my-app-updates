@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: mwo-r56-baseline-process-intelligence
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
