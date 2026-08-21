@@ -13,5 +13,6 @@
   "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
   "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b",
   "startupBinding": "oneway",
-  "strongStartupGate": "real-main-window-plus-no-crash-log"
+  "strongStartupGate": "real-main-window-plus-no-crash-log",
+  "promotionTrigger": "exact-green"
 }
