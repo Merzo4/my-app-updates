@@ -1,0 +1,55 @@
+name: Dispatch and Record R55.1 Staged OTA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r55-1-startup-binding-hotfix]
+    paths:
+      - '.github/workflows/dispatch-and-record-r55-1-staged-ota.yml'
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+          fetch-depth: 0
+      - name: Dispatch staged OTA and persist child run id
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow='verify-mwo-r55-to-r55-1-public-ota-staged.yml'
+          branch='mwo-r55-1-startup-binding-hotfix'
+          before=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$workflow" --branch "$branch" --limit 20 --json databaseId --jq '.[].databaseId' | tr '\n' ' ')
+          gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref "$branch"
+          child=''
+          for i in $(seq 1 30); do
+            row=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$workflow" --branch "$branch" --event workflow_dispatch --limit 10 --json databaseId,status,conclusion,headSha,createdAt --jq '.[0] // empty')
+            if [ -n "$row" ]; then
+              id=$(printf '%s' "$row" | jq -r '.databaseId')
+              case " $before " in *" $id "*) ;; *) child="$row"; break ;; esac
+            fi
+            sleep 2
+          done
+          if [ -z "$child" ]; then echo 'Could not resolve dispatched staged OTA run' >&2; exit 1; fi
+          id=$(printf '%s' "$child" | jq -r '.databaseId')
+          status=$(printf '%s' "$child" | jq -r '.status')
+          head=$(printf '%s' "$child" | jq -r '.headSha')
+          created=$(printf '%s' "$child" | jq -r '.createdAt')
+          jq -n --argjson databaseId "$id" --arg state "$status" --arg headSha "$head" --arg createdAt "$created" --arg dispatcherRun "$GITHUB_RUN_ID" '{state:$state,databaseId:$databaseId,headSha:$headSha,createdAt:$createdAt,dispatcherRun:($dispatcherRun|tonumber),acceptance:"direct-staged-single-runner"}' > /tmp/r55_staged_running.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin "$branch"
+          git reset --hard "origin/$branch"
+          cp /tmp/r55_staged_running.json optimizer/R55_1_STAGED_OTA_RUNNING.json
+          git add -- optimizer/R55_1_STAGED_OTA_RUNNING.json
+          git commit -m "Record staged R55.1 OTA run $id"
+          git push origin HEAD:"$branch"
+          echo "R55_1_STAGED_OTA_DISPATCH_PASS childRun=$id status=$status head=$head"
