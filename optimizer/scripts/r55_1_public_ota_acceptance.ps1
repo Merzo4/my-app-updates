@@ -6,7 +6,9 @@ param(
 )
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
 $statusPath='.\optimizer\R55_1_PUBLIC_OTA_STATUS.json'
-$status=[ordered]@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]($env:GITHUB_RUN_ID??'0');headSha=$env:GITHUB_SHA;publicRelease='pending';r55Baseline='pending';r55UpdaterDownload='pending';r55ToR551Upgrade='pending';r551FileVersion='pending';r551PayloadMatch='pending';r551Launch='pending';installedGameRecovery='pending';installerSha='';portableSha='';canonicalPath='';error=''}
+$runId=0
+if(-not[string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ID)){$runId=[long]$env:GITHUB_RUN_ID}
+$status=[ordered]@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=$runId;headSha=$env:GITHUB_SHA;publicRelease='pending';r55Baseline='pending';r55UpdaterDownload='pending';r55ToR551Upgrade='pending';r551FileVersion='pending';r551PayloadMatch='pending';r551Launch='pending';installedGameRecovery='pending';installerSha='';portableSha='';canonicalPath='';error=''}
 function Save{$status.createdAt=(Get-Date).ToUniversalTime().ToString('o');$status|ConvertTo-Json|Set-Content $statusPath -Encoding UTF8}
 function Stop-App{Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue}
 function Install([string]$setup,[string]$args){Stop-App;$p=Start-Process $setup -ArgumentList $args -PassThru;$d=(Get-Date).AddMinutes(4);while(!$p.HasExited-and(Get-Date)-lt$d){Stop-App;Start-Sleep -Milliseconds 700;$p.Refresh()};if(!$p.HasExited){Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue;throw 'OTA installer timeout'};if($p.ExitCode-ne0){throw "OTA installer exit=$($p.ExitCode)"};$d=(Get-Date).AddSeconds(75);while((Get-Date)-lt$d){Stop-App;$c=Get-Process -ErrorAction SilentlyContinue|Where-Object{$_.ProcessName-like'MerzoWindowsOptimizerSetup*'};if(!$c){break};Start-Sleep -Milliseconds 600};Stop-App}
