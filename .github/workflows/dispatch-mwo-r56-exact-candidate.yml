@@ -1,0 +1,66 @@
+name: Dispatch MWO R56 Exact Candidate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r56-baseline-process-intelligence]
+    paths:
+      - '.github/workflows/dispatch-mwo-r56-exact-candidate.yml'
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r56-baseline-process-intelligence
+          fetch-depth: 0
+      - name: Verify GREEN R56 build and dispatch exact gates
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="$GITHUB_REPOSITORY"
+          test -f optimizer/R56_CI_STATUS.json
+          conclusion=$(jq -r '.conclusion' optimizer/R56_CI_STATUS.json)
+          published=$(jq -r '.published' optimizer/R56_CI_STATUS.json)
+          build_run=$(jq -r '.databaseId' optimizer/R56_CI_STATUS.json)
+          build_head=$(jq -r '.headSha' optimizer/R56_CI_STATUS.json)
+          if [ "$conclusion" != "success" ] || [ "$published" != "false" ]; then
+            echo 'R56 build status is not GREEN/unpublished' >&2; exit 1
+          fi
+          wf="verify-mwo-r56-exact-candidate.yml"
+          before=$(gh api "repos/$repo/actions/workflows/$wf/runs?branch=mwo-r56-baseline-process-intelligence&event=workflow_dispatch&per_page=5" --jq '.workflow_runs[0].id // 0')
+          gh workflow run "$wf" --repo "$repo" --ref mwo-r56-baseline-process-intelligence
+          child=0
+          for i in $(seq 1 30); do
+            child=$(gh api "repos/$repo/actions/workflows/$wf/runs?branch=mwo-r56-baseline-process-intelligence&event=workflow_dispatch&per_page=5" --jq '.workflow_runs[0].id // 0')
+            if [ "$child" != "0" ] && [ "$child" != "$before" ]; then break; fi
+            sleep 2
+          done
+          if [ "$child" = "0" ] || [ "$child" = "$before" ]; then echo 'Could not resolve R56 exact candidate run' >&2; exit 1; fi
+          cat > /tmp/r56-exact-running.json <<EOF
+          {
+            "state": "running",
+            "databaseId": $child,
+            "dispatcherRun": $GITHUB_RUN_ID,
+            "buildRun": $build_run,
+            "buildHead": "$build_head",
+            "version": "0.1.56",
+            "published": false
+          }
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin mwo-r56-baseline-process-intelligence
+          git reset --hard origin/mwo-r56-baseline-process-intelligence
+          cp /tmp/r56-exact-running.json optimizer/R56_EXACT_CANDIDATE_RUNNING.json
+          git add optimizer/R56_EXACT_CANDIDATE_RUNNING.json
+          git commit -m "Mark R56 exact candidate run $child running"
+          git push origin HEAD:mwo-r56-baseline-process-intelligence
+          echo "R56_EXACT_DISPATCH_PASS child=$child build=$build_run"
