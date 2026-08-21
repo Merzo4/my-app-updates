@@ -1,0 +1,8 @@
+{
+  "state": "pending",
+  "databaseId": 32467109353,
+  "headSha": "01427640193a33af69dd9b3209a83abab974b296",
+  "createdAt": "2026-08-21T09:16:39Z",
+  "dispatcherRun": 32467094214,
+  "acceptance": "direct-staged-single-runner"
+}
