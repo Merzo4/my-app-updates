@@ -1,0 +1,139 @@
+name: Verify MWO Public R55 to R55.1 OTA Fresh
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r55-1-startup-binding-hotfix]
+    paths:
+      - '.github/workflows/verify-mwo-r55-to-r55-1-public-ota-fresh.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r55-to-r55-1-public-ota-fresh
+  cancel-in-progress: true
+
+jobs:
+  public-ota-fresh:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Verify exact published R55.1 provenance
+        id: meta
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ci=Get-Content 'optimizer/R55_1_CI_STATUS.json' -Raw|ConvertFrom-Json
+          $game=Get-Content 'optimizer/R55_1_GAME_RECOVERY_STATUS.json' -Raw|ConvertFrom-Json
+          $installed=Get-Content 'optimizer/R55_1_INSTALLED_CANDIDATE_STATUS.json' -Raw|ConvertFrom-Json
+          $publish=Get-Content 'optimizer/R55_1_PUBLISH_STATUS.json' -Raw|ConvertFrom-Json
+          if($ci.conclusion-ne'success'){throw 'R55.1 CI is not green'}
+          if($game.conclusion-ne'success' -or $game.recoveryRestoreAll-ne'success' -or $game.recoveryStateVerification-ne'success'){throw 'R55.1 GAME/Recovery prerequisite is not green'}
+          if($installed.conclusion-ne'success' -or $installed.launch-ne'real-main-window-success'){throw 'R55.1 installed candidate prerequisite is not green'}
+          if($publish.conclusion-ne'success' -or $publish.tag-ne'mwo-v0.1.55.1'){throw 'R55.1 publication prerequisite is not green'}
+          if([long]$ci.databaseId-ne[long]$publish.buildRun -or [long]$ci.artifactId-ne[long]$publish.artifactId -or $ci.installerSha-ne$publish.installerSha -or $ci.portableSha-ne$publish.portableSha -or $ci.headSha-ne$publish.buildHead){throw 'R55.1 exact provenance mismatch across gates'}
+          $release=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/mwo-v0.1.55.1"|ConvertFrom-Json
+          if($release.draft -or $release.prerelease -or $release.target_commitish-ne$publish.buildHead){throw 'R55.1 public release target/state mismatch'}
+          $ia=$release.assets|Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+          $pa=$release.assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          if(!$ia-or!$pa){throw 'R55.1 public assets missing'}
+          if($ia.digest.Substring(7).ToLowerInvariant()-ne$publish.installerSha.ToLowerInvariant()){throw 'R55.1 public installer digest mismatch'}
+          if($pa.digest.Substring(7).ToLowerInvariant()-ne$publish.portableSha.ToLowerInvariant()){throw 'R55.1 public portable digest mismatch'}
+          "build_run=$($publish.buildRun)" >> $env:GITHUB_OUTPUT
+          "build_head=$($publish.buildHead)" >> $env:GITHUB_OUTPUT
+          "installer_sha=$($publish.installerSha)" >> $env:GITHUB_OUTPUT
+          "portable_sha=$($publish.portableSha)" >> $env:GITHUB_OUTPUT
+          Write-Host "R55_1_FRESH_OTA_PROVENANCE_PASS buildRun=$($publish.buildRun) artifact=$($publish.artifactId)"
+
+      - name: Parse fresh OTA acceptance chain
+        shell: pwsh
+        run: |
+          $paths=@(
+            'optimizer/scripts/r55_1_public_ota_acceptance.ps1',
+            'optimizer/scripts/r55_1_game_recovery_acceptance.ps1',
+            'optimizer/scripts/r54_1_r54_download_probe.ps1'
+          )
+          foreach($path in $paths){
+            $tokens=$null;$errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+            if($errors.Count-gt0){$detail=($errors|ForEach-Object{"$($_.Extent.StartLineNumber): $($_.Message)"})-join'; ';throw "Parser gate failed $path :: $detail"}
+          }
+          Write-Host 'R55_1_FRESH_OTA_PARSER_PASS'
+
+      - name: Prove clean disposable baseline
+        shell: pwsh
+        run: |
+          $canonical=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
+          if(Test-Path $canonical){throw "Fresh OTA runner is contaminated before baseline install: $canonical"}
+          if(Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue){throw 'Fresh OTA runner has Merzo process before baseline install'}
+          Write-Host 'R55_1_FRESH_OTA_CLEAN_RUNNER_PASS'
+
+      - name: Public R55 to R55.1 real OTA acceptance
+        id: ota
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          .\optimizer\scripts\r55_1_public_ota_acceptance.ps1 `
+            -BuildRun ${{ steps.meta.outputs.build_run }} `
+            -BuildHead '${{ steps.meta.outputs.build_head }}' `
+            -ExpectedInstallerSha '${{ steps.meta.outputs.installer_sha }}' `
+            -ExpectedPortableSha '${{ steps.meta.outputs.portable_sha }}'
+
+      - name: Persist final R55.1 OTA and promotion status
+        if: always()
+        shell: pwsh
+        run: |
+          $otaPath='optimizer/R55_1_PUBLIC_OTA_STATUS.json'
+          if(!(Test-Path $otaPath)){throw 'R55.1 fresh OTA status missing'}
+          $ota=Get-Content $otaPath -Raw|ConvertFrom-Json
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_1_PUBLIC_OTA_STATUS.json'
+          Copy-Item $otaPath $saved -Force
+          $promotion=[ordered]@{
+            conclusion=if($ota.conclusion-eq'success'){'success'}else{'failure'}
+            createdAt=(Get-Date).ToUniversalTime().ToString('o')
+            databaseId=[long]$env:GITHUB_RUN_ID
+            headSha=$env:GITHUB_SHA
+            buildRun=[long]'${{ steps.meta.outputs.build_run }}'
+            buildHead='${{ steps.meta.outputs.build_head }}'
+            installerSha='${{ steps.meta.outputs.installer_sha }}'
+            portableSha='${{ steps.meta.outputs.portable_sha }}'
+            gameRecovery='success'
+            installedCandidate='success'
+            publication='success'
+            publicOta=$ota.conclusion
+            otaIsolation='fresh-windows-2025'
+            error=$ota.error
+          }
+          $savedPromotion=Join-Path $env:RUNNER_TEMP 'R55_1_PROMOTION_STATUS.json'
+          $promotion|ConvertTo-Json|Set-Content $savedPromotion -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-1-startup-binding-hotfix
+            git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+            Copy-Item $saved optimizer/R55_1_PUBLIC_OTA_STATUS.json -Force
+            Copy-Item $savedPromotion optimizer/R55_1_PROMOTION_STATUS.json -Force
+            git add optimizer/R55_1_PUBLIC_OTA_STATUS.json optimizer/R55_1_PROMOTION_STATUS.json
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record fresh R55 to R55.1 OTA run $env:GITHUB_RUN_ID"
+            git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist R55.1 fresh OTA statuses'}
+          if($ota.conclusion-ne'success'){throw "R55.1 fresh public OTA is not green: $($ota.error)"}
+          Write-Host 'R55_1_FULL_PROMOTION_GREEN_PASS'
