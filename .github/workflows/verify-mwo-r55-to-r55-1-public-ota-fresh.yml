@@ -24,6 +24,36 @@ jobs:
           ref: mwo-r55-1-startup-binding-hotfix
           fetch-depth: 0
 
+      - name: Persist fresh OTA RUNNING marker
+        shell: pwsh
+        run: |
+          $status=[ordered]@{
+            state='running'
+            startedAt=(Get-Date).ToUniversalTime().ToString('o')
+            databaseId=[long]$env:GITHUB_RUN_ID
+            workflowHead=$env:GITHUB_SHA
+            isolation='fresh-windows-2025'
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_1_FRESH_OTA_RUNNING.json'
+          $status|ConvertTo-Json|Set-Content $saved -Encoding UTF8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5 -and !$pushed;$attempt++){
+            git fetch origin mwo-r55-1-startup-binding-hotfix
+            git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+            Copy-Item $saved optimizer/R55_1_FRESH_OTA_RUNNING.json -Force
+            git add optimizer/R55_1_FRESH_OTA_RUNNING.json
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Mark fresh R55 to R55.1 OTA run $env:GITHUB_RUN_ID running"
+            git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist fresh R55.1 OTA RUNNING marker'}
+          Write-Host "R55_1_FRESH_OTA_RUNNING_PASS run=$env:GITHUB_RUN_ID"
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
