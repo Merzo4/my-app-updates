@@ -1,0 +1,17 @@
+{
+  "conclusion": "failure",
+  "createdAt": "2026-08-21T09:16:42.2489479Z",
+  "databaseId": 32466974839,
+  "workflowHead": "ac07435df19eaff09864d3b7ce6f34affc98cdce",
+  "buildRun": 32447928867,
+  "buildHead": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
+  "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
+  "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b",
+  "cleanWindows": "success",
+  "exactR55Baseline": "success",
+  "realR55Updater": "success",
+  "exactR551Installer": "success",
+  "installedPayloadAndLaunch": "success",
+  "installedGameRecovery": "cancelled",
+  "acceptance": "direct-staged-single-runner-no-nested-ota-wrapper"
+}
