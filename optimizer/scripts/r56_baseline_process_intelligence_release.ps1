@@ -91,10 +91,18 @@ if(!(Test-Path $installer)){throw 'R56 installer missing'}
 $ih=(Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant();$zh=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 "$ih  MerzoWindowsOptimizerSetup-win-x64.exe"|Set-Content "$installer.sha256" -Encoding ascii
 "$zh  MerzoWindowsOptimizer-portable-win-x64.zip"|Set-Content "$zip.sha256" -Encoding ascii
+
+# Same-shell handoff for GITHUB_OUTPUT plus later-step handoff through GITHUB_ENV.
+# The previous implementation only wrote GITHUB_ENV, so steps.build.outputs.* were empty.
+$env:R56_ROOT=$root
+$env:SOURCE_ROOT=$root
+$env:R56_INSTALLER_SHA=$ih
+$env:R56_PORTABLE_SHA=$zh
 "R56_ROOT=$root" >> $env:GITHUB_ENV
 "SOURCE_ROOT=$root" >> $env:GITHUB_ENV
 "R56_INSTALLER_SHA=$ih" >> $env:GITHUB_ENV
 "R56_PORTABLE_SHA=$zh" >> $env:GITHUB_ENV
+Write-Host 'R56_OUTPUT_HANDOFF_PASS'
 Write-Host 'R56_ALL_BUILD_GATES_PASS'
 Write-Host "R56_INSTALLER_SHA256=$ih"
 Write-Host "R56_PORTABLE_SHA256=$zh"
