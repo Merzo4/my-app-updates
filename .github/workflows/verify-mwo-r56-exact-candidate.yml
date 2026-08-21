@@ -6,6 +6,7 @@ on:
     branches: [mwo-r56-baseline-process-intelligence]
     paths:
       - 'optimizer/R56_CI_STATUS.json'
+      - '.github/workflows/verify-mwo-r56-exact-candidate.yml'
 
 permissions:
   actions: read
@@ -24,6 +25,18 @@ jobs:
         with:
           ref: mwo-r56-baseline-process-intelligence
           fetch-depth: 0
+      - name: Record exact candidate run identity
+        shell: pwsh
+        run: |
+          $ci=Get-Content optimizer/R56_CI_STATUS.json -Raw|ConvertFrom-Json
+          if($ci.conclusion-ne'success'-or$ci.published-ne$false){throw 'R56 build status is not GREEN/unpublished'}
+          $status=[ordered]@{state='running';databaseId=[long]$env:GITHUB_RUN_ID;buildRun=[long]$ci.databaseId;buildHead=[string]$ci.headSha;version='0.1.56';published=$false}
+          $saved=Join-Path $env:RUNNER_TEMP 'R56_EXACT_CANDIDATE_RUNNING.json';$status|ConvertTo-Json|Set-Content $saved -Encoding UTF8
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin mwo-r56-baseline-process-intelligence;git reset --hard origin/mwo-r56-baseline-process-intelligence
+          Copy-Item $saved optimizer/R56_EXACT_CANDIDATE_RUNNING.json -Force;git add optimizer/R56_EXACT_CANDIDATE_RUNNING.json;git diff --cached --quiet
+          if($LASTEXITCODE-ne0){git commit -m "Mark R56 exact candidate run $env:GITHUB_RUN_ID running";git push origin HEAD:mwo-r56-baseline-process-intelligence;if($LASTEXITCODE-ne0){throw 'R56 exact running marker push failed'}}
+          Write-Host "R56_EXACT_RUN_ID_PASS run=$env:GITHUB_RUN_ID build=$($ci.databaseId)"
       - name: Parse and verify GREEN build provenance
         id: meta
         shell: pwsh
