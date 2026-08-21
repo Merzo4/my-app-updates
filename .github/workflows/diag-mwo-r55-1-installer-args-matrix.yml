@@ -8,10 +8,41 @@ on:
       - '.github/workflows/diag-mwo-r55-1-installer-args-matrix.yml'
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: mwo-r55-1-installer-args-matrix
+  cancel-in-progress: true
 
 jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+          fetch-depth: 0
+      - name: Persist matrix run id
+        shell: bash
+        run: |
+          cat > /tmp/R55_1_INSTALLER_MATRIX_RUNNING.json <<EOF
+          {
+            "state": "running",
+            "databaseId": $GITHUB_RUN_ID,
+            "headSha": "$GITHUB_SHA"
+          }
+          EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin mwo-r55-1-startup-binding-hotfix
+          git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+          cp /tmp/R55_1_INSTALLER_MATRIX_RUNNING.json optimizer/R55_1_INSTALLER_MATRIX_RUNNING.json
+          git add -- optimizer/R55_1_INSTALLER_MATRIX_RUNNING.json
+          git commit -m "Mark R55.1 installer matrix run $GITHUB_RUN_ID running" || true
+          git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+
   installer-args:
+    needs: announce
     runs-on: windows-2025
     timeout-minutes: 15
     strategy:
