@@ -1,8 +1,8 @@
 {
-  "conclusion": "failure",
-  "createdAt": "2026-08-21T09:16:42.2489479Z",
-  "databaseId": 32466974839,
-  "workflowHead": "ac07435df19eaff09864d3b7ce6f34affc98cdce",
+  "conclusion": "success",
+  "createdAt": "2026-08-21T09:19:25.7559392Z",
+  "databaseId": 32467109353,
+  "workflowHead": "01427640193a33af69dd9b3209a83abab974b296",
   "buildRun": 32447928867,
   "buildHead": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
   "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
@@ -12,6 +12,6 @@
   "realR55Updater": "success",
   "exactR551Installer": "success",
   "installedPayloadAndLaunch": "success",
-  "installedGameRecovery": "cancelled",
+  "installedGameRecovery": "success",
   "acceptance": "direct-staged-single-runner-no-nested-ota-wrapper"
 }
