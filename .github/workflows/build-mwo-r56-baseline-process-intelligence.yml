@@ -1,0 +1,113 @@
+name: Build MWO R56 Baseline Process Intelligence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r56-baseline-process-intelligence]
+    paths:
+      - 'optimizer/patches/r56_baseline_process_intelligence.py'
+      - 'optimizer/scripts/r56_baseline_process_intelligence_acceptance.ps1'
+      - 'optimizer/scripts/r56_baseline_process_intelligence_release.ps1'
+      - '.github/workflows/build-mwo-r56-baseline-process-intelligence.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r56-baseline-process-intelligence-build
+  cancel-in-progress: true
+
+jobs:
+  build-r56:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r56-baseline-process-intelligence
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Exact source and parser gate
+        shell: pwsh
+        run: |
+          $head=(git rev-parse HEAD).Trim()
+          if($head-ne'${{ github.sha }}'){throw "Checkout head=$head event=${{ github.sha }}"}
+          foreach($path in @('optimizer/scripts/r56_baseline_process_intelligence_release.ps1','optimizer/scripts/r56_baseline_process_intelligence_acceptance.ps1')){
+            $tokens=$null;$errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+            if($errors.Count-gt0){$detail=($errors|ForEach-Object{"$($_.Extent.StartLineNumber): $($_.Message)"})-join'; ';throw "Parser gate failed $path :: $detail"}
+          }
+          python -m py_compile optimizer/patches/r56_baseline_process_intelligence.py
+          if($LASTEXITCODE-ne0){throw 'R56 Python patch parser failed'}
+          Write-Host "R56_EXACT_SOURCE_PASS head=$head"
+
+      - name: Build R56 through proven R55.1 baseline
+        id: build
+        shell: pwsh
+        run: |
+          .\optimizer\scripts\r56_baseline_process_intelligence_release.ps1
+          if($LASTEXITCODE-ne0){throw 'R56 release controller failed'}
+          "root=$env:R56_ROOT" >> $env:GITHUB_OUTPUT
+          "installer_sha=$env:R56_INSTALLER_SHA" >> $env:GITHUB_OUTPUT
+          "portable_sha=$env:R56_PORTABLE_SHA" >> $env:GITHUB_OUTPUT
+
+      - name: Verify packaged R56 identity
+        shell: pwsh
+        run: |
+          $root='${{ steps.build.outputs.root }}'
+          $zip=Join-Path $root 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
+          $setup=Join-Path $root 'dist\MerzoWindowsOptimizerSetup-win-x64.exe'
+          if(!(Test-Path $zip)-or!(Test-Path $setup)){throw 'R56 packaged assets missing'}
+          if((Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()-ne'${{ steps.build.outputs.installer_sha }}'){throw 'R56 installer SHA output mismatch'}
+          if((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()-ne'${{ steps.build.outputs.portable_sha }}'){throw 'R56 portable SHA output mismatch'}
+          $tmp=Join-Path $env:RUNNER_TEMP ('r56-package-'+[guid]::NewGuid().ToString('N'));Expand-Archive $zip $tmp -Force
+          $exe=Join-Path $tmp 'MerzoWindowsOptimizer.exe';if(!(Test-Path $exe)){throw 'R56 packaged EXE missing'}
+          $fv=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if($fv-ne'0.1.56.0'){throw "R56 packaged FileVersion=$fv"}
+          Write-Host "R56_PACKAGED_IDENTITY_PASS version=$fv installer=${{ steps.build.outputs.installer_sha }} portable=${{ steps.build.outputs.portable_sha }}"
+
+      - name: Stage exact candidate
+        shell: pwsh
+        run: |
+          $root='${{ steps.build.outputs.root }}';$out=Join-Path $PWD 'r56-artifact';New-Item $out -ItemType Directory -Force|Out-Null
+          foreach($n in @('MerzoWindowsOptimizerSetup-win-x64.exe','MerzoWindowsOptimizerSetup-win-x64.exe.sha256','MerzoWindowsOptimizer-portable-win-x64.zip','MerzoWindowsOptimizer-portable-win-x64.zip.sha256')){Copy-Item (Join-Path $root "dist\$n") (Join-Path $out $n) -Force}
+          @{
+            version='0.1.56';buildHead='${{ github.sha }}';installerSha='${{ steps.build.outputs.installer_sha }}';portableSha='${{ steps.build.outputs.portable_sha }}';scope='BASELINE PROCESS INTELLIGENCE';mutationDelta='none'
+          }|ConvertTo-Json|Set-Content (Join-Path $out 'R56_BUILD_PROVENANCE.json') -Encoding UTF8
+
+      - name: Upload exact R56 candidate
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: MerzoWindowsOptimizer-0.1.56-BASELINE-PROCESS-INTELLIGENCE-CANDIDATE
+          path: r56-artifact/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Record GREEN R56 build provenance
+        shell: pwsh
+        run: |
+          $status=[ordered]@{
+            conclusion='success';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha='${{ github.sha }}';version='0.1.56';artifactId=[long]'${{ steps.upload.outputs.artifact-id }}';artifactDigest='${{ steps.upload.outputs.artifact-digest }}';artifactName='MerzoWindowsOptimizer-0.1.56-BASELINE-PROCESS-INTELLIGENCE-CANDIDATE';installerSha='${{ steps.build.outputs.installer_sha }}';portableSha='${{ steps.build.outputs.portable_sha }}';startupGate='real-main-window-success';classificationGate='success';finalBackgroundGate='success';liveVsSavedGate='success';noNewMutationSurface='success';published=$false
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R56_CI_STATUS.json';$status|ConvertTo-Json|Set-Content $saved -Encoding UTF8
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5-and!$pushed;$attempt++){
+            git fetch origin mwo-r56-baseline-process-intelligence
+            git reset --hard origin/mwo-r56-baseline-process-intelligence
+            Copy-Item $saved optimizer/R56_CI_STATUS.json -Force
+            git add optimizer/R56_CI_STATUS.json
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record R56 build run $env:GITHUB_RUN_ID"
+            git push origin HEAD:mwo-r56-baseline-process-intelligence
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist R56 build provenance'}
+          Write-Host "R56_BUILD_GREEN_PASS run=$env:GITHUB_RUN_ID artifact=${{ steps.upload.outputs.artifact-id }}"
