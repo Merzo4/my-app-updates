@@ -5,6 +5,7 @@ on:
   push:
     branches: [mwo-r55-1-startup-binding-hotfix]
     paths:
+      - 'optimizer/scripts/r55_1_public_ota_acceptance.ps1'
       - '.github/workflows/verify-mwo-r55-to-r55-1-public-ota-fresh.yml'
 
 permissions:
