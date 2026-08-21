@@ -6,6 +6,7 @@ on:
     branches: [mwo-r55-1-startup-binding-hotfix]
     paths:
       - 'optimizer/R55_1_CI_STATUS.json'
+      - '.github/workflows/promote-mwo-r55-1-exact-green.yml'
 
 permissions:
   actions: read
@@ -13,7 +14,7 @@ permissions:
 
 concurrency:
   group: mwo-r55-1-exact-promotion
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   promote:
