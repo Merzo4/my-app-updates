@@ -44,7 +44,7 @@ jobs:
             "headSha": "$GITHUB_SHA",
             "version": "0.1.56",
             "published": false,
-            "retry": "baseline-root-fixed"
+            "retry": "output-handoff-fixed"
           }
           EOF
           git config user.name 'github-actions[bot]'
