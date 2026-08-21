@@ -7,6 +7,9 @@ on:
     paths:
       - 'optimizer/R55_1_CI_STATUS.json'
       - 'optimizer/scripts/r55_1_promote_exact.ps1'
+      - 'optimizer/scripts/r55_1_game_recovery_acceptance.ps1'
+      - 'optimizer/scripts/r55_1_installed_candidate_acceptance.ps1'
+      - 'optimizer/scripts/r55_1_public_ota_acceptance.ps1'
       - '.github/workflows/promote-mwo-r55-1-exact-green.yml'
 
 permissions:
