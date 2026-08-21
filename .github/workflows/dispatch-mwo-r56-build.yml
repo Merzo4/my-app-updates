@@ -43,7 +43,8 @@ jobs:
             "dispatcherRun": $GITHUB_RUN_ID,
             "headSha": "$GITHUB_SHA",
             "version": "0.1.56",
-            "published": false
+            "published": false,
+            "retry": "sha-pinned"
           }
           EOF
           git config user.name 'github-actions[bot]'
