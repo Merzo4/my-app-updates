@@ -1,3 +1,4 @@
+# R55.1 field-regression recovery pipeline: exact build + real-window launch gate.
 name: Build MWO R55.1 Startup Binding Hotfix
 
 on:
