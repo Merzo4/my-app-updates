@@ -1,16 +1,7 @@
 {
   "conclusion": "failure",
-  "createdAt": "2026-08-21T06:42:25.6339548Z",
-  "databaseId": 32455173358,
-  "headSha": "55cd5ed70a4f0a803bccc3e48655691e23b67bd7",
-  "buildRun": 32447928867,
-  "buildHead": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
-  "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
-  "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b",
-  "gameRecovery": "success",
-  "installedCandidate": "success",
-  "publication": "success",
-  "publicOta": "failure",
-  "otaIsolation": "fresh-windows-2025",
-  "error": "OTA installer timeout"
+  "createdAt": "2026-08-21T06:50:42.3714984Z",
+  "databaseId": 32455630171,
+  "headSha": "60836f9c23b770907b29beacc12d526e277ad2ff",
+  "error": "R55.1 public OTA acceptance failed"
 }
