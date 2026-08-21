@@ -1,0 +1,232 @@
+name: Verify MWO Public R55 to R55.1 OTA Staged
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r55-1-startup-binding-hotfix]
+    paths:
+      - '.github/workflows/verify-mwo-r55-to-r55-1-public-ota-staged.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r55-to-r55-1-public-ota-staged
+  cancel-in-progress: true
+
+jobs:
+  staged-ota:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Exact public provenance
+        id: meta
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $publish=Get-Content optimizer/R55_1_PUBLISH_STATUS.json -Raw|ConvertFrom-Json
+          $prior=Get-Content optimizer/R55_PUBLIC_OTA_STATUS.json -Raw|ConvertFrom-Json
+          if($publish.conclusion-ne'success' -or $publish.tag-ne'mwo-v0.1.55.1'){throw 'R55.1 publication prerequisite not green'}
+          if($prior.conclusion-ne'success' -or $prior.r542ToR55Upgrade-ne'success' -or $prior.r55PayloadMatch-ne'success' -or $prior.r55Launch-ne'success' -or $prior.installedGameRecovery-ne'success'){throw 'R54.2 -> R55 prior OTA proof not green'}
+          $rel=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/mwo-v0.1.55.1"|ConvertFrom-Json
+          if($rel.draft -or $rel.prerelease -or $rel.target_commitish-ne$publish.buildHead){throw 'R55.1 public release state/target mismatch'}
+          $ia=$rel.assets|Where-Object name -eq 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+          $pa=$rel.assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          if(!$ia-or!$pa){throw 'R55.1 public assets missing'}
+          if($ia.digest.Substring(7).ToLowerInvariant()-ne$publish.installerSha.ToLowerInvariant()){throw 'R55.1 installer digest mismatch'}
+          if($pa.digest.Substring(7).ToLowerInvariant()-ne$publish.portableSha.ToLowerInvariant()){throw 'R55.1 portable digest mismatch'}
+          "build_run=$($publish.buildRun)" >> $env:GITHUB_OUTPUT
+          "build_head=$($publish.buildHead)" >> $env:GITHUB_OUTPUT
+          "installer_sha=$($publish.installerSha)" >> $env:GITHUB_OUTPUT
+          "portable_sha=$($publish.portableSha)" >> $env:GITHUB_OUTPUT
+          Write-Host "R55_1_STAGED_PROVENANCE_PASS buildRun=$($publish.buildRun) artifact=$($publish.artifactId)"
+
+      - name: Prove clean disposable Windows
+        id: clean
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer'
+          if(Test-Path $dir){throw "Runner contaminated before R55 seed: $dir"}
+          if(Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue){throw 'Merzo process exists before baseline seed'}
+          Write-Host 'R55_1_STAGED_CLEAN_WINDOWS_PASS'
+
+      - name: Seed exact public R55 payload
+        id: baseline
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=$env:GITHUB_REPOSITORY
+          $prior=Get-Content optimizer/R55_PUBLIC_OTA_STATUS.json -Raw|ConvertFrom-Json
+          $rel=gh api "repos/$repo/releases/tags/mwo-v0.1.55"|ConvertFrom-Json
+          $asset=$rel.assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          if(!$asset-or!$asset.digest){throw 'Public R55 portable missing'}
+          $expected=$asset.digest.Substring(7).ToLowerInvariant()
+          if($expected-ne$prior.portableSha.ToLowerInvariant()){throw 'Public R55 portable changed since green R54.2 -> R55 OTA proof'}
+          New-Item public-r55 -ItemType Directory -Force|Out-Null
+          gh release download mwo-v0.1.55 --repo $repo --dir public-r55 --pattern 'MerzoWindowsOptimizer-portable-win-x64.zip'
+          if($LASTEXITCODE-ne0){throw 'R55 public portable download failed'}
+          $zip=(Resolve-Path 'public-r55/MerzoWindowsOptimizer-portable-win-x64.zip').Path
+          if((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()-ne$expected){throw 'R55 public portable SHA mismatch'}
+          $src=Join-Path $env:RUNNER_TEMP ('r55-stage-'+[guid]::NewGuid().ToString('N'));Expand-Archive $zip $src -Force
+          $dir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer';New-Item $dir -ItemType Directory -Force|Out-Null;Copy-Item (Join-Path $src '*') $dir -Recurse -Force
+          $exe=Join-Path $dir 'MerzoWindowsOptimizer.exe';if(!(Test-Path $exe)){throw 'Seeded R55 EXE missing'}
+          $ver=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion;if($ver-ne'0.1.55.0'){throw "Seeded R55 version=$ver"}
+          foreach($n in @('MerzoWindowsOptimizer.exe','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.exe')){
+            $a=Join-Path $src $n;$b=Join-Path $dir $n
+            if(!(Test-Path $a)-or!(Test-Path $b)){throw "R55 baseline payload missing $n"}
+            if((Get-FileHash $a -Algorithm SHA256).Hash-ne(Get-FileHash $b -Algorithm SHA256).Hash){throw "R55 baseline payload differs $n"}
+          }
+          "R55_INSTALL_DIR=$dir" >> $env:GITHUB_ENV
+          Write-Host "R55_1_STAGED_BASELINE_PASS version=$ver sha=$expected priorOtaRun=$($prior.databaseId)"
+
+      - name: Real R55 updater downloads exact R55.1
+        id: updater
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=$env:R55_INSTALL_DIR
+          $cfg=Join-Path $dir 'data\update_settings.json';$dll=Join-Path $dir 'MerzoOptimizer.Windows.dll'
+          $u=Join-Path $env:TEMP 'MerzoWindowsOptimizer-R55-to-R551-Staged';Remove-Item $u -Recurse -Force -ErrorAction SilentlyContinue
+          $lines=& pwsh -NoLogo -NoProfile -File '.\optimizer\scripts\r54_1_r54_download_probe.ps1' -Dll $dll -SettingsPath $cfg -UpdateDirectory $u -ExpectedVersion '0.1.55.1' 2>&1
+          $ec=$LASTEXITCODE;$txt=($lines|ForEach-Object{[string]$_})-join"`n";Write-Host $txt
+          if($ec-ne0-or$txt-notmatch'R54_REAL_DOWNLOAD_PASS'){throw "R55 updater probe failed exit=$ec"}
+          if($txt-notmatch'current=0\.1\.55(?:\.0)?\s+latest=0\.1\.55\.1'){throw 'R55 updater did not expose 0.1.55 -> 0.1.55.1'}
+          dotnet build-server shutdown|ForEach-Object{Write-Host $_}
+          Get-Process VBCSCompiler -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue
+          $setup=Get-ChildItem $u -File -Filter 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+          if(!$setup){throw 'R55 updater downloaded installer missing'}
+          $sha=(Get-FileHash $setup.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($sha-ne'${{ steps.meta.outputs.installer_sha }}'.ToLowerInvariant()){throw "R55 updater downloaded SHA=$sha"}
+          "R551_STAGED_SETUP=$($setup.FullName)" >> $env:GITHUB_ENV
+          Write-Host "R55_1_STAGED_REAL_UPDATER_PASS sha=$sha path=$($setup.FullName)"
+
+      - name: Install exact public R55.1 with real OTA args
+        id: install
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue
+          $setup=$env:R551_STAGED_SETUP;$log=Join-Path $env:RUNNER_TEMP 'r551-staged-inno.log'
+          $args="/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP- /LOG=`"$log`""
+          $p=Start-Process $setup -ArgumentList $args -PassThru
+          $deadline=(Get-Date).AddSeconds(90)
+          while(!$p.HasExited-and(Get-Date)-lt$deadline){Start-Sleep -Milliseconds 500;$p.Refresh()}
+          if(!$p.HasExited){
+            Write-Host "R55_1_STAGED_INSTALL_TIMEOUT parent=$($p.Id)"
+            Get-CimInstance Win32_Process|Where-Object{$_.Name-like'MerzoWindowsOptimizer*'}|Select-Object ProcessId,ParentProcessId,Name,CommandLine|Format-Table -AutoSize|Out-String|Write-Host
+            if(Test-Path $log){Write-Host '--- INNO LOG TAIL ---';Get-Content $log -Tail 160|ForEach-Object{Write-Host $_};Write-Host '--- END INNO LOG ---'}
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            Get-Process -ErrorAction SilentlyContinue|Where-Object{$_.ProcessName-like'MerzoWindowsOptimizerSetup*'}|Stop-Process -Force -ErrorAction SilentlyContinue
+            throw 'R55.1 staged installer timeout'
+          }
+          if($p.ExitCode-ne0){if(Test-Path $log){Get-Content $log -Tail 160|ForEach-Object{Write-Host $_}};throw "R55.1 staged installer exit=$($p.ExitCode)"}
+          $exe=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe';$ver=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if($ver-ne'0.1.55.1'){throw "R55.1 installed FileVersion=$ver"}
+          Write-Host "R55_TO_R551_STAGED_REAL_OTA_PASS version=$ver"
+
+      - name: Verify exact installed payload and real main window
+        id: verify
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=$env:GITHUB_REPOSITORY
+          New-Item public-r551 -ItemType Directory -Force|Out-Null
+          gh release download mwo-v0.1.55.1 --repo $repo --dir public-r551 --pattern 'MerzoWindowsOptimizer-portable-win-x64.zip'
+          if($LASTEXITCODE-ne0){throw 'R55.1 public portable download failed'}
+          $zip=(Resolve-Path 'public-r551/MerzoWindowsOptimizer-portable-win-x64.zip').Path
+          $sha=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant();if($sha-ne'${{ steps.meta.outputs.portable_sha }}'.ToLowerInvariant()){throw "R55.1 public portable SHA=$sha"}
+          $src=Join-Path $env:RUNNER_TEMP ('r551-verify-'+[guid]::NewGuid().ToString('N'));Expand-Archive $zip $src -Force
+          $dir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer'
+          foreach($n in @('MerzoWindowsOptimizer.exe','MerzoOptimizer.Core.dll','MerzoOptimizer.Windows.dll','MerzoOptimizer.ElevatedHelper.exe')){
+            $a=Join-Path $src $n;$b=Join-Path $dir $n
+            if(!(Test-Path $a)-or!(Test-Path $b)){throw "R55.1 payload compare missing $n"}
+            if((Get-FileHash $a -Algorithm SHA256).Hash-ne(Get-FileHash $b -Algorithm SHA256).Hash){throw "R55.1 installed payload differs $n"}
+          }
+          Write-Host 'R55_1_STAGED_PAYLOAD_MATCH_PASS'
+          Get-Process MerzoWindowsOptimizer -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue
+          Add-Type -AssemblyName UIAutomationClient;Add-Type -AssemblyName UIAutomationTypes
+          $exe=Join-Path $dir 'MerzoWindowsOptimizer.exe';$crash=Join-Path $env:LOCALAPPDATA 'MerzoWindowsOptimizer\logs';$at=(Get-Date).ToUniversalTime();$p=Start-Process $exe -WorkingDirectory $dir -PassThru;$found=$false
+          try{
+            $deadline=(Get-Date).AddSeconds(25)
+            while((Get-Date)-lt$deadline){
+              $p.Refresh();if($p.HasExited){throw "R55.1 staged app exited=$($p.ExitCode)"}
+              $wins=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition)
+              foreach($w in $wins){try{if($w.Current.ProcessId-ne$p.Id){continue};$n=[string]$w.Current.Name;if($n-match'(?i)startup error'){throw "R55.1 staged startup error: $n"};if($n-like'*Merzo Windows Optimizer — Production 0.1.55.1*R55.1*'){$found=$true}}catch{if($_.Exception.Message-like'R55.1 staged startup error*'){throw}}}
+              if($found){break};Start-Sleep -Milliseconds 400
+            }
+            if(!$found){throw 'R55.1 staged real main window not detected'}
+            if(Test-Path $crash){$c=Get-ChildItem $crash -File -Filter 'startup-crash-*.log' -ErrorAction SilentlyContinue|Where-Object{$_.LastWriteTimeUtc-ge$at.AddSeconds(-1)}|Select-Object -First 1;if($c){throw "R55.1 staged created crash log $($c.FullName)"}}
+            Write-Host 'R55_1_STAGED_REAL_MAIN_WINDOW_PASS'
+          }finally{if(!$p.HasExited){Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue}}
+
+      - name: Installed public R55.1 GAME to Recovery acceptance
+        id: game
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer'
+          $artifact=Join-Path $env:RUNNER_TEMP ('r551-staged-installed-'+[guid]::NewGuid().ToString('N'));New-Item $artifact -ItemType Directory|Out-Null
+          $zip=Join-Path $artifact 'MerzoWindowsOptimizer-portable-win-x64.zip';Compress-Archive -Path (Join-Path $dir '*') -DestinationPath $zip -CompressionLevel Fastest -Force
+          $sha=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant();Set-Content (Join-Path $artifact 'MerzoWindowsOptimizer-portable-win-x64.zip.sha256') ($sha+'  MerzoWindowsOptimizer-portable-win-x64.zip') -Encoding ASCII
+          .\optimizer\scripts\r55_1_game_recovery_acceptance.ps1 -ArtifactDir $artifact -BuildRun ${{ steps.meta.outputs.build_run }} -BuildHead '${{ steps.meta.outputs.build_head }}' -ExpectedPortableSha $sha
+          if($LASTEXITCODE-ne0){throw 'Installed public R55.1 GAME/Recovery acceptance failed'}
+          $j=Get-Content optimizer/R55_1_GAME_RECOVERY_STATUS.json -Raw|ConvertFrom-Json
+          if($j.conclusion-ne'success' -or $j.gameFullMutation-ne'success' -or $j.recoveryRestoreAll-ne'success' -or $j.recoveryStateVerification-ne'success'){throw 'Installed public R55.1 GAME/Recovery status not green'}
+          Write-Host 'R55_1_STAGED_INSTALLED_GAME_RECOVERY_PASS'
+
+      - name: Persist definitive staged OTA status
+        if: always()
+        shell: pwsh
+        run: |
+          $ok=('${{ steps.meta.outcome }}'-eq'success' -and '${{ steps.clean.outcome }}'-eq'success' -and '${{ steps.baseline.outcome }}'-eq'success' -and '${{ steps.updater.outcome }}'-eq'success' -and '${{ steps.install.outcome }}'-eq'success' -and '${{ steps.verify.outcome }}'-eq'success' -and '${{ steps.game.outcome }}'-eq'success')
+          $status=[ordered]@{
+            conclusion=if($ok){'success'}else{'failure'}
+            createdAt=(Get-Date).ToUniversalTime().ToString('o')
+            databaseId=[long]$env:GITHUB_RUN_ID
+            workflowHead=$env:GITHUB_SHA
+            buildRun=[long]'${{ steps.meta.outputs.build_run }}'
+            buildHead='${{ steps.meta.outputs.build_head }}'
+            installerSha='${{ steps.meta.outputs.installer_sha }}'
+            portableSha='${{ steps.meta.outputs.portable_sha }}'
+            cleanWindows='${{ steps.clean.outcome }}'
+            exactR55Baseline='${{ steps.baseline.outcome }}'
+            realR55Updater='${{ steps.updater.outcome }}'
+            exactR551Installer='${{ steps.install.outcome }}'
+            installedPayloadAndLaunch='${{ steps.verify.outcome }}'
+            installedGameRecovery='${{ steps.game.outcome }}'
+            acceptance='direct-staged-single-runner-no-nested-ota-wrapper'
+          }
+          $saved=Join-Path $env:RUNNER_TEMP 'R55_1_STAGED_OTA_STATUS.json';$status|ConvertTo-Json|Set-Content $saved -Encoding UTF8
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $pushed=$false
+          for($attempt=1;$attempt-le5-and!$pushed;$attempt++){
+            git fetch origin mwo-r55-1-startup-binding-hotfix
+            git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+            Copy-Item $saved optimizer/R55_1_STAGED_OTA_STATUS.json -Force
+            git add -- optimizer/R55_1_STAGED_OTA_STATUS.json
+            git diff --cached --quiet
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            git commit -m "Record staged R55 to R55.1 OTA run $env:GITHUB_RUN_ID"
+            git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+            if($LASTEXITCODE-eq0){$pushed=$true;break}
+            Start-Sleep -Seconds $attempt
+          }
+          if(!$pushed){throw 'Could not persist staged R55.1 OTA status'}
+          if(!$ok){throw 'R55.1 staged OTA acceptance is not green'}
+          Write-Host 'R55_1_FULL_PROMOTION_GREEN_PASS'
