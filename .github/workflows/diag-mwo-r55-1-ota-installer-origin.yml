@@ -1,0 +1,113 @@
+name: Diagnose MWO R55.1 OTA Installer Origin
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mwo-r55-1-startup-binding-hotfix]
+    paths:
+      - '.github/workflows/diag-mwo-r55-1-ota-installer-origin.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mwo-r55-1-ota-installer-origin
+  cancel-in-progress: true
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+          fetch-depth: 0
+      - shell: bash
+        run: |
+          printf '{"state":"running","databaseId":%s,"headSha":"%s"}\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" > /tmp/status.json
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin mwo-r55-1-startup-binding-hotfix; git reset --hard origin/mwo-r55-1-startup-binding-hotfix
+          cp /tmp/status.json optimizer/R55_1_INSTALLER_ORIGIN_RUNNING.json
+          git add -- optimizer/R55_1_INSTALLER_ORIGIN_RUNNING.json
+          git commit -m "Mark R55.1 installer origin run $GITHUB_RUN_ID running" || true
+          git push origin HEAD:mwo-r55-1-startup-binding-hotfix
+
+  origin:
+    needs: announce
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [updater-temp, updater-copy-workspace, direct-temp]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: mwo-r55-1-startup-binding-hotfix
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Seed exact public R55
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $repo=$env:GITHUB_REPOSITORY
+          New-Item public-r55 -ItemType Directory -Force|Out-Null
+          gh release download mwo-v0.1.55 --repo $repo --dir public-r55 --pattern 'MerzoWindowsOptimizer-portable-win-x64.zip'
+          $rel=gh api "repos/$repo/releases/tags/mwo-v0.1.55"|ConvertFrom-Json
+          $asset=$rel.assets|Where-Object name -eq 'MerzoWindowsOptimizer-portable-win-x64.zip'|Select-Object -First 1
+          $zip=(Resolve-Path 'public-r55/MerzoWindowsOptimizer-portable-win-x64.zip').Path
+          if((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()-ne$asset.digest.Substring(7).ToLowerInvariant()){throw 'R55 baseline SHA mismatch'}
+          $src=Join-Path $env:RUNNER_TEMP 'r55';Expand-Archive $zip $src -Force
+          $dir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer';New-Item $dir -ItemType Directory -Force|Out-Null;Copy-Item (Join-Path $src '*') $dir -Recurse -Force
+          if([Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $dir 'MerzoWindowsOptimizer.exe')).FileVersion-ne'0.1.55.0'){throw 'R55 baseline version mismatch'}
+          Write-Host 'R551_ORIGIN_BASELINE_PASS'
+      - name: Obtain exact R55.1 installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $mode='${{ matrix.mode }}';$repo=$env:GITHUB_REPOSITORY
+          $expected='bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035'
+          $installDir=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer'
+          if($mode -like 'updater-*'){
+            $cfg=Join-Path $installDir 'data\update_settings.json';$dll=Join-Path $installDir 'MerzoOptimizer.Windows.dll'
+            $u=Join-Path $env:TEMP 'MerzoWindowsOptimizer-R55-to-R551-Origin';Remove-Item $u -Recurse -Force -ErrorAction SilentlyContinue
+            $lines=& pwsh -NoLogo -NoProfile -File '.\optimizer\scripts\r54_1_r54_download_probe.ps1' -Dll $dll -SettingsPath $cfg -UpdateDirectory $u -ExpectedVersion '0.1.55.1' 2>&1
+            $text=($lines|ForEach-Object{[string]$_})-join"`n";Write-Host $text
+            if($LASTEXITCODE-ne0-or$text-notmatch'R54_REAL_DOWNLOAD_PASS'){throw 'Updater probe failed'}
+            dotnet build-server shutdown|ForEach-Object{Write-Host $_}
+            Get-Process VBCSCompiler -ErrorAction SilentlyContinue|Stop-Process -Force -ErrorAction SilentlyContinue
+            $downloaded=Get-ChildItem $u -File -Filter 'MerzoWindowsOptimizerSetup-win-x64.exe'|Select-Object -First 1
+            if(!$downloaded){throw 'Updater installer output missing'}
+            if($mode-eq'updater-copy-workspace'){$target=Join-Path $PWD 'R551-from-updater-copy.exe';Copy-Item $downloaded.FullName $target -Force}else{$target=$downloaded.FullName}
+          }else{
+            $d=Join-Path $env:TEMP 'R551-direct';New-Item $d -ItemType Directory -Force|Out-Null
+            gh release download mwo-v0.1.55.1 --repo $repo --dir $d --pattern 'MerzoWindowsOptimizerSetup-win-x64.exe'
+            $target=(Resolve-Path (Join-Path $d 'MerzoWindowsOptimizerSetup-win-x64.exe')).Path
+          }
+          $sha=(Get-FileHash $target -Algorithm SHA256).Hash.ToLowerInvariant();if($sha-ne$expected){throw "Origin installer SHA=$sha"}
+          "R551_ORIGIN_SETUP=$target" >> $env:GITHUB_ENV
+          Write-Host "R551_ORIGIN_INSTALLER_PASS mode=$mode path=$target sha=$sha"
+      - name: Run with Inno log
+        shell: pwsh
+        run: |
+          $mode='${{ matrix.mode }}';$setup=$env:R551_ORIGIN_SETUP;$log=Join-Path $env:RUNNER_TEMP "inno-$mode.log"
+          $args="/SILENT /MERZOUPDATE=1 /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /SP- /LOG=`"$log`""
+          Write-Host "R551_ORIGIN_START mode=$mode setup=$setup"
+          $p=Start-Process $setup -ArgumentList $args -PassThru
+          $deadline=(Get-Date).AddSeconds(70)
+          while(!$p.HasExited-and(Get-Date)-lt$deadline){Start-Sleep -Milliseconds 500;$p.Refresh()}
+          if(!$p.HasExited){
+            Write-Host "R551_ORIGIN_TIMEOUT mode=$mode parent=$($p.Id)"
+            Get-CimInstance Win32_Process|Where-Object{$_.Name-like'MerzoWindowsOptimizer*'}|Select-Object ProcessId,ParentProcessId,Name,CommandLine|Format-Table -AutoSize|Out-String|Write-Host
+            if(Test-Path $log){Write-Host '--- INNO LOG TAIL ---';Get-Content $log -Tail 120|ForEach-Object{Write-Host $_};Write-Host '--- END INNO LOG ---'}else{Write-Host 'INNO_LOG_MISSING'}
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            Get-Process -ErrorAction SilentlyContinue|Where-Object{$_.ProcessName-like'MerzoWindowsOptimizerSetup*'}|Stop-Process -Force -ErrorAction SilentlyContinue
+            throw "R551_ORIGIN_TIMEOUT mode=$mode"
+          }
+          if($p.ExitCode-ne0){if(Test-Path $log){Get-Content $log -Tail 120|ForEach-Object{Write-Host $_}};throw "R551_ORIGIN_EXIT mode=$mode code=$($p.ExitCode)"}
+          $exe=Join-Path $env:ProgramFiles 'Merzo Windows Optimizer\MerzoWindowsOptimizer.exe';$ver=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe).FileVersion
+          if($ver-ne'0.1.55.1'){throw "R551_ORIGIN_VERSION mode=$mode version=$ver"}
+          Write-Host "R551_ORIGIN_PASS mode=$mode version=$ver"
