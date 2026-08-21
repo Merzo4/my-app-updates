@@ -11,6 +11,7 @@ permissions:
   actions: write
   contents: write
 
+# Existing workflow update intentionally triggers the push dispatcher.
 jobs:
   dispatch:
     runs-on: ubuntu-latest
