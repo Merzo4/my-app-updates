@@ -6,6 +6,7 @@ on:
     branches: [mwo-r55-1-startup-binding-hotfix]
     paths:
       - 'optimizer/R55_1_CI_STATUS.json'
+      - 'optimizer/scripts/r55_1_promote_exact.ps1'
       - '.github/workflows/promote-mwo-r55-1-exact-green.yml'
 
 permissions:
@@ -64,6 +65,25 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Parse R55.1 promotion scripts
+        shell: pwsh
+        run: |
+          $paths=@(
+            'optimizer/scripts/r55_1_promote_exact.ps1',
+            'optimizer/scripts/r55_1_game_recovery_acceptance.ps1',
+            'optimizer/scripts/r55_1_installed_candidate_acceptance.ps1',
+            'optimizer/scripts/r55_1_public_ota_acceptance.ps1'
+          )
+          foreach($path in $paths){
+            if(!(Test-Path $path)){throw "R55.1 promotion script missing: $path"}
+            $tokens=$null;$errors=$null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $path),[ref]$tokens,[ref]$errors)|Out-Null
+            if($errors.Count-gt0){
+              $detail=($errors|ForEach-Object{"$($_.Extent.StartLineNumber): $($_.Message)"}) -join '; '
+              throw "R55.1 parser gate failed for $path :: $detail"
+            }
+          }
+          Write-Host 'R55_1_POWERSHELL_PARSER_GATE_PASS'
       - name: Read exact green R55.1 metadata
         id: meta
         shell: pwsh
