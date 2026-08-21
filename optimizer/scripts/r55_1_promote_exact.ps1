@@ -9,7 +9,7 @@ try{
   if(!$run-or[string]::IsNullOrWhiteSpace($head)-or!$artifactId-or[string]::IsNullOrWhiteSpace($ih)-or[string]::IsNullOrWhiteSpace($ph)){throw 'R55.1 CI provenance incomplete'}
   $api=gh api "repos/$repo/actions/artifacts/$artifactId"|ConvertFrom-Json
   if([long]$api.id-ne$artifactId-or$api.name-ne$artifactName-or$api.expired){throw 'R55.1 artifact API identity invalid'}
-  if($api.PSObject.Properties['digest']-and![string]::IsNullOrWhiteSpace([string]$api.digest)){
+  if($api.PSObject.Properties['digest'] -and ![string]::IsNullOrWhiteSpace([string]$api.digest)){
     $apiDigest=([string]$api.digest).ToLowerInvariant().Replace('sha256:','')
     $ciDigest=$artifactDigest.ToLowerInvariant().Replace('sha256:','')
     if($apiDigest-ne$ciDigest){throw "R55.1 artifact digest mismatch API=$($api.digest) CI=$artifactDigest"}
@@ -50,6 +50,8 @@ try{
   [ordered]@{conclusion='success';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRun=$run;buildHead=$head;artifactId=$artifactId;artifactDigest=$artifactDigest;installerSha=$ih;portableSha=$ph;gameRecovery='success';installedCandidate='success';publication='success';publicOta='success'}|ConvertTo-Json|Set-Content $promotion -Encoding UTF8
   Write-Host 'R55_1_FULL_PROMOTION_PASS'
 }catch{
-  [ordered]@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=[long]($env:GITHUB_RUN_ID??'0');headSha=$env:GITHUB_SHA;error=$_.Exception.Message}|ConvertTo-Json|Set-Content $promotion -Encoding UTF8
+  $runId=0
+  if(-not[string]::IsNullOrWhiteSpace($env:GITHUB_RUN_ID)){$runId=[long]$env:GITHUB_RUN_ID}
+  [ordered]@{conclusion='failure';createdAt=(Get-Date).ToUniversalTime().ToString('o');databaseId=$runId;headSha=$env:GITHUB_SHA;error=$_.Exception.Message}|ConvertTo-Json|Set-Content $promotion -Encoding UTF8
   Write-Host "::error::$($_.Exception.Message)";exit 1
 }
