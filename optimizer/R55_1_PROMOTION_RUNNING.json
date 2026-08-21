@@ -1,0 +1,12 @@
+{
+  "state": "running",
+  "startedAt": "2026-08-21T06:23:22.0319747Z",
+  "promotionRun": 32454175824,
+  "workflowHead": "da1f38d9f4cd6ee39b799b9c1722a6da3bb49f7f",
+  "buildRun": 32447928867,
+  "buildHead": "8dc9109f3c3571dc4d355dfcb2d07dd260effe91",
+  "artifactId": 9434762684,
+  "artifactName": "MerzoWindowsOptimizer-0.1.55.1-STARTUP-BINDING-HOTFIX",
+  "installerSha": "bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035",
+  "portableSha": "94cd5052254669e8e0bf13cec3651e5b7dcaf847402132a7ad90e72280f3ce8b"
+}
