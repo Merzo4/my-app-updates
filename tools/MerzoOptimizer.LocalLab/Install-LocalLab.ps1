@@ -28,6 +28,15 @@ if errorlevel 1 pause
 '@
 Set-Content (Join-Path $root 'START-TEST-CENTER.bat') $launcher -Encoding ASCII
 
+$evidenceLauncher=@'
+@echo off
+setlocal
+set "MWO_LAB_ROOT=D:\MerzoOptimizer-LocalLab"
+pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "D:\MerzoOptimizer-LocalLab\App\PACK-EVIDENCE.ps1"
+if errorlevel 1 pause
+'@
+Set-Content (Join-Path $root 'PACK-EVIDENCE.bat') $evidenceLauncher -Encoding ASCII
+
 # Desktop shortcut. This points only to the Test Center launcher on D:.
 try{
   $desktop=[Environment]::GetFolderPath('Desktop')
