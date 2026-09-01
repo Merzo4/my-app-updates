@@ -5,7 +5,7 @@ $root='D:\MerzoOptimizer-LocalLab'
 if(!(Test-Path 'D:\')){throw 'Для Merzo Optimizer Local Test Center нужен диск D:. Лаборатория не устанавливается в Program Files или профиль пользователя.'}
 
 $sourceToolDir=Split-Path $MyInvocation.MyCommand.Path -Parent
-$required=@('MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1')
+$required=@('MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1')
 foreach($name in $required){if(!(Test-Path (Join-Path $sourceToolDir $name))){throw "Не хватает файла Test Center: $name"}}
 
 $dirs=@(
