@@ -1,6 +1,0 @@
-R54 PUBLIC OTA V2 ACCEPTANCE
-2026-08-19
-public-baseline=0.1.53.0
-public-target=0.1.54
-check=old-R53 real CheckAsync + DownloadAsync + SHA + OTA + four-part updater + GAME SafetyEngine + launch
-attempt=2

@@ -1,7 +1,0 @@
-monitor R53 production + OTA acceptance
-2026-08-19
-production-run=32221210209
-publish-acceptance=2
-actions-snapshot=11
-verify-v3=2
-purpose=updater-four-part-version-diag

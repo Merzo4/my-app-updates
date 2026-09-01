@@ -1,1 +1,0 @@
-This file is intentionally unused by the product. Publication is driven by the exact-green workflow added in the previous commit.
