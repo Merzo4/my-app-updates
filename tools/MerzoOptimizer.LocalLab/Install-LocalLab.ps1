@@ -5,7 +5,7 @@ $root='D:\MerzoOptimizer-LocalLab'
 if(!(Test-Path 'D:\')){throw 'Для Merzo Optimizer Local Test Center нужен диск D:. Лаборатория не устанавливается в Program Files или профиль пользователя.'}
 
 $sourceToolDir=Split-Path $MyInvocation.MyCommand.Path -Parent
-$required=@('MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1','PUBLISH-EVIDENCE.ps1')
+$required=@('MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','Run-Profile.Core.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1','PUBLISH-EVIDENCE.ps1')
 foreach($name in $required){if(!(Test-Path (Join-Path $sourceToolDir $name))){throw "Не хватает файла Test Center: $name"}}
 
 $dirs=@(
@@ -46,7 +46,6 @@ if errorlevel 1 pause
 '@
 Set-Content (Join-Path $root 'PUBLISH-EVIDENCE.bat') $publishLauncher -Encoding ASCII
 
-# Desktop shortcut. This points only to the Test Center launcher on D:.
 try{
   $desktop=[Environment]::GetFolderPath('Desktop')
   $shell=New-Object -ComObject WScript.Shell
@@ -62,5 +61,5 @@ Write-Host 'MERZO OPTIMIZER LOCAL TEST CENTER INSTALLED' -ForegroundColor Green
 Write-Host "Root: $root"
 Write-Host 'Production Program Files не изменялся.'
 Write-Host 'Первый шаг: Диагностика -> Обновить Source -> QUICK.'
-Write-Host 'Отчёт можно отправить через D:\MerzoOptimizer-LocalLab\PUBLISH-EVIDENCE.bat — Actions minutes = 0.'
+Write-Host 'Evidence автоматически пытается уйти в mwo-local-lab-evidence. Actions minutes = 0.'
 Start-Process (Join-Path $root 'START-TEST-CENTER.bat')
