@@ -48,14 +48,16 @@ if not defined PWSH (
 )
 
 echo.
-echo Installing Merzo Optimizer Local Test Center to D:\MerzoOptimizer-LocalLab ...
+echo Installing Merzo Optimizer Local Test Center 0.1.4 ...
 "%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Local Test Center installation failed.
+  echo Check D:\MerzoOptimizer-LocalLab\Logs\gui-smoke.log if the GUI smoke test failed.
   pause
   exit /b 1
 )
 
 echo.
-echo DONE. GitHub Actions workflows were not started.
+echo DONE. Parser and GUI smoke gates passed.
+echo GitHub Actions workflows were not started.
 exit /b 0
