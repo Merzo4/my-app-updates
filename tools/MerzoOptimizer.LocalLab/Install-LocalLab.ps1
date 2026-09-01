@@ -1,5 +1,6 @@
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
 
 $root='D:\MerzoOptimizer-LocalLab'
 if(!(Test-Path 'D:\')){throw 'Для Merzo Optimizer Local Test Center нужен диск D:. Лаборатория не устанавливается в Program Files или профиль пользователя.'}
@@ -20,7 +21,7 @@ function Ensure-PowerShell7 {
 
   Write-Host 'PowerShell 7 не найден. Устанавливаю автоматически...' -ForegroundColor Yellow
   $headers=@{'User-Agent'='MerzoOptimizerLocalTestCenter'}
-  $release=Invoke-RestMethod -Uri 'https://api.github.com/repos/PowerShell/PowerShell/releases/latest' -Headers $headers -UseBasicParsing
+  $release=Invoke-RestMethod -Uri 'https://api.github.com/repos/PowerShell/PowerShell/releases/latest' -Headers $headers
   $asset=$release.assets|Where-Object{$_.name -match '^PowerShell-.*-win-x64\.msi$'}|Select-Object -First 1
   if(!$asset){throw 'Не найден официальный PowerShell 7 x64 MSI в последнем GitHub release.'}
   $msi=Join-Path $env:TEMP $asset.name
@@ -40,7 +41,6 @@ $sourceToolDir=Split-Path $MyInvocation.MyCommand.Path -Parent
 $required=@('MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','Run-Profile.Core.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1','PUBLISH-EVIDENCE.ps1')
 foreach($name in $required){if(!(Test-Path (Join-Path $sourceToolDir $name))){throw "Не хватает файла Test Center: $name"}}
 
-# Local parser/self-contract gate. No GitHub Actions required.
 foreach($name in $required|Where-Object{$_-like'*.ps1'}){
   $tokens=$null;$errors=$null
   [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $sourceToolDir $name),[ref]$tokens,[ref]$errors)|Out-Null
@@ -104,7 +104,6 @@ call "%TMP%"
 '@
 Set-Content (Join-Path $root 'UPDATE-TEST-CENTER.bat') $updateLauncher -Encoding ASCII
 
-# Replace the old BAT shortcut with a direct GUI shortcut.
 $desktop=[Environment]::GetFolderPath('Desktop')
 $shortcutPath=Join-Path $desktop 'Merzo Optimizer Test Center.lnk'
 try{
