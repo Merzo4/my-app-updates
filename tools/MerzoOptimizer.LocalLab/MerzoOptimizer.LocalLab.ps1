@@ -12,6 +12,8 @@ $ResultPath=Join-Path $LabRoot 'Results\Latest\LAB-RESULT.json'
 $SourceDir=Join-Path $LabRoot 'Source'
 $CurrentExe=Join-Path $LabRoot 'TestBuild\Current\App\MerzoWindowsOptimizer.exe'
 $ArmPath=Join-Path $LabRoot 'State\ALLOW-SYSTEM-MUTATION.json'
+$PackScript=Join-Path $AppDir 'PACK-EVIDENCE.ps1'
+$PublishScript=Join-Path $AppDir 'PUBLISH-EVIDENCE.ps1'
 if(!(Test-Path $Runner)-or!(Test-Path $ProfilePath)){[Windows.Forms.MessageBox]::Show("Local Test Center installation is incomplete.`n$AppDir",'Merzo Optimizer Test Center')|Out-Null;exit 2}
 $Cfg=Get-Content $ProfilePath -Raw|ConvertFrom-Json
 
@@ -34,7 +36,7 @@ $form=New-Object Windows.Forms.Form
 $form.Text='Merzo Optimizer Local Test Center'
 $form.StartPosition='CenterScreen'
 $form.Size=New-Object Drawing.Size(1120,720)
-$form.MinimumSize=New-Object Drawing.Size(1000,640)
+$form.MinimumSize=New-Object Drawing.Size(1000,700)
 $form.BackColor=$bg
 $form.ForeColor=$text
 $form.Font=New-Object Drawing.Font('Segoe UI',9)
@@ -48,22 +50,26 @@ $nav=New-Object Windows.Forms.Panel;$nav.Dock='Left';$nav.Width=205;$nav.Padding
 $navTitle=New-Object Windows.Forms.Label;$navTitle.Text='ПРОФИЛИ';$navTitle.AutoSize=$true;$navTitle.ForeColor=$muted;$navTitle.Location=New-Object Drawing.Point(14,14);$nav.Controls.Add($navTitle)
 
 function New-NavButton([string]$caption,[int]$y,[Drawing.Color]$color){
-  $b=New-Object Windows.Forms.Button;$b.Text=$caption;$b.Size=New-Object Drawing.Size(178,38);$b.Location=New-Object Drawing.Point(12,$y);$b.FlatStyle='Flat';$b.FlatAppearance.BorderColor=$border;$b.FlatAppearance.BorderSize=1;$b.BackColor=$panel;$b.ForeColor=$color;$b.Cursor='Hand';$nav.Controls.Add($b);return $b
+  $b=New-Object Windows.Forms.Button;$b.Text=$caption;$b.Size=New-Object Drawing.Size(178,36);$b.Location=New-Object Drawing.Point(12,$y);$b.FlatStyle='Flat';$b.FlatAppearance.BorderColor=$border;$b.FlatAppearance.BorderSize=1;$b.BackColor=$panel;$b.ForeColor=$color;$b.Cursor='Hand';$nav.Controls.Add($b);return $b
 }
 $btnDiag=New-NavButton 'Диагностика' 42 $text
-$btnSync=New-NavButton 'Обновить Source' 86 $text
-$btnQuick=New-NavButton 'QUICK' 142 $accent
-$btnFull=New-NavButton 'FULL SAFE' 186 $green
-$btnDestructive=New-NavButton 'GAME → RESTORE' 242 $red
-$btnOpen=New-NavButton 'Открыть тестовую' 306 $text
-$btnResults=New-NavButton 'Открыть результаты' 350 $text
-$btnFolder=New-NavButton 'Открыть D:\ Lab' 394 $text
-$btnStop=New-NavButton 'Остановить' 458 $amber
+$btnSync=New-NavButton 'Обновить Source' 82 $text
+$btnQuick=New-NavButton 'QUICK' 132 $accent
+$btnFull=New-NavButton 'FULL SAFE' 172 $green
+$btnDestructive=New-NavButton 'GAME → RESTORE' 222 $red
+$btnOpen=New-NavButton 'Открыть тестовую' 272 $text
+$btnResults=New-NavButton 'Открыть результаты' 312 $text
+$btnPack=New-NavButton 'Собрать evidence' 352 $text
+$btnPublish=New-NavButton 'Отправить отчёт' 392 $accent
+$btnFolder=New-NavButton 'Открыть D:\ Lab' 432 $text
+$btnStop=New-NavButton 'Остановить' 482 $amber
 $btnStop.Enabled=$false
 
-$safety=New-Object Windows.Forms.Label;$safety.Size=New-Object Drawing.Size(178,70);$safety.Location=New-Object Drawing.Point(12,535);$safety.BackColor=$panel;$safety.ForeColor=$muted;$safety.Padding=New-Object Windows.Forms.Padding(8);$nav.Controls.Add($safety)
+$safety=New-Object Windows.Forms.Label;$safety.Size=New-Object Drawing.Size(178,72);$safety.Anchor='Bottom,Left';$safety.BackColor=$panel;$safety.ForeColor=$muted;$safety.Padding=New-Object Windows.Forms.Padding(8);$nav.Controls.Add($safety)
+$nav.Add_Resize({$safety.Location=New-Object Drawing.Point(12,[math]::Max(526,$nav.ClientSize.Height-84))})
 
-$body=New-Object Windows.Forms.Panel;$body.Dock='Fill';$body.Padding=New-Object Windows.Forms.Padding(14);$body.BackColor=$bg;$form.Controls.Add($body);$body.BringToFront()
+$body=New-Object Windows.Forms.Panel;$body.Dock='Fill';$body.Padding=New-Object Windows.Forms.Padding(14);$body.BackColor=$bg;$form.Controls.Add($body)
+$nav.BringToFront();$header.BringToFront()
 
 $cards=New-Object Windows.Forms.Panel;$cards.Dock='Top';$cards.Height=96;$cards.BackColor=$bg;$body.Controls.Add($cards)
 function New-Card([string]$name,[int]$x,[int]$w){
@@ -106,26 +112,63 @@ function Is-Armed {
 function Refresh-Cards {
   $cardEnv.Text="Windows $([Environment]::OSVersion.Version)`n$env:COMPUTERNAME"
   $cardSource.Text=Get-SourceIdentity
-  $armed=Is-Armed;$cardSafety.Text=if($armed){'LAB ONLY`nSYSTEM MUTATION: ARMED'}else{'PROTECTED`nSystem mutation blocked'};$cardSafety.ForeColor=if($armed){$red}else{$green};$btnDestructive.Enabled=($armed-and-not$script:Busy)
-  $safety.Text=if($armed){"● LAB ONLY`nDestructive разрешён`nтолько на $env:COMPUTERNAME"}else{"● Защищённый режим`nProgram Files: read-only`nGAME/Restore: BLOCKED"};$safety.ForeColor=if($armed){$red}else{$green}
-  if(Test-Path $ResultPath){try{$r=Get-Content $ResultPath -Raw|ConvertFrom-Json;$cardLast.Text="$($r.conclusion)  •  $($r.profile)`n$([string]$r.sourceCommit).Substring(0,[math]::Min(10,([string]$r.sourceCommit).Length))";$cardLast.ForeColor=if($r.conclusion-eq'PASS'){$green}else{$red}}catch{$cardLast.Text='Повреждённый result';$cardLast.ForeColor=$red}}else{$cardLast.Text='Нет запусков';$cardLast.ForeColor=$muted}
+  $armed=Is-Armed
+  $cardSafety.Text=if($armed){"LAB ONLY`nSYSTEM MUTATION: ARMED"}else{"PROTECTED`nSystem mutation blocked"}
+  $cardSafety.ForeColor=if($armed){$red}else{$green}
+  $btnDestructive.Enabled=($armed-and-not$script:Busy)
+  $safety.Text=if($armed){"● LAB ONLY`nDestructive разрешён`nтолько на $env:COMPUTERNAME"}else{"● Защищённый режим`nProgram Files: read-only`nGAME/Restore: BLOCKED"}
+  $safety.ForeColor=if($armed){$red}else{$green}
+  if(Test-Path $ResultPath){
+    try{
+      $r=Get-Content $ResultPath -Raw|ConvertFrom-Json
+      $sha=[string]$r.sourceCommit
+      $short=if($sha){$sha.Substring(0,[math]::Min(10,$sha.Length))}else{'no-source'}
+      $cardLast.Text="$($r.conclusion)  •  $($r.profile)`n$short"
+      $cardLast.ForeColor=if($r.conclusion-eq'PASS'){$green}else{$red}
+    }catch{$cardLast.Text='Повреждённый result';$cardLast.ForeColor=$red}
+  }else{$cardLast.Text='Нет запусков';$cardLast.ForeColor=$muted}
 }
 function Set-Busy([bool]$busy,[string]$caption=''){
   $script:Busy=$busy
-  foreach($b in @($btnDiag,$btnSync,$btnQuick,$btnFull,$btnOpen,$btnResults,$btnFolder)){$b.Enabled=-not$busy}
+  foreach($b in @($btnDiag,$btnSync,$btnQuick,$btnFull,$btnOpen,$btnResults,$btnPack,$btnPublish,$btnFolder)){$b.Enabled=-not$busy}
   $btnDestructive.Enabled=(-not$busy-and(Is-Armed));$btnStop.Enabled=$busy
   if($busy){$statusBadge.Text='RUNNING';$statusBadge.ForeColor=$amber}else{$statusBadge.Text=if($caption){$caption}else{'ГОТОВ'};$statusBadge.ForeColor=if($caption-eq'PASS'){$green}elseif($caption-eq'FAIL'){$red}else{$accent}}
 }
 function Load-Result {
-  $list.Items.Clear();if(!(Test-Path $ResultPath)){return}
-  try{$r=Get-Content $ResultPath -Raw|ConvertFrom-Json;foreach($st in @($r.stages)){$it=New-Object Windows.Forms.ListViewItem([string]$st.state);[void]$it.SubItems.Add([string]$st.name);[void]$it.SubItems.Add([string]$st.summary);$it.ForeColor=if($st.state-eq'PASS'){$green}elseif($st.state-eq'FAIL'){$red}elseif($st.state-eq'WARN'){$amber}else{$text};[void]$list.Items.Add($it)};Refresh-Cards;Set-Busy $false ([string]$r.conclusion)}catch{Set-Busy $false 'FAIL'}
+  $list.Items.Clear()
+  if(!(Test-Path $ResultPath)){Set-Busy $false 'FAIL';return}
+  try{
+    $r=Get-Content $ResultPath -Raw|ConvertFrom-Json
+    foreach($st in @($r.stages)){
+      $it=New-Object Windows.Forms.ListViewItem([string]$st.state)
+      [void]$it.SubItems.Add([string]$st.name)
+      [void]$it.SubItems.Add([string]$st.summary)
+      $it.ForeColor=if($st.state-eq'PASS'){$green}elseif($st.state-eq'FAIL'){$red}elseif($st.state-eq'WARN'){$amber}else{$text}
+      [void]$list.Items.Add($it)
+    }
+    Refresh-Cards
+    Set-Busy $false ([string]$r.conclusion)
+  }catch{Set-Busy $false 'FAIL'}
 }
 function Start-Profile([string]$name,[bool]$elevated=$false){
   if($script:Busy){return}
   $script:CurrentProfile=$name;$script:LogLineCount=0;$journal.Clear();$list.Items.Clear();Set-Busy $true
-  $psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName='pwsh.exe';$psi.Arguments="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$Runner`" -Profile $name";$psi.WorkingDirectory=$AppDir
+  $psi=New-Object Diagnostics.ProcessStartInfo
+  $psi.FileName='pwsh.exe'
+  $psi.Arguments="-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$Runner`" -Profile $name"
+  $psi.WorkingDirectory=$AppDir
   if($elevated){$psi.UseShellExecute=$true;$psi.Verb='runas'}else{$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true}
   try{$script:CurrentProcess=[Diagnostics.Process]::Start($psi)}catch{Set-Busy $false 'FAIL';[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Не удалось запустить профиль')|Out-Null}
+}
+function Run-Utility([string]$scriptPath,[string]$title){
+  if($script:Busy){return}
+  if(!(Test-Path $scriptPath)){[Windows.Forms.MessageBox]::Show("Файл не найден:`n$scriptPath",$title)|Out-Null;return}
+  try{
+    $p=Start-Process pwsh.exe -ArgumentList @('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',$scriptPath) -PassThru
+    $p.WaitForExit()
+    if($p.ExitCode-ne0){[Windows.Forms.MessageBox]::Show("$title завершился с кодом $($p.ExitCode). Проверь журнал/окно PowerShell.",$title)|Out-Null}
+  }catch{[Windows.Forms.MessageBox]::Show($_.Exception.Message,$title)|Out-Null}
+  Refresh-Cards
 }
 
 $timer=New-Object Windows.Forms.Timer;$timer.Interval=500
@@ -144,9 +187,11 @@ $btnFull.Add_Click({Start-Profile 'FullSafe'})
 $btnDestructive.Add_Click({if(Is-Armed){$ans=[Windows.Forms.MessageBox]::Show("Этот профиль реально применит GAME-настройки к Windows и затем выполнит production RestoreAll.`n`nЗапускать только на выделенной лабораторной машине.`n`nПродолжить?",'DESTRUCTIVE LAB',[Windows.Forms.MessageBoxButtons]::YesNo,[Windows.Forms.MessageBoxIcon]::Warning);if($ans-eq[Windows.Forms.DialogResult]::Yes){Start-Profile 'Destructive' $true}}})
 $btnOpen.Add_Click({if(Test-Path $CurrentExe){Start-Process $CurrentExe -WorkingDirectory (Split-Path $CurrentExe -Parent)}else{[Windows.Forms.MessageBox]::Show('Нет TestBuild\Current. Сначала запусти FULL SAFE.','Test Center')|Out-Null}})
 $btnResults.Add_Click({$p=Join-Path $LabRoot 'Results\Latest';New-Item $p -ItemType Directory -Force|Out-Null;Start-Process explorer.exe $p})
+$btnPack.Add_Click({Run-Utility $PackScript 'Evidence ZIP'})
+$btnPublish.Add_Click({Run-Utility $PublishScript 'Отправка отчёта'})
 $btnFolder.Add_Click({Start-Process explorer.exe $LabRoot})
 $btnStop.Add_Click({if($script:CurrentProcess){try{& taskkill.exe /PID $script:CurrentProcess.Id /T /F|Out-Null}catch{};$script:CurrentProcess=$null;Set-Busy $false 'STOPPED'}})
-$form.Add_FormClosing({if($script:Busy){$ans=[Windows.Forms.MessageBox]::Show('Проверка ещё выполняется. Закрыть Test Center и остановить её?','Test Center',[Windows.Forms.MessageBoxButtons]::YesNo,[Windows.Forms.MessageBoxIcon]::Warning);if($ans-ne[Windows.Forms.DialogResult]::Yes){$_.Cancel=$true;return};if($script:CurrentProcess){try{& taskkill.exe /PID $script:CurrentProcess.Id /T /F|Out-Null}catch{}}};$timer.Stop();try{$mutex.ReleaseMutex()}catch{};$mutex.Dispose()})
+$form.Add_FormClosing({param($sender,$e);if($script:Busy){$ans=[Windows.Forms.MessageBox]::Show('Проверка ещё выполняется. Закрыть Test Center и остановить её?','Test Center',[Windows.Forms.MessageBoxButtons]::YesNo,[Windows.Forms.MessageBoxIcon]::Warning);if($ans-ne[Windows.Forms.DialogResult]::Yes){$e.Cancel=$true;return};if($script:CurrentProcess){try{& taskkill.exe /PID $script:CurrentProcess.Id /T /F|Out-Null}catch{}}};$timer.Stop();try{$mutex.ReleaseMutex()}catch{};$mutex.Dispose()})
 
 Refresh-Cards
 [void]$form.ShowDialog()
