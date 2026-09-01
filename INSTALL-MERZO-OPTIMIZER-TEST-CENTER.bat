@@ -18,7 +18,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-for %%F in (Bootstrap-PowerShell7.ps1 MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 local-lab-profile.json ENABLE-DESTRUCTIVE-LAB.ps1 PACK-EVIDENCE.ps1 PUBLISH-EVIDENCE.ps1 Install-LocalLab.ps1 README.md) do (
+for %%F in (Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 local-lab-profile.json ENABLE-DESTRUCTIVE-LAB.ps1 PACK-EVIDENCE.ps1 PUBLISH-EVIDENCE.ps1 Install-LocalLab.ps1 README.md) do (
   echo Downloading %%F...
   curl.exe -fsSL --retry 3 --connect-timeout 15 "%BASE%/%%F" -o "%TMPDIR%\%%F"
   if errorlevel 1 (
@@ -49,7 +49,7 @@ if not defined PWSH (
 
 echo.
 echo Installing Merzo Optimizer Local Test Center to D:\MerzoOptimizer-LocalLab ...
-"%PWSH%" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
+"%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Local Test Center installation failed.
   pause
