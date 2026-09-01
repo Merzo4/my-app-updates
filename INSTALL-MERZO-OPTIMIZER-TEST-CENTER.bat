@@ -12,10 +12,9 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-where pwsh.exe >nul 2>nul
+where powershell.exe >nul 2>nul
 if errorlevel 1 (
-  echo ОШИБКА: PowerShell 7 ^(pwsh.exe^) не найден.
-  echo Установи PowerShell 7 и запусти этот BAT снова.
+  echo ОШИБКА: встроенный Windows PowerShell не найден.
   pause
   exit /b 1
 )
@@ -32,7 +31,8 @@ for %%F in (MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 loc
 
 echo.
 echo Устанавливаю Merzo Optimizer Local Test Center на D: ...
-pwsh.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
+echo Если PowerShell 7 отсутствует, установщик поставит его автоматически.
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo.
   echo Установка завершилась ошибкой.
