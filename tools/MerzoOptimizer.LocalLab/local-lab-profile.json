@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "testCenterVersion": "0.1.0",
+  "testCenterVersion": "0.1.1",
   "productName": "Merzo Windows Optimizer",
   "repository": "Merzo4/my-app-updates",
   "repositoryUrl": "https://github.com/Merzo4/my-app-updates.git",
@@ -17,6 +17,8 @@
   "productExe": "r49/dist/app/MerzoWindowsOptimizer.exe",
   "destructiveAcceptance": "optimizer/scripts/r56_game_recovery_acceptance.ps1",
   "destructiveStatus": "optimizer/R56_GAME_RECOVERY_STATUS.json",
+  "evidenceBranch": "mwo-local-lab-evidence",
+  "autoPublishEvidence": true,
   "protectedProductionPaths": [
     "C:\\Program Files\\Merzo Windows Optimizer",
     "%LOCALAPPDATA%\\MerzoWindowsOptimizer"
