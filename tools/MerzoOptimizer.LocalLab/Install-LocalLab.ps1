@@ -38,6 +38,19 @@ $app=Join-Path $root 'App'
 foreach($name in $required){Copy-Item (Join-Path $sourceToolDir $name) (Join-Path $app $name) -Force}
 if(Test-Path (Join-Path $sourceToolDir 'README.md')){Copy-Item (Join-Path $sourceToolDir 'README.md') (Join-Path $app 'README.md') -Force}
 
+# Runtime GUI smoke gate on the real local Windows before shortcut creation.
+$smokeLog=Join-Path $root 'Logs\gui-smoke.log'
+Remove-Item $smokeLog -Force -ErrorAction SilentlyContinue
+$smokeArgs=@('-NoLogo','-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',(Join-Path $app 'MerzoOptimizer.LocalLab.ps1'),'-SmokeTest')
+$smokeOut=& $pwshPath @smokeArgs 2>&1
+$smokeCode=$LASTEXITCODE
+$smokeOut|Set-Content $smokeLog -Encoding UTF8
+$smokeText=($smokeOut|Out-String)
+if($smokeCode-ne0-or$smokeText-notmatch'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS'){
+  throw "LOCAL TEST CENTER GUI SMOKE FAIL. Код=$smokeCode. Лог: $smokeLog"
+}
+Write-Host 'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS' -ForegroundColor Green
+
 $launcher=@"
 @echo off
 setlocal
@@ -88,13 +101,14 @@ try{
   $productExe='C:\Program Files\Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
   if(Test-Path $productExe){$shortcut.IconLocation="$productExe,0"}else{$shortcut.IconLocation="$env:SystemRoot\System32\shell32.dll,167"}
   $shortcut.Save()
-}catch{Write-Warning "Не удалось создать ярлык: $($_.Exception.Message)"}
+}catch{throw "Не удалось создать ярлык: $($_.Exception.Message)"}
 
 Write-Host ''
 Write-Host 'MERZO OPTIMIZER LOCAL TEST CENTER INSTALLED' -ForegroundColor Green
 Write-Host "Root: $root"
 Write-Host "Test Center: $($profile.testCenterVersion) | Product profile: $($profile.productVersion)"
 Write-Host "PowerShell: $pwshPath"
-Write-Host 'Ярлык заменён: теперь старт идёт через crash-handler и STA.'
-Write-Host 'Если GUI не стартует, ошибка будет показана и записана в D:\MerzoOptimizer-LocalLab\Logs\startup-error.log'
+Write-Host 'Parser gate: PASS'
+Write-Host 'GUI smoke gate: PASS'
+Write-Host 'Ярлык заменён и запускает crash-handler в STA.'
 Start-Process -FilePath $pwshPath -ArgumentList @('-NoLogo','-NoProfile','-STA','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',(Join-Path $app 'Start-TestCenter.ps1'))
