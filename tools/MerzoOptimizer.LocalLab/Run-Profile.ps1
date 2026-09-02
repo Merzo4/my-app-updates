@@ -11,15 +11,17 @@ $core=Join-Path $appDir 'Run-Profile.Core.ps1'
 $logPath=Join-Path $labRoot 'Logs\Current.log'
 $resultPath=Join-Path $labRoot 'Results\Latest\LAB-RESULT.json'
 $autoReport=Join-Path $appDir 'AUTO-REPORT.ps1'
+$pwshPath=(Get-Process -Id $PID).Path
 if(!(Test-Path $core)){throw "Local Test Center core runner missing: $core"}
 
-& pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $core -Profile $Profile
+& $pwshPath -NoLogo -NoProfile -ExecutionPolicy Bypass -File $core -Profile $Profile
 $coreExit=$LASTEXITCODE
 
 try{
   $outcome=if($coreExit-eq0){'PASS'}else{'FAIL'}
   $message="Profile $Profile completed with exit=$coreExit"
-  $branch='';$commit=''
+  $branch=''
+  $commit=''
   if(Test-Path $resultPath){
     try{
       $r=Get-Content $resultPath -Raw|ConvertFrom-Json
@@ -30,7 +32,7 @@ try{
     }catch{}
   }
   if(Test-Path $autoReport){
-    & pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $autoReport -Event ("profile."+$Profile) -Outcome $outcome -Message $message -LogPath $logPath -Profile $Profile -SourceBranch $branch -SourceCommit $commit 2>&1|ForEach-Object{
+    & $pwshPath -NoLogo -NoProfile -ExecutionPolicy Bypass -File $autoReport -Event ("profile."+$Profile) -Outcome $outcome -Message $message -LogPath $logPath -Profile $Profile -SourceBranch $branch -SourceCommit $commit 2>&1|ForEach-Object{
       Write-Host $_
       try{Add-Content $logPath "[auto-report] $_" -Encoding UTF8}catch{}
     }
