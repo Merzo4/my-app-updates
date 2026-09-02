@@ -16,6 +16,12 @@ Test Center — это инфраструктура разработки, а н�
 
 Безопасные профили не устанавливают туда кандидат и обязаны доказать, что fingerprint Program Files не изменился.
 
+## Запуск без терминала
+
+Рабочий ярлык **Merzo Optimizer Test Center** запускает `wscript.exe`, который создаёт скрытый `pwsh`-процесс. Пользователь видит только WinForms GUI. Видимый PowerShell/Windows Terminal не является частью нормального запуска, поэтому его нельзя случайно закрыть вместе с Test Center.
+
+`START-TEST-CENTER.bat` также только передаёт запуск в `wscript.exe` и сразу завершается.
+
 ## Что проверяется локально
 
 ### Диагностика
@@ -36,7 +42,7 @@ Test Center владеет только:
 
 `D:\MerzoOptimizer-LocalLab\Source`
 
-Именно там разрешены `fetch`, `checkout`, `reset --hard` и `clean -fd` после проверки origin. Рабочие папки пользователя и установленный Optimizer не используются.
+Именно там разрешены `fetch`, `checkout`, `reset --hard` и `clean -fdx` после проверки origin. Рабочие папки пользователя и установленный Optimizer не используются.
 
 ### QUICK
 
@@ -73,17 +79,31 @@ pwsh -File D:\MerzoOptimizer-LocalLab\App\ENABLE-DESTRUCTIVE-LAB.ps1 -DedicatedL
 
 Не включать этот режим на основном рабочем Windows только ради уменьшения числа процессов.
 
-## Evidence
+## Автоматический evidence / отчёты
 
-Каждый запуск перезаписывает:
+Ручная отправка больше не является обязательной.
 
+После каждого профиля `Диагностика`, `Обновить Source`, `QUICK`, `FULL SAFE`, `GAME → RESTORE` Test Center автоматически создаёт событие PASS/FAIL и пытается отправить его в изолированную ветку:
+
+`mwo-local-lab-evidence`
+
+Startup/GUI/utility ошибки также автоматически создают события. Для каждого события сохраняются тип, PASS/FAIL/WARN/INFO, сообщение, машина, версия Test Center, версия продукта, branch/SHA если они уже известны, и bounded log.
+
+Если GitHub недоступен или авторизация на push временно не работает, событие **не теряется**. Оно остаётся в локальной очереди:
+
+`D:\MerzoOptimizer-LocalLab\State\EvidenceQueue`
+
+При следующем автоотчёте/ручной отправке очередь снова пытается уйти в GitHub. Элементы удаляются из очереди только после успешного push или когда подтверждено, что exact event уже есть в evidence-ветке.
+
+Evidence branch намеренно не содержит `.github/workflows`, поэтому обычный `git push` отчётов **не расходует GitHub Actions minutes**.
+
+Локальные основные файлы:
 - `D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json`
 - `D:\MerzoOptimizer-LocalLab\Results\Latest\REPORT.txt`
 - `D:\MerzoOptimizer-LocalLab\Logs\Current.log`
+- `D:\MerzoOptimizer-LocalLab\Results\history.jsonl`
 
-Последние 20 коротких результатов хранятся в:
-
-`D:\MerzoOptimizer-LocalLab\Results\history.jsonl`
+Ручная кнопка **«Отправить отчёт»** остаётся как резервная команда для принудительного flush очереди.
 
 Evidence ZIP создаётся командой:
 
@@ -99,11 +119,11 @@ ZIP содержит только отчёт/лог/хэши и имеет ли�
 
 ## Установка
 
-Из checkout ветки `mwo-local-test-center` запустить:
+Рекомендуемый bootstrap в корне ветки:
 
-`tools\MerzoOptimizer.LocalLab\INSTALL-LOCAL-LAB-ON-D.bat`
+`INSTALL-MERZO-OPTIMIZER-TEST-CENTER.bat`
 
-Установщик создаёт ярлык **Merzo Optimizer Test Center** на рабочем столе.
+Он сам ставит/находит PowerShell 7, выполняет parser gate и реальный GUI smoke gate, обновляет файлы на D: и заменяет ярлык.
 
 Первый запуск:
 
