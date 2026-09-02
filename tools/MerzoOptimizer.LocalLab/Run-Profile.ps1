@@ -8,37 +8,35 @@ Set-StrictMode -Version Latest
 $labRoot=if($env:MWO_LAB_ROOT){$env:MWO_LAB_ROOT}else{'D:\MerzoOptimizer-LocalLab'}
 $appDir=Join-Path $labRoot 'App'
 $core=Join-Path $appDir 'Run-Profile.Core.ps1'
-$cfgPath=Join-Path $appDir 'local-lab-profile.json'
 $logPath=Join-Path $labRoot 'Logs\Current.log'
 $resultPath=Join-Path $labRoot 'Results\Latest\LAB-RESULT.json'
-$publisher=Join-Path $appDir 'PUBLISH-EVIDENCE.ps1'
+$autoReport=Join-Path $appDir 'AUTO-REPORT.ps1'
 if(!(Test-Path $core)){throw "Local Test Center core runner missing: $core"}
 
 & pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $core -Profile $Profile
 $coreExit=$LASTEXITCODE
 
 try{
-  if((Test-Path $cfgPath)-and(Test-Path $publisher)-and(Test-Path $resultPath)){
-    $cfg=Get-Content $cfgPath -Raw|ConvertFrom-Json
-    $result=Get-Content $resultPath -Raw|ConvertFrom-Json
-    $auto=$false
-    $prop=$cfg.PSObject.Properties['autoPublishEvidence']
-    if($prop){$auto=[bool]$prop.Value}
-    if($auto-and-not[string]::IsNullOrWhiteSpace([string]$result.sourceCommit)){
-      & pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $publisher 2>&1|ForEach-Object{
-        Write-Host $_
-        Add-Content $logPath "[evidence] $_" -Encoding UTF8
-      }
-      $pubExit=$LASTEXITCODE
-      if($pubExit-ne0){
-        $msg="[evidence] WARN: automatic report upload failed (exit=$pubExit). Local test result remains unchanged."
-        Write-Warning $msg
-        Add-Content $logPath $msg -Encoding UTF8
-      }
+  $outcome=if($coreExit-eq0){'PASS'}else{'FAIL'}
+  $message="Profile $Profile completed with exit=$coreExit"
+  $branch='';$commit=''
+  if(Test-Path $resultPath){
+    try{
+      $r=Get-Content $resultPath -Raw|ConvertFrom-Json
+      if(-not[string]::IsNullOrWhiteSpace([string]$r.conclusion)){$outcome=[string]$r.conclusion}
+      if(-not[string]::IsNullOrWhiteSpace([string]$r.firstCausalFailure)){$message=[string]$r.firstCausalFailure}
+      $branch=[string]$r.sourceBranch
+      $commit=[string]$r.sourceCommit
+    }catch{}
+  }
+  if(Test-Path $autoReport){
+    & pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $autoReport -Event ("profile."+$Profile) -Outcome $outcome -Message $message -LogPath $logPath -Profile $Profile -SourceBranch $branch -SourceCommit $commit 2>&1|ForEach-Object{
+      Write-Host $_
+      try{Add-Content $logPath "[auto-report] $_" -Encoding UTF8}catch{}
     }
   }
 }catch{
-  $msg="[evidence] WARN: $($_.Exception.Message). Local test result remains unchanged."
+  $msg="[auto-report] WARN: $($_.Exception.Message). Local test result remains unchanged."
   Write-Warning $msg
   try{Add-Content $logPath $msg -Encoding UTF8}catch{}
 }
