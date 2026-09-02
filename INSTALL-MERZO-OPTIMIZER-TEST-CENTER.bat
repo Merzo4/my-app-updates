@@ -29,26 +29,24 @@ for %%F in (Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalL
 )
 
 echo.
-echo Preparing PowerShell 7...
+echo Preparing stable PowerShell 7...
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%TMPDIR%\Bootstrap-PowerShell7.ps1"
 if errorlevel 1 (
-  echo ERROR: PowerShell 7 bootstrap failed.
+  echo ERROR: stable PowerShell 7 bootstrap failed.
   pause
   exit /b 1
 )
 
-set "PWSH="
-where pwsh.exe >nul 2>nul && set "PWSH=pwsh.exe"
-if not defined PWSH if exist "C:\Program Files\PowerShell\7\pwsh.exe" set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe"
-if not defined PWSH if exist "C:\Program Files\PowerShell\7-preview\pwsh.exe" set "PWSH=C:\Program Files\PowerShell\7-preview\pwsh.exe"
-if not defined PWSH (
-  echo ERROR: pwsh.exe is still unavailable after bootstrap.
+set "PWSH=C:\Program Files\PowerShell\7\pwsh.exe"
+if not exist "%PWSH%" (
+  echo ERROR: stable pwsh.exe was not found in Program Files after bootstrap.
   pause
   exit /b 1
 )
+set "PATH=C:\Program Files\PowerShell\7;%PATH%"
 
 echo.
-echo Installing Merzo Optimizer Local Test Center 0.1.5 ...
+echo Installing Merzo Optimizer Local Test Center V6 ...
 "%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Local Test Center installation failed.
@@ -59,6 +57,6 @@ if errorlevel 1 (
 
 echo.
 echo DONE. Parser and GUI smoke gates passed.
-echo GUI launcher is detached: no visible PowerShell/Terminal window.
-echo Auto-report queue is enabled. GitHub Actions workflows were not started.
+echo Detached GUI and automatic evidence queue are enabled.
+echo GitHub Actions workflows were not started.
 exit /b 0
