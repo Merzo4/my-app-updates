@@ -15,6 +15,7 @@ $app=Join-Path $root 'App'
 $queue=Join-Path $root 'State\EvidenceQueue'
 $publisher=Join-Path $app 'PUBLISH-EVIDENCE.ps1'
 $cfgPath=Join-Path $app 'local-lab-profile.json'
+$pwshPath=(Get-Process -Id $PID).Path
 New-Item $queue -ItemType Directory -Force|Out-Null
 
 function Safe-Name([string]$value){
@@ -87,7 +88,7 @@ Write-Host "AUTO_REPORT_QUEUED event=$Event outcome=$Outcome id=$id"
 
 if(Test-Path $publisher){
   try{
-    & pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $publisher -FlushQueue 2>&1|ForEach-Object{Write-Host $_}
+    & $pwshPath -NoLogo -NoProfile -ExecutionPolicy Bypass -File $publisher -FlushQueue 2>&1|ForEach-Object{Write-Host $_}
     if($LASTEXITCODE-ne0){Write-Warning "AUTO_REPORT_UPLOAD_DEFERRED exit=$LASTEXITCODE queue=$eventPath"}
   }catch{
     Write-Warning "AUTO_REPORT_UPLOAD_DEFERRED $($_.Exception.Message) queue=$eventPath"
