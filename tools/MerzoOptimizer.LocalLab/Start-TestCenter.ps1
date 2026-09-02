@@ -6,6 +6,7 @@ $app=Join-Path $root 'App'
 $logs=Join-Path $root 'Logs'
 $gui=Join-Path $app 'MerzoOptimizer.LocalLab.ps1'
 $autoReport=Join-Path $app 'AUTO-REPORT.ps1'
+$pwshPath=(Get-Process -Id $PID).Path
 New-Item $logs -ItemType Directory -Force|Out-Null
 $startupLog=Join-Path $logs 'startup-error.log'
 Remove-Item $startupLog -Force -ErrorAction SilentlyContinue
@@ -20,6 +21,7 @@ try{
     'MERZO OPTIMIZER LOCAL TEST CENTER STARTUP ERROR',
     "Time: $((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))",
     "PowerShell: $($PSVersionTable.PSVersion)",
+    "PowerShellPath: $pwshPath",
     "Apartment: $([Threading.Thread]::CurrentThread.ApartmentState)",
     "Script: $gui",
     '',
@@ -29,7 +31,7 @@ try{
   ) -join [Environment]::NewLine
   $detail|Set-Content $startupLog -Encoding UTF8
   if(Test-Path $autoReport){
-    try{& pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File $autoReport -Event 'gui.startup' -Outcome FAIL -Message $message -LogPath $startupLog|Out-Null}catch{}
+    try{& $pwshPath -NoLogo -NoProfile -ExecutionPolicy Bypass -File $autoReport -Event 'gui.startup' -Outcome FAIL -Message $message -LogPath $startupLog|Out-Null}catch{}
   }
   try{
     Add-Type -AssemblyName System.Windows.Forms
