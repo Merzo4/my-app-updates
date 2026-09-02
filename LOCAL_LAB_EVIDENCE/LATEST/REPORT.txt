@@ -1,0 +1,18 @@
+MERZO OPTIMIZER LOCAL TEST CENTER
+Profile: Diagnostics
+Result: FAIL
+Product: 0.1.56
+Branch: 
+SHA: 
+Machine: WIN-8MMDIRKE3AV
+First failure: .NET 10 SDK: dotnet --list-sdks
+
+STAGES:
+[PASS] D: доступен — D: required
+[PASS] Git — git in PATH
+[PASS] PowerShell 7 — 7.6.4
+[FAIL] .NET 10 SDK — dotnet --list-sdks
+[FAIL] Inno Setup 6 — ISCC.exe
+[PASS] Лаборатория только D: — D:\MerzoOptimizer-LocalLab
+[PASS] Production Program Files только чтение — protected
+[PASS] Свободно на D: — 276.3 GB

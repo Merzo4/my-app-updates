@@ -1,0 +1,12 @@
+{
+  "publishedAt": "2026-09-02T02:31:03.1354675Z",
+  "testCenterVersion": "0.1.4",
+  "productVersion": "0.1.56",
+  "profile": "Diagnostics",
+  "conclusion": "FAIL",
+  "sourceBranch": "",
+  "sourceCommit": "",
+  "machine": "WIN-8MMDIRKE3AV",
+  "actionsMinutesUsed": 0,
+  "evidenceBranch": "mwo-local-lab-evidence"
+}
