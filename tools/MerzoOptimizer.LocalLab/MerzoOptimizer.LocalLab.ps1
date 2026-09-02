@@ -17,6 +17,7 @@ $CurrentExe=Join-Path $LabRoot 'TestBuild\Current\App\MerzoWindowsOptimizer.exe'
 $ArmPath=Join-Path $LabRoot 'State\ALLOW-SYSTEM-MUTATION.json'
 $PackScript=Join-Path $AppDir 'PACK-EVIDENCE.ps1'
 $PublishScript=Join-Path $AppDir 'PUBLISH-EVIDENCE.ps1'
+$AutoReport=Join-Path $AppDir 'AUTO-REPORT.ps1'
 $PwshPath=(Get-Process -Id $PID).Path
 if(!(Test-Path $Runner)-or!(Test-Path $ProfilePath)){throw "Local Test Center installation is incomplete: $AppDir"}
 $Cfg=Get-Content $ProfilePath -Raw|ConvertFrom-Json
@@ -206,6 +207,24 @@ $script:CurrentProcess=$null
 $script:LogLineCount=0
 $script:Busy=$false
 
+function Start-HiddenPwsh([string[]]$args,[bool]$wait=$false){
+  $psi=[Diagnostics.ProcessStartInfo]::new()
+  $psi.FileName=$PwshPath
+  $psi.UseShellExecute=$false
+  $psi.CreateNoWindow=$true
+  foreach($arg in $args){[void]$psi.ArgumentList.Add($arg)}
+  $p=[Diagnostics.Process]::Start($psi)
+  if($wait){$p.WaitForExit();return $p.ExitCode}
+  return $p
+}
+
+function Report-GuiFailure([string]$eventName,[string]$message,[string]$logFile=$LogPath){
+  try{
+    if(!(Test-Path $AutoReport)){return}
+    [void](Start-HiddenPwsh @('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',$AutoReport,'-Event',$eventName,'-Outcome','FAIL','-Message',$message,'-LogPath',$logFile) $false)
+  }catch{}
+}
+
 function Get-SourceIdentity {
   if(!(Test-Path (Join-Path $SourceDir '.git'))){return 'Source ещё не подготовлен'}
   try{
@@ -247,6 +266,7 @@ function Refresh-Cards {
     }catch{
       $cardLast.Text='result read error'
       $cardLast.ForeColor=$red
+      Report-GuiFailure 'gui.result-read' $_.Exception.Message
     }
   }else{
     $cardLast.Text='Нет запусков'
@@ -286,6 +306,7 @@ function Load-Result {
     Set-Busy $false ([string]$r.conclusion)
   }catch{
     Set-Busy $false 'FAIL'
+    Report-GuiFailure 'gui.load-result' $_.Exception.Message
   }
 }
 
@@ -298,35 +319,46 @@ function Start-Profile([string]$name,[bool]$elevated=$false){
 
   $psi=[Diagnostics.ProcessStartInfo]::new()
   $psi.FileName=$PwshPath
-  $psi.Arguments="-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File `"$Runner`" -Profile $name"
   $psi.WorkingDirectory=$AppDir
   if($elevated){
     $psi.UseShellExecute=$true
     $psi.Verb='runas'
+    $psi.WindowStyle=[Diagnostics.ProcessWindowStyle]::Hidden
+    $psi.Arguments="-NoLogo -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$Runner`" -Profile $name"
   }else{
     $psi.UseShellExecute=$false
     $psi.CreateNoWindow=$true
+    foreach($arg in @('-NoLogo','-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',$Runner,'-Profile',$name)){[void]$psi.ArgumentList.Add($arg)}
   }
   try{
     $script:CurrentProcess=[Diagnostics.Process]::Start($psi)
   }catch{
+    $message=$_.Exception.Message
     Set-Busy $false 'FAIL'
-    [Windows.Forms.MessageBox]::Show($_.Exception.Message,'Не удалось запустить профиль')|Out-Null
+    Report-GuiFailure ("gui.start-profile."+$name) $message
+    [Windows.Forms.MessageBox]::Show($message,'Не удалось запустить профиль')|Out-Null
   }
 }
 
-function Run-Utility([string]$scriptPath,[string]$titleText){
+function Run-Utility([string]$scriptPath,[string]$titleText,[string]$eventName){
   if($script:Busy){return}
   if(!(Test-Path $scriptPath)){
-    [Windows.Forms.MessageBox]::Show("Файл не найден:`n$scriptPath",$titleText)|Out-Null
+    $message="Файл не найден: $scriptPath"
+    Report-GuiFailure $eventName $message
+    [Windows.Forms.MessageBox]::Show($message,$titleText)|Out-Null
     return
   }
   try{
-    $p=Start-Process $PwshPath -ArgumentList @('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',$scriptPath) -PassThru
-    $p.WaitForExit()
-    if($p.ExitCode-ne0){[Windows.Forms.MessageBox]::Show("$titleText завершился с кодом $($p.ExitCode).",$titleText)|Out-Null}
+    $code=[int](Start-HiddenPwsh @('-NoLogo','-NoProfile','-ExecutionPolicy','Bypass','-File',$scriptPath) $true)
+    if($code-ne0){
+      $message="$titleText завершился с кодом $code."
+      Report-GuiFailure $eventName $message
+      [Windows.Forms.MessageBox]::Show($message,$titleText)|Out-Null
+    }
   }catch{
-    [Windows.Forms.MessageBox]::Show($_.Exception.Message,$titleText)|Out-Null
+    $message=$_.Exception.Message
+    Report-GuiFailure $eventName $message
+    [Windows.Forms.MessageBox]::Show($message,$titleText)|Out-Null
   }
   Refresh-Cards
 }
@@ -372,17 +404,22 @@ $btnDestructive.Add_Click({
   }
 })
 $btnOpen.Add_Click({
-  if(Test-Path $CurrentExe){Start-Process $CurrentExe -WorkingDirectory (Split-Path $CurrentExe -Parent)}
-  else{[Windows.Forms.MessageBox]::Show('Нет TestBuild\Current. Сначала запусти FULL SAFE.','Test Center')|Out-Null}
+  if(Test-Path $CurrentExe){
+    try{Start-Process $CurrentExe -WorkingDirectory (Split-Path $CurrentExe -Parent)}catch{Report-GuiFailure 'gui.open-test-build' $_.Exception.Message;[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Test Center')|Out-Null}
+  }else{
+    [Windows.Forms.MessageBox]::Show('Нет TestBuild\Current. Сначала запусти FULL SAFE.','Test Center')|Out-Null
+  }
 })
 $btnResults.Add_Click({
-  $p=Join-Path $LabRoot 'Results\Latest'
-  New-Item $p -ItemType Directory -Force|Out-Null
-  Start-Process explorer.exe $p
+  try{
+    $p=Join-Path $LabRoot 'Results\Latest'
+    New-Item $p -ItemType Directory -Force|Out-Null
+    Start-Process explorer.exe $p
+  }catch{Report-GuiFailure 'gui.open-results' $_.Exception.Message;[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Test Center')|Out-Null}
 })
-$btnPack.Add_Click({Run-Utility $PackScript 'Evidence ZIP'})
-$btnPublish.Add_Click({Run-Utility $PublishScript 'Отправка отчёта'})
-$btnFolder.Add_Click({Start-Process explorer.exe $LabRoot})
+$btnPack.Add_Click({Run-Utility $PackScript 'Evidence ZIP' 'utility.pack-evidence'})
+$btnPublish.Add_Click({Run-Utility $PublishScript 'Отправка отчёта' 'utility.publish-evidence'})
+$btnFolder.Add_Click({try{Start-Process explorer.exe $LabRoot}catch{Report-GuiFailure 'gui.open-lab-folder' $_.Exception.Message;[Windows.Forms.MessageBox]::Show($_.Exception.Message,'Test Center')|Out-Null}})
 $btnStop.Add_Click({
   if($null-ne$script:CurrentProcess){
     try{& taskkill.exe /PID $script:CurrentProcess.Id /T /F|Out-Null}catch{}
