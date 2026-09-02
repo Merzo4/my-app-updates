@@ -18,7 +18,7 @@ function Ensure-PowerShell7 {
 }
 
 $sourceToolDir=Split-Path $MyInvocation.MyCommand.Path -Parent
-$required=@('Start-TestCenter.ps1','MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','Run-Profile.Core.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1','PUBLISH-EVIDENCE.ps1')
+$required=@('Start-TestCenter.ps1','MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','Run-Profile.Core.ps1','AUTO-REPORT.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1','PUBLISH-EVIDENCE.ps1')
 foreach($name in $required){if(!(Test-Path (Join-Path $sourceToolDir $name))){throw "Не хватает файла Test Center: $name"}}
 foreach($name in $required|Where-Object{$_-like'*.ps1'}){
   $tokens=$null;$errors=$null
@@ -31,7 +31,7 @@ if([string]::IsNullOrWhiteSpace([string]$profile.targetBranch)-or[string]::IsNul
 Write-Host 'LOCAL_TEST_CENTER_LOCAL_PARSER_GATE_PASS' -ForegroundColor Green
 
 $pwshPath=Ensure-PowerShell7
-$dirs=@('App','Source','EvidenceRepo','Toolchain\dotnet-home','Toolchain\nuget-packages','Toolchain\nuget-http-cache','Sandbox\Current','TestBuild\Quick','TestBuild\Current','Results\Latest','Logs','State','Temp\Run\Current','Temp\BundleExtract')
+$dirs=@('App','Source','EvidenceRepo','Toolchain\dotnet-home','Toolchain\nuget-packages','Toolchain\nuget-http-cache','Sandbox\Current','TestBuild\Quick','TestBuild\Current','Results\Latest','Logs','State\EvidenceQueue','Temp\Run\Current','Temp\BundleExtract')
 foreach($rel in $dirs){New-Item (Join-Path $root $rel) -ItemType Directory -Force|Out-Null}
 
 $app=Join-Path $root 'App'
@@ -51,12 +51,20 @@ if($smokeCode-ne0-or$smokeText-notmatch'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS'){
 }
 Write-Host 'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS' -ForegroundColor Green
 
+# Detached GUI launcher: wscript starts hidden pwsh without creating a visible console/Windows Terminal window.
+$vbsPath=Join-Path $app 'Launch-TestCenter.vbs'
+$startScript=Join-Path $app 'Start-TestCenter.ps1'
+$vbs=@"
+Set sh = CreateObject("WScript.Shell")
+cmd = Chr(34) & "$pwshPath" & Chr(34) & " -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File " & Chr(34) & "$startScript" & Chr(34)
+sh.Run cmd, 0, False
+"@
+Set-Content $vbsPath $vbs -Encoding ASCII
+
 $launcher=@"
 @echo off
-setlocal
-set "MWO_LAB_ROOT=D:\MerzoOptimizer-LocalLab"
-"$pwshPath" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "D:\MerzoOptimizer-LocalLab\App\Start-TestCenter.ps1"
-if errorlevel 1 pause
+start "" wscript.exe "$vbsPath"
+exit /b 0
 "@
 Set-Content (Join-Path $root 'START-TEST-CENTER.bat') $launcher -Encoding ASCII
 
@@ -73,7 +81,7 @@ $publishLauncher=@"
 @echo off
 setlocal
 set "MWO_LAB_ROOT=D:\MerzoOptimizer-LocalLab"
-"$pwshPath" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "D:\MerzoOptimizer-LocalLab\App\PUBLISH-EVIDENCE.ps1"
+"$pwshPath" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "D:\MerzoOptimizer-LocalLab\App\PUBLISH-EVIDENCE.ps1" -FlushQueue
 if errorlevel 1 pause
 "@
 Set-Content (Join-Path $root 'PUBLISH-EVIDENCE.bat') $publishLauncher -Encoding ASCII
@@ -94,8 +102,8 @@ try{
   if(Test-Path $shortcutPath){Remove-Item $shortcutPath -Force}
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut($shortcutPath)
-  $shortcut.TargetPath=$pwshPath
-  $shortcut.Arguments='-NoLogo -NoProfile -STA -WindowStyle Hidden -ExecutionPolicy Bypass -File "D:\MerzoOptimizer-LocalLab\App\Start-TestCenter.ps1"'
+  $shortcut.TargetPath=Join-Path $env:SystemRoot 'System32\wscript.exe'
+  $shortcut.Arguments='"D:\MerzoOptimizer-LocalLab\App\Launch-TestCenter.vbs"'
   $shortcut.WorkingDirectory=$app
   $shortcut.Description='Merzo Optimizer Local Test Center — локальная проверка без GitHub Actions минут'
   $productExe='C:\Program Files\Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
@@ -110,5 +118,6 @@ Write-Host "Test Center: $($profile.testCenterVersion) | Product profile: $($pro
 Write-Host "PowerShell: $pwshPath"
 Write-Host 'Parser gate: PASS'
 Write-Host 'GUI smoke gate: PASS'
-Write-Host 'Ярлык заменён и запускает crash-handler в STA.'
-Start-Process -FilePath $pwshPath -ArgumentList @('-NoLogo','-NoProfile','-STA','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',(Join-Path $app 'Start-TestCenter.ps1'))
+Write-Host 'Launcher: WScript detached — visible terminal is not used.'
+Write-Host 'Auto-report: queued + mwo-local-lab-evidence, Actions minutes = 0.'
+Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\wscript.exe') -ArgumentList @($vbsPath)
