@@ -18,9 +18,9 @@ def once(text,old,new,label):
 # -----------------------------------------------------------------------------
 models=root/'src'/'MerzoOptimizer.Core'/'Audit'/'ProcessStabilityModels.cs'
 m=read(models)
-m=once(m,
-'''    string Classification,\n    string Recommendation,\n    string Evidence);''',
-'''    string Classification,\n    string Recommendation,\n    string Evidence,\n    string Management,\n    IReadOnlyList<string> SafeTweakIds);''','family-management-fields')
+old_family='''public sealed record ProcessStabilityFamilySnapshot(\n    string FamilyName,\n    int Count,\n    IReadOnlyList<int> Pids,\n    IReadOnlyList<string> Paths,\n    string Source,\n    string Classification,\n    string Recommendation,\n    string Evidence);'''
+new_family='''public sealed record ProcessStabilityFamilySnapshot(\n    string FamilyName,\n    int Count,\n    IReadOnlyList<int> Pids,\n    IReadOnlyList<string> Paths,\n    string Source,\n    string Classification,\n    string Recommendation,\n    string Evidence,\n    string Management,\n    IReadOnlyList<string> SafeTweakIds);'''
+m=once(m,old_family,new_family,'family-management-fields')
 write(models,m)
 
 an=root/'src'/'MerzoOptimizer.Windows'/'Processes'/'WindowsProcessStabilityAnalyzer.cs'
