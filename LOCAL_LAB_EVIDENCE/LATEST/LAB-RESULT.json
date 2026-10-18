@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "testCenterVersion": "0.2.3",
+  "testCenterVersion": "0.2.4",
   "productVersion": "0.1.57",
   "profile": "Diagnostics",
   "conclusion": "FAIL",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-10-18T08:34:05.6315896Z",
-  "finishedAt": "2026-10-18T08:34:06.0304853Z",
+  "startedAt": "2026-10-18T09:36:16.1995981Z",
+  "finishedAt": "2026-10-18T09:36:20.2259800Z",
   "machine": "WIN-1NPFQQOFFGC",
   "sourceBranch": "",
   "sourceCommit": "",
-  "firstCausalFailure": "Inno Setup 6: ISCC.exe",
+  "firstCausalFailure": "Inno Setup 6: ISCC.exe not found; inspect install location",
   "stages": [
     {
       "id": "env.d",
@@ -31,22 +31,22 @@
       "id": "env.pwsh",
       "name": "PowerShell 7",
       "state": "PASS",
-      "durationSeconds": 0.0,
+      "durationSeconds": 0.01,
       "summary": "7.6.7"
     },
     {
       "id": "env.dotnet",
       "name": ".NET 10 SDK",
       "state": "PASS",
-      "durationSeconds": 0.03,
+      "durationSeconds": 0.04,
       "summary": "dotnet --list-sdks"
     },
     {
       "id": "env.inno",
       "name": "Inno Setup 6",
       "state": "FAIL",
-      "durationSeconds": 0.0,
-      "summary": "ISCC.exe"
+      "durationSeconds": 0.02,
+      "summary": "ISCC.exe not found; inspect install location"
     },
     {
       "id": "safe.root",
@@ -59,7 +59,7 @@
       "id": "safe.prod",
       "name": "Production Program Files только чтение",
       "state": "PASS",
-      "durationSeconds": 0.0,
+      "durationSeconds": 0.02,
       "summary": "protected"
     },
     {

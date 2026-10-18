@@ -5,14 +5,14 @@ Product: 0.1.57
 Branch: 
 SHA: 
 Machine: WIN-1NPFQQOFFGC
-First failure: Inno Setup 6: ISCC.exe
+First failure: Inno Setup 6: ISCC.exe not found; inspect install location
 
 STAGES:
 [PASS] D: доступен — D: required
 [PASS] Git — git in PATH
 [PASS] PowerShell 7 — 7.6.7
 [PASS] .NET 10 SDK — dotnet --list-sdks
-[FAIL] Inno Setup 6 — ISCC.exe
+[FAIL] Inno Setup 6 — ISCC.exe not found; inspect install location
 [PASS] Лаборатория только D: — D:\MerzoOptimizer-LocalLab
 [PASS] Production Program Files только чтение — protected
 [PASS] Свободно на D: — 286.8 GB
