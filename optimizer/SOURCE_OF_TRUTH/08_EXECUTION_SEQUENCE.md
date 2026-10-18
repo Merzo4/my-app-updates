@@ -29,3 +29,6 @@ F0 scope/risk/capabilities; F1 GPU+memory read-only measurement; F2 resident Gua
 
 ## R57 P4 subgate progress — Test Center visible GUI (owner, 2026-10-18)
 Environment entry gate **P4.0 Test Center 0.1.8 visible GUI: OWNER OBSERVED PASS** after 0.1.7 failure, no independent log furnished. The remaining required P4 steps are **P4.1 Diagnostics NOT RUN**, **P4.2 Sync NOT RUN**, **P4.3 QUICK NOT RUN**, **P4.4 FULL SAFE NOT RUN**, plus follow-up exact logs/review. Run in that order, stop on failure; Test Center FULL SAFE internally repeats QUICK by design. This does not modify P5 lab-only safety, P6 OTA or P8 release authority.
+
+## Real P4 diagnostics result, 2026-10-18
+P4.0 Test Center GUI owner PASS. **P4.1 Diagnostics FAIL: Inno Setup 6 ISCC.exe missing**, published automatically to `mwo-local-lab-evidence` SHA 22030119a4af17803fd83ce3950f2041d400b761. P4.2 Source Sync, P4.3 QUICK, P4.4 FULL SAFE = NOT RUN / BLOCKED on prerequisite. The fix is a developer-toolchain install, NOT a code change to R57. Recheck Diagnostics until PASS; no program tests or release implied.

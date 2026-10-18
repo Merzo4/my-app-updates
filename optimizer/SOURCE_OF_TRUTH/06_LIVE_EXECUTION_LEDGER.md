@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-006-owner-test-center-gui-pass-r57-test-next.md
+EXECUTION_LEDGER/2026-10-18-007-diagnostics-fail-auto-evidence-published.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -44,3 +44,6 @@ GPU Optimization Center + Memory & Background Center + Merzo Guardian design rec
  
 ## Checkpoint 006 — Test Center GUI visibility owner PASS
 On 2026-10-18 owner confirmed Test Center 0.1.8 installed and main window visibly opens. This is **PASS limited to observed GUI recovery**, not a lab profile execution or R57 code acceptance. R57 Diagnostics/Sync/QUICK/FULL SAFE still **NOT RUN / no evidence supplied**. Latest next owner action: Diagnostics → Sync → QUICK → FULL SAFE only while each prior gate PASS; never GAME → RESTORE on main PC. Report 006.
+ 
+## Checkpoint 007 — automatic GitHub evidence confirmed, Diagnostics blocked
+GitHub evidence branch SHA `22030119a4af17803fd83ce3950f2041d400b761` confirms `profile.Diagnostics FAIL (Inno Setup 6 / ISCC.exe missing)`, and **automatic report upload PASS**. No R57 build attempted, Source still not synced. Need Inno Setup 6 + repeat Diagnostics before Sync/Quick/FullSafe. Privacy issue: event includes machine/user identity. See REPORTS/2026-10-18-007-diagnostics-auto-upload-and-inno-blocker.md.

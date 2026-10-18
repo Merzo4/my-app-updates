@@ -24,3 +24,6 @@ Before stable tag publish: exact reproducible artifact, full risk coverage, depe
 
 ## Decision 002 future regression gate
 GPU: vendor/driver/OS support, multi-GPU routing, game/video recording compatibility, measured baseline/after. Memory: in-use/available/standby/commit correctness, comparable boot profile and paging/latency. Guardian: monitor overhead, synthetic pressure, no action from ordinary used RAM alone, PID reuse/cross-session/exclusions, unsaved-work dialog, gaming/OBS/voice protection, cooldown, pause, uninstall/autostart removal, long-run and sleep/resume. No background closure on normal workstation or claims of Windows acceptance without run ID/exact SHA.
+
+## Local Test Center evidence publication + privacy issue
+Actual `profile.Diagnostics` event at `20261018T072321769Z-profile.Diagnostics-7cd11a93` auto published to GitHub evidence branch (report 007), showing toolchain FAIL for Inno 6. Treat auto upload PASS separately from diagnostic FAIL. Current auto event JSON contains unsanitized local Windows user/machine fields; backlog privacy defect: replace with pseudonymous opt-in IDs and avoid uploading local sensitive data unless explicitly approved. Do not erase historic evidence or infer all fields safe because described as 'sanitized'. Source Sync/QUICK/FULL SAFE remain not run.
