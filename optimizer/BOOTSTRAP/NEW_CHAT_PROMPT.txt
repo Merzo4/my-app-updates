@@ -1,0 +1,37 @@
+ПРОДОЛЖАЕМ РАЗРАБОТКУ MERZO WINDOWS OPTIMIZER.
+
+Это программа оптимизации Windows, НЕ StreamCenter, НЕ QUVELIO и НЕ MerzoStream.
+Репозиторий: Merzo4/my-app-updates
+https://github.com/Merzo4/my-app-updates
+Активная ветка Optimizer: mwo-r57-safe-background-actions
+Единственный Source of Truth этого продукта:
+optimizer/SOURCE_OF_TRUTH/ в указанной ветке.
+
+НЕ НАЧИНАЙ РАЗРАБОТКУ ЗАНОВО. НЕ ПЕРЕНОСИ решения из других проектов автоматически.
+
+СНАЧАЛА ПОЛНОСТЬЮ ПРОЧИТАЙ:
+1. optimizer/SOURCE_OF_TRUTH/00_READ_FIRST.md
+2. Все обязательные документы в порядке, указанном в 00_READ_FIRST.md, включая 01_MASTER_SPEC, 02_CURRENT_STATUS, 03_DEVELOPMENT_RULES, 04_PRODUCT_ROADMAP, 08_EXECUTION_SEQUENCE, 05_ACTIVE_WORK_HANDOFF, 06_LIVE_EXECUTION_LEDGER, 07_CHANGE_POLICY.
+3. Последнюю неизменяемую контрольную точку из EXECUTION_LEDGER/, на которую указывает 06_LIVE_EXECUTION_LEDGER.md.
+4. Соответствующие текущему этапу DECISIONS, REPORTS, архитектуру, feature matrix и инструкции по тестам.
+5. Проверяй актуальные SHA и статусы САМОСТОЯТЕЛЬНО через GitHub, а не по старому сообщению.
+
+На последнем подтверждённом срезе (18.10.2026):
+- Публичная версия: mwo-v0.1.55.1.
+- R56 / 0.1.56: технические тесты PASS, но не опубликована.
+- R57 / 0.1.57: подготовлен код SAFE BACKGROUND ACTIONS; локальные испытания FULL SAFE ещё НЕ подтверждены.
+- Local Test Center 0.1.7 хранится в ветке mwo-local-test-center; лаборатория на диске D:, test code не заменяет рабочую программу.
+ЭТО ЛИШЬ ИСТОРИЧЕСКИЙ СРЕЗ — ВСЕГДА СВЕРЯЙ ТЕКУЩЕЕ СОСТОЯНИЕ В GITHUB.
+
+ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА:
+- Каждый существенный цикл: REPORTS + новый immutable EXECUTION_LEDGER checkpoint + обновить 06_LIVE_EXECUTION_LEDGER и актуальные 02_CURRENT_STATUS/05_ACTIVE_WORK_HANDOFF.
+- Каждый результат привязан к точной ветке, SHA, тестовой среде, границе риска; различай PASS / FAIL / BLOCKED / PENDING / NOT RUN.
+- Не переделывай уже принятые этапы без новой причины. Новый чат — не повод повторять ранее пройденные тесты.
+- Не выдавай подготовленный script за успешный build; не переносить PASS R56 на R57.
+- Не запускай GAME/EXTREME/RESTORE destructive checks на обычном рабочем ПК; только в выделенной лаборатории с разрешением.
+- Не публикуй Stable release без явного разрешения владельца, не трогай исходники/обновления других продуктов в общем репозитории.
+- Не удаляй пользовательские данные/настройки и не нарушай Snapshot -> Apply -> Verify -> Undo/Restore.
+
+СНАЧАЛА ПРОВЕРЬ, что было сделано в последнем checkpoint, что реально осталось невыполненным, какие логи Test Center уже существуют. 
+ЗАТЕМ ПРОДОЛЖИ «EXACT NEXT EXECUTION», установленный актуальным Source of Truth. 
+Не трать ответ на пересказ всей истории: коротко скажи текущую точку и выполняй следующий разрешённый блок.

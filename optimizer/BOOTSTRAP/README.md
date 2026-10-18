@@ -1,0 +1,21 @@
+# Merzo Windows Optimizer — bootstrap files
+
+Папка для нового ПК и нового ChatGPT-чата. Продукт и Test Center устанавливаются **раздельно**.
+
+- `INSTALL_WINDOWS_OPTIMIZER.bat` — скачивает точно опубликованный официальный **mwo-v0.1.55.1** из GitHub Releases, проверяет **фиксированный SHA-256** и запускает обычный установщик. Не устанавливает непроверенный R57. Не удаляет пользовательские данные; не допускает автоматического downgrade с более новой установленной версии. Перед установкой Windows может запросить UAC.
+- `INSTALL_TEST_CENTER.bat` — скачивает версию **0.1.7** инфраструктуры из immutable commit `edc83fca9f0f89fc895a0a30c7f58f81af143779` ветки `mwo-local-test-center`; ставит отдельно в `D:\MerzoOptimizer-LocalLab`, запускает GUI и создаёт ярлык. Требует диск D:. В него может входить установка официального PowerShell 7 через UAC, если ещё нет. Для QUICK/FULL SAFE нужны Git, .NET 10 SDK и Inno Setup 6 (диагностика сообщит о недостающем).
+- `NEW_CHAT_PROMPT.txt` — полный текст для вставки в новый чат.
+ 
+## Рекомендованный порядок
+
+1. На новом ПК дважды нажать `INSTALL_WINDOWS_OPTIMIZER.bat`; проверить UAC, завершить установку стабильной версии.
+2. Проверить наличие диска D:, затем запустить `INSTALL_TEST_CENTER.bat`. Не выполнять GAME → RESTORE на рабочем ПК.
+3. В Test Center: «Диагностика» → «Обновить Source» → QUICK → FULL SAFE. Обычная production установка в Program Files должна остаться неизменной.
+4. В новом ChatGPT-чате вставить `NEW_CHAT_PROMPT.txt`. ИИ обязан самостоятельно открыть GitHub SOT и актуальный checkpoint.
+
+## Provenance / Safety
+
+- SHA-256 официального `MerzoWindowsOptimizerSetup-win-x64.exe` релиза 0.1.55.1: `bda73f442a1726082372e8c4272668e0151c9d882df1350f417fadcc022a1035`.
+- Test Center bootstrap sources pinned к immutable commit, а не подвижному branch URL. Сам Test Center загружает последнюю R57 source-ветку и имеет автоотправку обезличенных диагностических событий в GitHub ветку `mwo-local-lab-evidence` при доступной GitHub авторизации.
+- BAT выполняются только на Windows; здесь возможна статическая проверка содержимого, но реальное выполнение на ПК пользователя не проводилось.
+- Для будущего стабильного релиза нужно обновить pin SHA/version в BAT после evidence/owner approval. Не использовать `latest` общих GitHub Releases — там также MerzoStream Suite.

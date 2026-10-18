@@ -30,3 +30,6 @@ Other historical optimizer branches are evidence/history, NOT current active aut
 
 ## Rules of ownership
 Never silently alter MerzoStream files, public release tags, shared updater resources, or other products. Any source-tree relocation or branch migration requires binding DECISIONS record and exact CI/Windows tests.
+
+## User install / new-chat bootstraps
+`optimizer/BOOTSTRAP/` — version-pinned user-facing BATs for Test Center and publicly released Optimizer; also README and NEW_CHAT_PROMPT. Do not confuse them with product compilation scripts in optimizer/scripts. See REPORTS/2026-10-18-002-install-bootstrap-and-new-chat.md.

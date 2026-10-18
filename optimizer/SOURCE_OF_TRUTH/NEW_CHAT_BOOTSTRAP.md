@@ -20,3 +20,6 @@ DO NOT repeat R56 gates at same exact SHA/risk, do not touch other products in s
 At end of substantial cycle: write REPORTS report; append immutable EXECUTION_LEDGER checkpoint with full sequential ACTION LOG, PASS/FAIL/NOT RUN, SHA/env/risk/evidence; move 06 pointer; synchronize 02 status/05 handoff and affected roadmap. New binding design decision -> DECISIONS append-only. BEFORE replying with claimed completion, confirm files in GitHub.
 
 EXACT NEXT EXECUTION: R57 Windows Local Test Center FULL SAFE run, then separate dedicated-lab destructive acceptance only if gated/authorized; publish stable only on explicit owner approval.
+
+## Copy/paste starter for owner
+A directly pasteable Russian message exists at `optimizer/BOOTSTRAP/NEW_CHAT_PROMPT.txt`. It is a shortcut only; the assistant must still read all authority and live GitHub SHA before working. Separate installers exist in `optimizer/BOOTSTRAP/`.

@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-001-documentation-source-of-truth-bootstrap.md
+EXECUTION_LEDGER/2026-10-18-002-user-bootstrap-bat-installers.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -28,3 +28,6 @@ Previously accepted exact R56 runs for unchanged risk. Documentation bootstrap i
 
 ## Recording policy
 Every substantial cycle: append REPORTS report + new EXECUTION_LEDGER checkpoint; move this pointer and synchronize 02/05 and 08/04/13 if state changed. Never edit prior immutable checkpoint.
+
+## Bootstrap delivery (2026-10-18)
+Two separate `optimizer/BOOTSTRAP/*.bat` files and `NEW_CHAT_PROMPT.txt` committed. Test Center uses immutable `mwo-local-test-center@edc83fca9f0f89fc895a0a30c7f58f81af143779`, program installer pinned to public R55.1 SHA-256. No Windows executable install/run performed in this documentation cycle. See REPORTS/2026-10-18-002-install-bootstrap-and-new-chat.md.
