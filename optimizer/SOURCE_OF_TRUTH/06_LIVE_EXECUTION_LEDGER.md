@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-002-user-bootstrap-bat-installers.md
+EXECUTION_LEDGER/2026-10-18-003-test-center-invisible-gui-hotfix.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -31,3 +31,6 @@ Every substantial cycle: append REPORTS report + new EXECUTION_LEDGER checkpoint
 
 ## Bootstrap delivery (2026-10-18)
 Two separate `optimizer/BOOTSTRAP/*.bat` files and `NEW_CHAT_PROMPT.txt` committed. Test Center uses immutable `mwo-local-test-center@edc83fca9f0f89fc895a0a30c7f58f81af143779`, program installer pinned to public R55.1 SHA-256. No Windows executable install/run performed in this documentation cycle. See REPORTS/2026-10-18-002-install-bootstrap-and-new-chat.md.
+ 
+## Test Center UX defect / 0.1.8 infrastructure hotfix
+Owner screenshots: invisible WinForms UI 0.1.7, second launch blocked by mutex. **Owner UX FAIL**. Test Center source fix `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` **IMPLEMENTED/PREPARED**, Windows smoke after fix **NOT RUN**. Updated installer + recovery BAT, no product code changed. See REPORTS/2026-10-18-003-test-center-invisible-gui-hotfix.md. First verify GUI visibly opens; only after that resume R57 Local FULL SAFE.

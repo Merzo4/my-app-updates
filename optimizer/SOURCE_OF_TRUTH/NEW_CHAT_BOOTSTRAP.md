@@ -23,3 +23,6 @@ EXACT NEXT EXECUTION: R57 Windows Local Test Center FULL SAFE run, then separate
 
 ## Copy/paste starter for owner
 A directly pasteable Russian message exists at `optimizer/BOOTSTRAP/NEW_CHAT_PROMPT.txt`. It is a shortcut only; the assistant must still read all authority and live GitHub SHA before working. Separate installers exist in `optimizer/BOOTSTRAP/`.
+
+## Live user issue after BAT distribution
+Test Center 0.1.7 produced an invisible GUI on first launch and an «already running» second-launch dialog. Test Center 0.1.8 infrastructure launcher hotfix is `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` with GUI visibility marker; user Windows confirmation is PENDING. The latest `optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat` pins the fixed commit and offers a scoped old-GUI restart. Check last checkpoint and owner feedback before declaring PASS. R57 product gate remains NOT RUN.

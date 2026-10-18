@@ -34,3 +34,7 @@ R56 run 32479505374 and exact run 32480404145 for unchanged SHA/risk; do not rec
 
 ## Working restrictions
 Do not modify root README for another product, release public assets, process kill behavior, power/OneDrive/GAME policies, or user Windows. Docs-only setup is not a new test result.
+
+## Test Center blocker discovered after documentation/bootstrap checkpoint
+Owner reported first 0.1.7 GUI launch invisible and second «already running» modal. **FAIL (visible GUI UX)**, R57 product test still PENDING. Test Center infrastructure hotfix 0.1.8 commit `3523eaabba8461aa63ec80a3da9d7270180ffd3a` changes process launching to show WinForms first and hide only its own console afterwards, emits State/gui-shown.json marker and installer waits for it. **Hotfix is implemented, not Windows-validated.** Updated user BAT at optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat offers scoped close of matching GUI pwsh processes after explicit confirmation, fetches pinned hotfix commit. Backup recovery BAT launches GUI with visible console for diagnostics.
+EXACT NEXT OWNER STEP: close any active Test Center tests, run patched Test Center BAT, then confirm actual GUI visible and send sanitized D:\MerzoOptimizer-LocalLab\Logs\startup-error.log / gui-visibility-error.log if not. Record owner PASS/FAIL in next checkpoint. Only then run R57 QUICK/FULL SAFE, no GAME/RESTORE on workstation.

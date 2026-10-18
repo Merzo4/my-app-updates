@@ -26,3 +26,6 @@
 
 ## New-pc BAT entrypoints (added 2026-10-18)
 See `optimizer/BOOTSTRAP/README.md`, `INSTALL_WINDOWS_OPTIMIZER.bat`, `INSTALL_TEST_CENTER.bat`. The stable launcher pins public version 0.1.55.1 and its exact SHA; it is not a R57 release. The Test Center launcher pins infrastructure commit `edc83fca9f0f89fc895a0a30c7f58f81af143779` for Test Center 0.1.7, requires D:, installs independently. BATs are NOT yet run on owner Windows. Do not move destructive lab tests to main workstation.
+ 
+## Test Center GUI visibility hotfix after 0.1.7 launch issue
+Test Center 0.1.8 source commit `3523eaabba8461aa63ec80a3da9d7270180ffd3a`, not a published Optimizer version. Bootstrap pins it. The launcher no longer passes WScript hidden window style 0; console hides only after GUI Shown and creates `D:\MerzoOptimizer-LocalLab\State\gui-shown.json`. Installer waits for marker. Until tested on owner's Windows, mark FIX PREPARED / WINDOWS PENDING.

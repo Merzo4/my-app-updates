@@ -33,3 +33,5 @@ Never silently alter MerzoStream files, public release tags, shared updater reso
 
 ## User install / new-chat bootstraps
 `optimizer/BOOTSTRAP/` — version-pinned user-facing BATs for Test Center and publicly released Optimizer; also README and NEW_CHAT_PROMPT. Do not confuse them with product compilation scripts in optimizer/scripts. See REPORTS/2026-10-18-002-install-bootstrap-and-new-chat.md.
+ 
+Test Center separate infrastructure `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` has 0.1.8 hotfix. The active Optimizer branch contains the pinned repair installer and scoped `optimizer/BOOTSTRAP/RECOVER_TEST_CENTER_WINDOW.bat` for troubleshooting. Source of Test Center is NOT bundled into optimizer/SOURCE_OF_TRUTH and not merged into Optimizer product code.

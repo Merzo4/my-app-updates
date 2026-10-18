@@ -1,17 +1,17 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Merzo Optimizer - Install Local Test Center 0.1.7
-rem Official pinned source: Merzo4/my-app-updates, commit edc83fca9f0f89fc895a0a30c7f58f81af143779
+title Merzo Optimizer - Install Local Test Center 0.1.8
+rem Official pinned source: Merzo4/my-app-updates, commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a
 rem Test Center is independent of the stable Optimizer and requires drive D:.
 echo ===================================================
-echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.1.7
+echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.1.8
 echo ===================================================
-echo Source: GitHub / pinned commit edc83fca9f0f89fc895a0a30c7f58f81af143779
+echo Source: GitHub / pinned commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a
 echo Install location: D:\MerzoOptimizer-LocalLab
 echo Existing installed production Optimizer is not replaced.
 echo.
 if not exist "D:\" (
-  echo ERROR: D: drive is required for the current Test Center 0.1.7.
+  echo ERROR: D: drive is required for the current Test Center 0.1.8.
   echo No disk or partition will be created automatically.
   pause
   exit /b 2
@@ -28,8 +28,22 @@ if errorlevel 1 (
   pause
   exit /b 4
 )
-set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/edc83fca9f0f89fc895a0a30c7f58f81af143779/tools/MerzoOptimizer.LocalLab"
-set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.1.7-Pinned"
+echo.
+echo Important: finish any ongoing Test Center checks before restarting the GUI.
+choice /M "Close ONLY old Test Center GUI processes and continue to update 0.1.8"
+if errorlevel 2 (
+  echo Cancelled by user. No Test Center processes stopped.
+  pause
+  exit /b 0
+)
+powershell.exe -NoLogo -NoProfile -NonInteractive -Command "$prefix='D:\MerzoOptimizer-LocalLab\App\'; $matches=@(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'pwsh.exe' -and $_.CommandLine -and ($_.CommandLine.IndexOf($prefix+'Start-TestCenter.ps1',[StringComparison]::OrdinalIgnoreCase) -ge 0 -or $_.CommandLine.IndexOf($prefix+'MerzoOptimizer.LocalLab.ps1',[StringComparison]::OrdinalIgnoreCase) -ge 0) }); foreach($p in $matches){Write-Host ('Stopping Test Center GUI PID '+$p.ProcessId); Stop-Process -Id $p.ProcessId -ErrorAction Stop}; if(-not $matches){Write-Host 'No old Test Center GUI process found.'}"
+if errorlevel 1 (
+  echo ERROR: Could not close old Test Center GUI. No update performed.
+  pause
+  exit /b 5
+)
+set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/3523eaabba8461aa63ec80a3da9d7270180ffd3a/tools/MerzoOptimizer.LocalLab"
+set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.1.8-Pinned"
 if not exist "%STAGE%" mkdir "%STAGE%"
 if not exist "%STAGE%" (
   echo ERROR: Cannot create temporary bootstrap directory.

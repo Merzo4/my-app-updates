@@ -19,3 +19,6 @@
 - Test Center bootstrap sources pinned к immutable commit, а не подвижному branch URL. Сам Test Center загружает последнюю R57 source-ветку и имеет автоотправку обезличенных диагностических событий в GitHub ветку `mwo-local-lab-evidence` при доступной GitHub авторизации.
 - BAT выполняются только на Windows; здесь возможна статическая проверка содержимого, но реальное выполнение на ПК пользователя не проводилось.
 - Для будущего стабильного релиза нужно обновить pin SHA/version в BAT после evidence/owner approval. Не использовать `latest` общих GitHub Releases — там также MerzoStream Suite.
+
+## Windows GUI startup defect and fix (2026-10-18)
+Reported 0.1.7: no visible Test Center on first click; second click says already running. Fix 0.1.8 in `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` is prepared. Updated `INSTALL_TEST_CENTER.bat` offers to stop only old matching Test Center GUI processes after confirmation and then pins 0.1.8; preserves App/Logs/Results and installed Optimizer. If still hidden, use `RECOVER_TEST_CENTER_WINDOW.bat` to start GUI with a visible diagnostic console. Send startup-error.log or gui-visibility-error.log if necessary. Test 0.1.8 installation on user Windows remains PENDING.
