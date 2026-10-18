@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-012-test-center-0-2-2-owner-launch-and-diagnostics.md
+EXECUTION_LEDGER/2026-10-18-013-auto-report-delivery-status-ui.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -62,3 +62,6 @@ Owner 0.2.1 installation proved legacy GUI Parse/Smoke PASS, native build FAIL d
  
 ## Checkpoint 012 — owner Test Center 0.2.2 GUI opened, Diagnostics auto evidence FAIL
 User reports 0.2.2 GUI opens. Confirmed actual `mwo-local-lab-evidence@84778f7e5c390f3c3a6e5ad8ef60ad07eadaceaa` event `20261018T080939838Z-profile.Diagnostics-660846e5`: version 0.2.2 Diagnostics **FAIL** only Inno Setup 6; remaining toolchain, lab protection PASS, automatic GitHub evidence PASS. Source/QUICK/FULL SAFE NOT RUN. Install Inno Setup 6, repeat Diagnostics then proceed gated safe sequence. Report 012.
+
+## Checkpoint 013 — v0.2.3 automatic upload delivery status
+Owner requested automatic report indicator instead of misleading manual button. Test Center source a205879fdf1d4d84ee35cd8b26411855a73318fc v0.2.3 adds local receipt and retry UI, code-only, Windows runtime NOT RUN. Prior Diagnostics FAIL Inno Setup 6 auto-published to GitHub PASS. Report 013. R57 current gate unchanged.

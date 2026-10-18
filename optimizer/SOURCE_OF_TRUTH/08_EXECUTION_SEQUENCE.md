@@ -47,3 +47,6 @@ Owner 0.2.1: PowerShell Parser PASS, legacy GUI Smoke PASS, native `dotnet publi
 
 ## Owner 0.2.2 environment gate update — 2026-10-18
 Test Center 0.2.2 **GUI owner-visible PASS** and **profile.Diagnostics executed, AUTO EVIDENCE PASS**. Actual Diagnostics **FAIL** due missing Inno Setup 6 `ISCC.exe`; GitHub evidence `20261018T080939838Z-profile.Diagnostics-660846e5` SHA 84778f7e5c390f3c3a6e5ad8ef60ad07eadaceaa. Toolchain non-Inno checks PASS, source sync/Quick/FullSafe BLOCKED/PENDING. No need to repeat previous installer scripts when GUI already opens. Next blocker resolution Inno Setup **6**; retest Diagnostics exact run then Sync/Quick/FullSafe on PASS. Native EXE console visibility not explicitly confirmed; do not assume complete native frontend acceptance.
+
+## Test Center 0.2.3 UI subgate
+Test Center 0.2.3 source a205879fdf1d4d84ee35cd8b26411855a73318fc: auto GitHub receipt UI and retry for queued/deferred evidence, CODE IMPLEMENTED, Windows compiled/rendered/transport failure test NOT RUN. This is NOT an R57 product code gate and does not change destructive constraints. Diagnostics FAIL Inno Setup 6 remains latest evidence, Source/Quick/FullSafe blocked until prerequisite passes.

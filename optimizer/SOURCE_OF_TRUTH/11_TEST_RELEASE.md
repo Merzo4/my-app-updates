@@ -36,3 +36,6 @@ New C# frontend is NOT an R57 product build. Test: actual dotnet publish win-x64
 
 ## Test Center Native EXE MSBuild temp regression
 Test Center 0.2.1 exposed environment misuse: updater `set TMP=<downloaded BAT file>` corrupts MSBuild temporary directory, error MSB1025. Future bootstrap tests must simulate poisoned TEMP/TMP inherited from legacy/updater, run parser gate, real C# publish/smoke, create shortcut only on success and verify temp cleanup confined to Lab. Test Center 0.2.2 code attempts fail-safe scoped correction; no actual Windows re-run yet. Record original FAIL, don't relabel as .NET SDK corruption.
+
+## Test Center auto report verification contract v0.2.3
+On real Windows verify that Diagnostics FAIL can still auto-publish and indicator shows Отправлено only with actual GitHub push. Simulate offline/failed Git push using a disposable isolated test environment, ensure queue persists and shows Повторить отправку, no rerun of product test needed; retry transitions to uploaded only on success. Verify legacy log receipt fallback and app restart state. Existing publisher may include raw username/machine and latest test report, so do not claim full sanitization; separate privacy fix required. None of these new 0.2.3 runtime tests performed.
