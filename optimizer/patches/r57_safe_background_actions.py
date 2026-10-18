@@ -33,7 +33,7 @@ helper=r'''    private static (string Hint, IReadOnlyList<string> TweakIds) Reso
         if (classification is "Не трогать" or "Драйвер / оставить")
             return ("Не трогать", Array.Empty<string>());
 
-        if (string.Equals(family, "Edge", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(family, "msedge", StringComparison.OrdinalIgnoreCase) || string.Equals(family, "Edge", StringComparison.OrdinalIgnoreCase))
             return ("Можно подготовить SAFE: Startup Boost + background mode", new[] { "r34.edge.disable_startup_boost", "r34.edge.disable_background_mode" });
         if (string.Equals(family, "chrome", StringComparison.OrdinalIgnoreCase))
             return ("Можно подготовить SAFE: background mode Chrome", new[] { "browser.chrome.disable_background_mode" });
