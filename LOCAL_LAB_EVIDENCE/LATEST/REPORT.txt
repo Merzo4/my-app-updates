@@ -1,11 +1,13 @@
 MERZO OPTIMIZER LOCAL TEST CENTER
-Profile: Sync
-Result: PASS
+Profile: Quick
+Result: FAIL
 Product: 0.1.57
 Branch: mwo-r57-safe-background-actions
-SHA: 1f1044bcf95bc54458dc60d53a6dc5242d35dd91
+SHA: 1329f6cd887faa3fe85f701c988609e7aa4f16f4
 Machine: WIN-1NPFQQOFFGC
-First failure: 
+First failure: Локальная cumulative сборка: controller exit=1
 
 STAGES:
-[PASS] Source exact checkout — mwo-r57-safe-background-actions @ 1f1044bcf95bc54458dc60d53a6dc5242d35dd91
+[PASS] Source exact checkout — mwo-r57-safe-background-actions @ 1329f6cd887faa3fe85f701c988609e7aa4f16f4
+[FAIL] Локальная cumulative сборка — controller exit=1
+[FAIL] First causal failure — Build controller failed: 1

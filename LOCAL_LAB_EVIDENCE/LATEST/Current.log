@@ -1,20 +1,26 @@
 
-[17:56:30] Merzo Optimizer Local Test Center 0.2.5 | profile=Sync
-[17:56:30] Cloning https://github.com/Merzo4/my-app-updates.git -> D:\MerzoOptimizer-LocalLab\Source
-[17:56:30] Cloning into 'D:\MerzoOptimizer-LocalLab\Source'...
-[17:56:46] Fetching exact branch mwo-r57-safe-background-actions
-[17:56:47] From https://github.com/Merzo4/my-app-updates
-[17:56:47]  * branch            mwo-r57-safe-background-actions -> FETCH_HEAD
-[17:56:48] Reset branch 'mwo-r57-safe-background-actions'
-[17:56:48] branch 'mwo-r57-safe-background-actions' set up to track 'origin/mwo-r57-safe-background-actions'.
-[17:56:48] Your branch is up to date with 'origin/mwo-r57-safe-background-actions'.
-[17:56:48] HEAD is now at 1f1044b docs(optimizer): record real Test Center 0.2.5 Diagnostics 8/8 PASS, checkpoint 019
-[17:56:48] PASS | Source exact checkout | mwo-r57-safe-background-actions @ 1f1044bcf95bc54458dc60d53a6dc5242d35dd91
-[17:56:49] FINAL PASS | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
-[auto-report] AUTO_REPORT_QUEUED event=profile.Sync outcome=PASS id=20261018T125650456Z-profile.Sync-d965463d
+[18:00:21] Merzo Optimizer Local Test Center 0.2.5 | profile=Quick
+[18:00:23] Fetching exact branch mwo-r57-safe-background-actions
+[18:00:24] From https://github.com/Merzo4/my-app-updates
+[18:00:24]  * branch            mwo-r57-safe-background-actions -> FETCH_HEAD
+[18:00:24]    1f1044b..1329f6c  mwo-r57-safe-background-actions -> origin/mwo-r57-safe-background-actions
+[18:00:24] Reset branch 'mwo-r57-safe-background-actions'
+[18:00:24] branch 'mwo-r57-safe-background-actions' set up to track 'origin/mwo-r57-safe-background-actions'.
+[18:00:24] Your branch is up to date with 'origin/mwo-r57-safe-background-actions'.
+[18:00:25] HEAD is now at 1329f6c docs(optimizer): record Test Center 0.2.5 exact R57 Source Sync PASS, checkpoint 020
+[18:00:25] PASS | Source exact checkout | mwo-r57-safe-background-actions @ 1329f6cd887faa3fe85f701c988609e7aa4f16f4
+[18:00:30] Python [31;1mException: [0mD:\MerzoOptimizer-LocalLab\Temp\Run\Current\r50_release_expanded.ps1:35[0m
+[18:00:30] [31;1m[0m[36;1mLine |[0m
+[18:00:30] [31;1m[0m[36;1m[36;1m  35 | [0m : r/patches/$name");if($LASTEXITCODE-ne0){[36;1mthrow "Patch failed: $name"[0m}}[0m
+[18:00:30] [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[18:00:30] [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mPatch failed: r24_update_center.py[0m
+[18:00:30] FAIL | Локальная cumulative сборка | controller exit=1
+[18:00:30] FAIL | First causal failure | Build controller failed: 1
+[18:00:30] FINAL FAIL | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
+[auto-report] AUTO_REPORT_QUEUED event=profile.Quick outcome=FAIL id=20261018T130032723Z-profile.Quick-6d3cf2f4
 [auto-report] From https://github.com/Merzo4/my-app-updates
 [auto-report]  * branch            mwo-local-lab-evidence -> FETCH_HEAD
 [auto-report] Reset branch 'mwo-local-lab-evidence'
 [auto-report] branch 'mwo-local-lab-evidence' set up to track 'origin/mwo-local-lab-evidence'.
 [auto-report] Your branch is up to date with 'origin/mwo-local-lab-evidence'.
-[auto-report] HEAD is now at fe8b1f1 Local Lab evidence queue 1 event(s)
+[auto-report] HEAD is now at 7e9a894 Local Lab evidence queue 1 event(s)

@@ -2,23 +2,37 @@
   "schemaVersion": 1,
   "testCenterVersion": "0.2.5",
   "productVersion": "0.1.57",
-  "profile": "Sync",
-  "conclusion": "PASS",
+  "profile": "Quick",
+  "conclusion": "FAIL",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-10-18T12:56:30.0191322Z",
-  "finishedAt": "2026-10-18T12:56:48.9899596Z",
+  "startedAt": "2026-10-18T13:00:21.4921305Z",
+  "finishedAt": "2026-10-18T13:00:30.8470376Z",
   "machine": "WIN-1NPFQQOFFGC",
   "sourceBranch": "mwo-r57-safe-background-actions",
-  "sourceCommit": "1f1044bcf95bc54458dc60d53a6dc5242d35dd91",
-  "firstCausalFailure": null,
+  "sourceCommit": "1329f6cd887faa3fe85f701c988609e7aa4f16f4",
+  "firstCausalFailure": "Локальная cumulative сборка: controller exit=1",
   "stages": [
     {
       "id": "source.sync",
       "name": "Source exact checkout",
       "state": "PASS",
-      "durationSeconds": 18.7,
-      "summary": "mwo-r57-safe-background-actions @ 1f1044bcf95bc54458dc60d53a6dc5242d35dd91"
+      "durationSeconds": 2.02,
+      "summary": "mwo-r57-safe-background-actions @ 1329f6cd887faa3fe85f701c988609e7aa4f16f4"
+    },
+    {
+      "id": "quick.build",
+      "name": "Локальная cumulative сборка",
+      "state": "FAIL",
+      "durationSeconds": 5.3,
+      "summary": "controller exit=1"
+    },
+    {
+      "id": "failure",
+      "name": "First causal failure",
+      "state": "FAIL",
+      "durationSeconds": 0.0,
+      "summary": "Build controller failed: 1"
     }
   ]
 }
