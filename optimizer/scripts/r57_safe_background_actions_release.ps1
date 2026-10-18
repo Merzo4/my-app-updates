@@ -110,10 +110,23 @@ $zip=Join-Path $root 'dist\MerzoWindowsOptimizer-portable-win-x64.zip'
 if(Test-Path $zip){Remove-Item $zip -Force}
 Compress-Archive -Path (Join-Path $dist '*') -DestinationPath $zip -CompressionLevel Optimal
 
+# The Test Center may discover per-user Inno Setup 6 via registry/winget.
+# Accept its process-scoped compiler path (also support original machine paths),
+# but NEVER execute a non-ISCC.exe or a compiler without version 6 metadata.
 $iscc=@(
+  $env:MWO_INNO6_ISCC,
   'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
   'C:\Program Files\Inno Setup 6\ISCC.exe'
-) | Where-Object{Test-Path $_} | Select-Object -First 1
+) | Where-Object {
+  if(-not $_){return $false}
+  try {
+    $file=Get-Item -LiteralPath ([string]$_) -ErrorAction Stop
+    $isExe=($file -is [IO.FileInfo]) -and ($file.Name -ieq 'ISCC.exe')
+    $versions=@([string]$file.VersionInfo.FileVersion,[string]$file.VersionInfo.ProductVersion)
+    $versionSix=(@($versions | Where-Object{$_ -match '(?<!\d)6\.[0-9]+'}).Count-gt0)
+    $isExe -and $versionSix
+  }catch{$false}
+} | Select-Object -First 1
 if(!$iscc){throw 'R57 ISCC missing'}
 Push-Location $root
 try {
