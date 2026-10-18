@@ -50,3 +50,6 @@ Test Center 0.2.2 **GUI owner-visible PASS** and **profile.Diagnostics executed,
 
 ## Test Center 0.2.3 UI subgate
 Test Center 0.2.3 source a205879fdf1d4d84ee35cd8b26411855a73318fc: auto GitHub receipt UI and retry for queued/deferred evidence, CODE IMPLEMENTED, Windows compiled/rendered/transport failure test NOT RUN. This is NOT an R57 product code gate and does not change destructive constraints. Diagnostics FAIL Inno Setup 6 remains latest evidence, Source/Quick/FullSafe blocked until prerequisite passes.
+
+## Actual user 0.2.3 Diagnostics evidence, 2026-10-18
+Remote `mwo-local-lab-evidence@dc1ac24ed1a85a2ce0dd7d1965e31ad936e5b328` event `20261018T083407111Z-profile.Diagnostics-ec944325`: auto GitHub upload **PASS**, Test Center 0.2.3 Diagnostics **FAIL** Inno Setup 6 `ISCC.exe` not found; other gates PASS. This does not assert native auto-report status indicator visual PASS nor offline retry. R57 P4 Source Sync, QUICK, FULL SAFE **NOT RUN**. Exact next subgate: inspect installed Inno Setup package version/path (winget already reports package installed) then resolve 6 detection, rerun Diagnostics PASS, only then gated R57 tests. No GAME/RESTORE on user workstation.

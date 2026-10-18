@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-013-auto-report-delivery-status-ui.md
+EXECUTION_LEDGER/2026-10-18-014-owner-0-2-3-diagnostics-auto-upload.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -65,3 +65,6 @@ User reports 0.2.2 GUI opens. Confirmed actual `mwo-local-lab-evidence@84778f7e5
 
 ## Checkpoint 013 — v0.2.3 automatic upload delivery status
 Owner requested automatic report indicator instead of misleading manual button. Test Center source a205879fdf1d4d84ee35cd8b26411855a73318fc v0.2.3 adds local receipt and retry UI, code-only, Windows runtime NOT RUN. Prior Diagnostics FAIL Inno Setup 6 auto-published to GitHub PASS. Report 013. R57 current gate unchanged.
+
+## Checkpoint 014 — Test Center 0.2.3 true auto-upload PASS; Diagnostics Inno 6 FAIL
+GitHub verified `mwo-local-lab-evidence@dc1ac24ed1a85a2ce0dd7d1965e31ad936e5b328`, event `20261018T083407111Z-profile.Diagnostics-ec944325`: report published automatically, Test Center 0.2.3 and all checks except Inno Setup 6 PASS. Inno Setup 6 `ISCC.exe` FAIL. R57 Sync/Quick/FullSafe not run. Next resolve exact winget major/version and ISCC path. Report 014.
