@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "eventId": "20261018T150017650Z-profile.Quick-1f177614",
+  "event": "profile.Quick",
+  "outcome": "FAIL",
+  "message": "Локальная cumulative сборка: controller exit=1",
+  "profile": "Quick",
+  "occurredAt": "2026-10-18T15:00:17.6507673Z",
+  "machine": "WIN-1NPFQQOFFGC",
+  "user": "Сергей",
+  "testCenterVersion": "0.2.6",
+  "productVersion": "0.1.57",
+  "sourceBranch": "mwo-r57-safe-background-actions",
+  "sourceCommit": "8c8699e3ddcf3b2bf1f24de6d82ee5835cae553c",
+  "logFile": "20261018T150017650Z-profile.Quick-1f177614.log",
+  "actionsMinutesUsed": 0
+}

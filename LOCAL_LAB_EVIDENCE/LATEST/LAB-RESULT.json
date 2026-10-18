@@ -2,86 +2,37 @@
   "schemaVersion": 1,
   "testCenterVersion": "0.2.6",
   "productVersion": "0.1.57",
-  "profile": "Diagnostics",
-  "conclusion": "PASS",
+  "profile": "Quick",
+  "conclusion": "FAIL",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-10-18T13:54:16.1200860Z",
-  "finishedAt": "2026-10-18T13:54:18.9374898Z",
+  "startedAt": "2026-10-18T14:56:12.6343002Z",
+  "finishedAt": "2026-10-18T15:00:15.3306433Z",
   "machine": "WIN-1NPFQQOFFGC",
   "sourceBranch": "mwo-r57-safe-background-actions",
-  "sourceCommit": "1329f6cd887faa3fe85f701c988609e7aa4f16f4",
-  "firstCausalFailure": null,
+  "sourceCommit": "8c8699e3ddcf3b2bf1f24de6d82ee5835cae553c",
+  "firstCausalFailure": "Локальная cumulative сборка: controller exit=1",
   "stages": [
     {
-      "id": "env.d",
-      "name": "D: доступен",
+      "id": "source.sync",
+      "name": "Source exact checkout",
       "state": "PASS",
-      "durationSeconds": 0.01,
-      "summary": "D: required"
+      "durationSeconds": 2.63,
+      "summary": "mwo-r57-safe-background-actions @ 8c8699e3ddcf3b2bf1f24de6d82ee5835cae553c"
     },
     {
-      "id": "env.git",
-      "name": "Git",
-      "state": "PASS",
-      "durationSeconds": 0.01,
-      "summary": "git in PATH"
+      "id": "quick.build",
+      "name": "Локальная cumulative сборка",
+      "state": "FAIL",
+      "durationSeconds": 237.92,
+      "summary": "controller exit=1"
     },
     {
-      "id": "env.pwsh",
-      "name": "PowerShell 7",
-      "state": "PASS",
-      "durationSeconds": 0.01,
-      "summary": "7.6.7"
-    },
-    {
-      "id": "env.dotnet",
-      "name": ".NET 10 SDK",
-      "state": "PASS",
-      "durationSeconds": 0.04,
-      "summary": "dotnet --list-sdks"
-    },
-    {
-      "id": "env.python",
-      "name": "Python 3.10+",
-      "state": "PASS",
-      "durationSeconds": 0.13,
-      "summary": "python -c script (reject Store alias exit 9009)"
-    },
-    {
-      "id": "env.inno",
-      "name": "Inno Setup 6",
-      "state": "PASS",
+      "id": "failure",
+      "name": "First causal failure",
+      "state": "FAIL",
       "durationSeconds": 0.0,
-      "summary": "ISCC.exe (version 6 detected)"
-    },
-    {
-      "id": "safe.root",
-      "name": "Лаборатория только D:",
-      "state": "PASS",
-      "durationSeconds": 0.0,
-      "summary": "D:\\MerzoOptimizer-LocalLab"
-    },
-    {
-      "id": "safe.prod",
-      "name": "Production Program Files только чтение",
-      "state": "PASS",
-      "durationSeconds": 0.03,
-      "summary": "protected"
-    },
-    {
-      "id": "source.origin",
-      "name": "Source origin",
-      "state": "PASS",
-      "durationSeconds": 0.11,
-      "summary": "Merzo4/my-app-updates"
-    },
-    {
-      "id": "env.disk",
-      "name": "Свободно на D:",
-      "state": "PASS",
-      "durationSeconds": 0.0,
-      "summary": "286.8 GB"
+      "summary": "Build controller failed: 1"
     }
   ]
 }

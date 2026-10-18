@@ -1,11 +1,11 @@
 {
-  "publishedAt": "2026-10-18T13:54:25.2430352Z",
+  "publishedAt": "2026-10-18T15:00:21.8791268Z",
   "testCenterVersion": "0.2.6",
   "productVersion": "0.1.57",
-  "profile": "Diagnostics",
-  "conclusion": "PASS",
+  "profile": "Quick",
+  "conclusion": "FAIL",
   "sourceBranch": "mwo-r57-safe-background-actions",
-  "sourceCommit": "1329f6cd887faa3fe85f701c988609e7aa4f16f4",
+  "sourceCommit": "8c8699e3ddcf3b2bf1f24de6d82ee5835cae553c",
   "machine": "WIN-1NPFQQOFFGC",
   "actionsMinutesUsed": 0,
   "evidenceBranch": "mwo-local-lab-evidence"

@@ -1,0 +1,411 @@
+
+[19:56:12] Merzo Optimizer Local Test Center 0.2.6 | profile=Quick
+[19:56:14] Fetching exact branch mwo-r57-safe-background-actions
+[19:56:16] From https://github.com/Merzo4/my-app-updates
+[19:56:16]  * branch            mwo-r57-safe-background-actions -> FETCH_HEAD
+[19:56:16]    1329f6c..8c8699e  mwo-r57-safe-background-actions -> origin/mwo-r57-safe-background-actions
+[19:56:16] Reset branch 'mwo-r57-safe-background-actions'
+[19:56:16] M	optimizer/patches/r53_process_start_debloat.py
+[19:56:16] M	optimizer/patches/r54_2_onedrive_resilience.py
+[19:56:16] M	optimizer/scripts/r49_release.ps1
+[19:56:16] M	optimizer/scripts/r52_game_release_v2.ps1
+[19:56:16] M	optimizer/scripts/r53_release_v1.ps1
+[19:56:16] M	optimizer/scripts/r53_release_v2.ps1
+[19:56:16] M	optimizer/scripts/r53_release_v5.ps1
+[19:56:16] M	optimizer/scripts/r54_1_service_control_hotfix_release.ps1
+[19:56:16] M	optimizer/scripts/r54_r53_hotfix_bridge_release.ps1
+[19:56:16] branch 'mwo-r57-safe-background-actions' set up to track 'origin/mwo-r57-safe-background-actions'.
+[19:56:16] Your branch is up to date with 'origin/mwo-r57-safe-background-actions'.
+[19:56:16] HEAD is now at 8c8699e docs(optimizer): verify real Test Center 0.2.6 Diagnostics 10/10 PASS, checkpoint 024
+[19:56:16] Removing r49.tar.xz
+[19:56:16] Removing r49/
+[19:56:17] PASS | Source exact checkout | mwo-r57-safe-background-actions @ 8c8699e3ddcf3b2bf1f24de6d82ee5835cae553c
+[19:56:21] R24 updater patch contract: OK
+[19:56:21] R28 patch compatibility rewrite: OK
+[19:56:21] R24 compile compatibility patch: OK
+[19:56:21] R26 OTA/version repair patch: OK
+[19:56:22] R27 privacy patch: OK ╖ tweaks=113
+[19:56:22] R28 UX/profile integration patch: OK ╖ tweaks=113
+[19:56:23] R29 operation center patch: OK
+[19:56:23] R29 compile/UI fixes: OK
+[19:56:24] R30 major patch dev: OK tweaks= 135 services= 18
+[19:56:24] R30 update policy fix: OK
+[19:56:25] R31 audit memory patch OK tweaks= 152 services= 21
+[19:56:25] R31 version consistency patch: OK
+[19:56:25] R31 compile/release compatibility: OK
+[19:56:25] R32 performance patch OK tweaks=180 services=29 tasks=18
+[19:56:25] R32 anti-myth scan-only compatibility: OK
+[19:56:25] R32 project version stamp: 0.1.32
+[19:56:26] R33 stability recovery patch: OK
+[19:56:26] R34 patch OK tweaks=187 (+7) services=39 tasks=21
+[19:56:26] R34 task extension OK tasks= 24
+[19:56:27] R35 readability UI patch: OK
+[19:56:27] R36 gaming/ui polish patch: OK
+[19:56:28] R37 themed dialogs + operation visualization patch: OK
+[19:56:28] R37 Repair / Network Center patch: OK
+[19:56:29] R37 finalize patch: OK
+[19:56:29] R38 gaming catalog: OK added= 1 total= 188 {'gaming_safe': 1, 'gaming_performance': 27, 'gaming_extreme': 34, 'gaming_lab': 36} r38_ids= ['r38.graphics.hags_enable', 'r38.gaming.foreground_scheduler_26', 'r38.gaming.mmcss_responsiveness_10', 'r38.gaming.disable_user_presence_qos']
+[19:56:29] R38 gaming network patch: OK
+[19:56:29] R38 Gaming Boost UI patch: OK
+[19:56:30] R38 finalize patch: OK
+[19:56:30] R39 Gaming Build catalog: OK {'gaming_build_safe': 4, 'gaming_build_performance': 26, 'gaming_build_extreme': 61, 'gaming_build_lab': 108} total= 188
+[19:56:30] R39 Gaming Build engine: OK
+[19:56:31] R39 Gaming Build UI integration: OK
+[19:56:31] R39 finalize: OK
+[19:56:31] R40 network binding hotfix: OK
+[19:56:32] R42 full UI rework patch: OK
+[19:56:32] R42 approved 1000x600 window contract + icon: OK
+[19:56:32] R43 true full UI rework: OK pages=12
+[19:56:32] R43 UI contract fix: OK
+[19:56:33] R44 function expansion patch: OK
+[19:56:33] R44 finalize/version stamp: OK
+[19:56:33] R45 apply center patch: OK
+[19:56:34] R46 security/layout hardening patch: OK (15 files)
+[19:56:34] R46 OneWay/helper/feed/updater/minimum-window SelfTest finalize: OK
+[19:56:35] R47 simple builds patch OK
+[19:56:35] R47 finalize patch OK
+[19:56:35] R48 OTA reliability patch: OK
+[19:56:35] R48 updater + SelfTest wrapper: OK
+[19:56:36] R49 catalog OK {'merzo_light': 104, 'merzo_game': 115, 'merzo_extreme': 131} total= 198
+[19:56:36] R49 recovery/OneDrive infrastructure OK
+[19:56:36] R49 build integration OK
+[19:56:36] R49 finalize OK
+[19:56:37] R50 UI reliability patch: OK
+[19:56:37] R51 widgets/readability patch: OK
+[19:56:37] R52 window/scroll reliability patch: OK
+[19:56:38] R52 GAME WOW debloat patch: OK
+[19:56:38] R52 GAME WOW V3 exact-R51 wrapper: OK
+[19:56:38] R53 process/clean-start/debloat patch: OK
+[19:56:40] R53 exact catalog IDs: OK total=201
+[19:56:40] R53 GAME compatibility guard: OK
+[19:56:41] R53 ASCII process targets: OK
+[19:56:41] R53 product install/branding patch: OK
+[19:56:41] R53_UPDATER_VERSION_DIAG_BEGIN
+[19:56:41] 0057:             if (resolved.Release is null || resolved.Version is null)
+[19:56:41] 0058:             {
+[19:56:41] 0059:                 return new UpdateCheckResult
+[19:56:41] 0060:                 {
+[19:56:41] 0061:                     Success = true,
+[19:56:41] 0062:                     Configured = true,
+[19:56:41] 0063:                     CurrentVersion = current,
+[19:56:41] 0064:                     LatestVersion = current,
+[19:56:41] 0065:                     Message = $"\u0420\u0435\u043b\u0438\u0437\u044b {OfficialTagPrefix}* \u043f\u043e\u043a\u0430 \u043d\u0435 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u044b."
+[19:56:41] 0066:                 };
+[19:56:41] 0067:             }
+[19:56:41] 0068: 
+[19:56:41] 0069:             var root = resolved.Release.Value;
+[19:56:41] 0070:             var bestVersion = resolved.Version!;
+[19:56:41] 0071:             var tag = root.GetProperty("tag_name").GetString() ?? string.Empty;
+[19:56:41] 0072:             var releaseName = root.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? tag : tag;
+[19:56:41] 0073:             var body = root.TryGetProperty("body", out var bodyEl) ? bodyEl.GetString() ?? string.Empty : string.Empty;
+[19:56:41] 0074: 
+[19:56:41] 0075:             JsonElement? selected = null;
+[19:56:41] 0076:             JsonElement? checksum = null;
+[19:56:41] 0077:             if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+[19:56:41] 0078:             {
+[19:56:41] 0079:                 foreach (var asset in assets.EnumerateArray())
+[19:56:41] 0109:             var updateAvailable = bestVersion > ParseVersion(current);
+[19:56:41] 0110:             return new UpdateCheckResult
+[19:56:41] 0111:             {
+[19:56:41] 0112:                 Success = true,
+[19:56:41] 0113:                 Configured = true,
+[19:56:41] 0114:                 UpdateAvailable = updateAvailable,
+[19:56:42] 0115:                 CurrentVersion = current,
+[19:56:42] 0116:                 LatestVersion = bestVersion.ToString(3),
+[19:56:42] 0117:                 ReleaseName = releaseName,
+[19:56:42] 0118:                 Notes = body,
+[19:56:42] 0119:                 AssetName = OfficialInstallerName,
+[19:56:42] 0120:                 AssetUrl = assetUrl,
+[19:56:42] 0121:                 AssetDigest = "sha256:" + digestHex,
+[19:56:42] 0122:                 ChecksumUrl = checksumUrl,
+[19:56:42] 0123:                 AssetSize = size,
+[19:56:42] 0124:                 Message = updateAvailable ? $"\u0414\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u0432\u0435\u0440\u0441\u0438\u044f {bestVersion.ToString(3)}." : "\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430 \u0430\u043a\u0442\u0443\u0430\u043b\u044c\u043d\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f."
+[19:56:42] 0125:             };
+[19:56:42] 0126:         }
+[19:56:42] 0127:         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+[19:56:42] 0128:         {
+[19:56:42] 0129:             return new UpdateCheckResult
+[19:56:42] 0130:             {
+[19:56:42] 0131:                 Success = false,
+[19:56:42] 0194:         }
+[19:56:42] 0195: 
+[19:56:42] 0196:         return (null, null);
+[19:56:42] 0197:     }
+[19:56:42] 0198: 
+[19:56:42] 0199:     private async Task<(JsonElement? Release, Version? Version)> ResolveExactReleaseAsync(string tag, CancellationToken cancellationToken)
+[19:56:42] 0200:     {
+[19:56:42] 0201:         var version = ParseTaggedVersion(tag, OfficialTagPrefix);
+[19:56:42] 0202:         if (version is null)
+[19:56:42] 0203:             return (null, null);
+[19:56:42] 0204:         var url = $"https://api.github.com/repos/{OfficialOwner}/{OfficialRepository}/releases/tags/{Uri.EscapeDataString(tag)}";
+[19:56:42] 0205:         var release = await GetJsonWithRetryAsync(url, 3, cancellationToken).ConfigureAwait(false);
+[19:56:42] 0206:         if (release.ValueKind != JsonValueKind.Object)
+[19:56:42] 0207:             return (null, null);
+[19:56:42] 0208:         if (release.TryGetProperty("draft", out var draft) && draft.GetBoolean())
+[19:56:42] 0209:             return (null, null);
+[19:56:42] 0210:         if (release.TryGetProperty("prerelease", out var prerelease) && prerelease.GetBoolean())
+[19:56:42] 0211:             return (null, null);
+[19:56:42] 0212:         var returnedTag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;
+[19:56:42] 0213:         if (!returnedTag.Equals(tag, StringComparison.Ordinal))
+[19:56:42] 0214:             throw new InvalidDataException("GitHub release-by-tag \u0432\u0435\u0440\u043d\u0443\u043b \u043d\u0435\u043e\u0436\u0438\u0434\u0430\u043d\u043d\u044b\u0439 tag_name.");
+[19:56:42] 0215:         return (release.Clone(), version);
+[19:56:42] 0216:     }
+[19:56:42] 0223:         Version? bestVersion = null;
+[19:56:42] 0224:         foreach (var release in releases.EnumerateArray())
+[19:56:42] 0225:         {
+[19:56:42] 0226:             if (release.TryGetProperty("draft", out var draft) && draft.GetBoolean()) continue;
+[19:56:42] 0227:             if (release.TryGetProperty("prerelease", out var prerelease) && prerelease.GetBoolean()) continue;
+[19:56:42] 0228:             var tag = release.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? string.Empty : string.Empty;
+[19:56:42] 0229:             if (!tag.StartsWith(OfficialTagPrefix, StringComparison.Ordinal)) continue;
+[19:56:43] 0230:             var version = ParseTaggedVersion(tag, OfficialTagPrefix);
+[19:56:43] 0231:             if (version is null) continue;
+[19:56:43] 0232:             if (bestVersion is null || version > bestVersion)
+[19:56:43] 0233:             {
+[19:56:43] 0234:                 bestVersion = version;
+[19:56:43] 0235:                 bestRelease = release.Clone();
+[19:56:43] 0236:             }
+[19:56:43] 0237:         }
+[19:56:43] 0238:         return (bestRelease, bestVersion);
+[19:56:43] 0239:     }
+[19:56:43] 0240: 
+[19:56:43] 0241:     private static string? SelectBestTagFromRefs(JsonElement refs)
+[19:56:43] 0242:     {
+[19:56:43] 0243:         if (refs.ValueKind != JsonValueKind.Array) return null;
+[19:56:43] 0244:         string? bestTag = null;
+[19:56:43] 0245:         Version? bestVersion = null;
+[19:56:43] 0246:         foreach (var item in refs.EnumerateArray())
+[19:56:43] 0247:         {
+[19:56:43] 0248:             var value = item.TryGetProperty("ref", out var refEl) ? refEl.GetString() ?? string.Empty : string.Empty;
+[19:56:43] 0249:             const string prefix = "refs/tags/";
+[19:56:43] 0250:             if (!value.StartsWith(prefix, StringComparison.Ordinal)) continue;
+[19:56:43] 0251:             var tag = value[prefix.Length..];
+[19:56:43] 0252:             if (!tag.StartsWith(OfficialTagPrefix, StringComparison.Ordinal)) continue;
+[19:56:43] 0253:             var version = ParseTaggedVersion(tag, OfficialTagPrefix);
+[19:56:43] 0254:             if (version is null) continue;
+[19:56:43] 0255:             if (bestVersion is null || version > bestVersion) { bestVersion = version; bestTag = tag; }
+[19:56:43] 0256:         }
+[19:56:43] 0257:         return bestTag;
+[19:56:43] 0258:     }
+[19:56:43] 0259: 
+[19:56:43] 0260:     private static string? SelectBestTagFromTags(JsonElement tags)
+[19:56:43] 0261:     {
+[19:56:43] 0262:         if (tags.ValueKind != JsonValueKind.Array) return null;
+[19:56:43] 0263:         string? bestTag = null;
+[19:56:43] 0264:         Version? bestVersion = null;
+[19:56:43] 0265:         foreach (var item in tags.EnumerateArray())
+[19:56:43] 0266:         {
+[19:56:43] 0267:             var tag = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? string.Empty : string.Empty;
+[19:56:43] 0268:             if (!tag.StartsWith(OfficialTagPrefix, StringComparison.Ordinal)) continue;
+[19:56:43] 0269:             var version = ParseTaggedVersion(tag, OfficialTagPrefix);
+[19:56:43] 0270:             if (version is null) continue;
+[19:56:43] 0271:             if (bestVersion is null || version > bestVersion) { bestVersion = version; bestTag = tag; }
+[19:56:43] 0272:         }
+[19:56:43] 0273:         return bestTag;
+[19:56:43] 0274:     }
+[19:56:43] 0275: 
+[19:56:43] 0276:     private async Task<JsonElement> GetJsonWithRetryAsync(string url, int attempts, CancellationToken cancellationToken)
+[19:56:44] 0277:     {
+[19:56:44] 0278:         Exception? last = null;
+[19:56:44] 0279:         for (var attempt = 1; attempt <= attempts; attempt++)
+[19:56:44] 0280:         {
+[19:56:44] 0281:             cancellationToken.ThrowIfCancellationRequested();
+[19:56:44] 0282:             try
+[19:56:44] 0283:             {
+[19:56:44] 0284:                 using var response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+[19:56:44] 0515:             return false;
+[19:56:44] 0516:         }
+[19:56:44] 0517:         if (!update.AssetName.Equals(OfficialInstallerName, StringComparison.Ordinal) || update.AssetSize <= 0 || update.AssetSize > MaximumInstallerBytes)
+[19:56:44] 0518:         {
+[19:56:44] 0519:             error = "\u0418\u043c\u044f \u0438\u043b\u0438 \u0440\u0430\u0437\u043c\u0435\u0440 installer \u043d\u0435 \u043f\u0440\u043e\u0448\u043b\u0438 Production-\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0443.";
+[19:56:44] 0520:             return false;
+[19:56:44] 0521:         }
+[19:56:44] 0522:         var tag = OfficialTagPrefix + update.LatestVersion;
+[19:56:44] 0523:         if (!IsOfficialReleaseAssetUrl(update.AssetUrl, tag, OfficialInstallerName) ||
+[19:56:44] 0524:             !IsOfficialReleaseAssetUrl(update.ChecksumUrl, tag, OfficialInstallerName + ".sha256"))
+[19:56:44] 0525:         {
+[19:56:44] 0526:             error = "URL \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u043d\u0435 \u043e\u0442\u043d\u043e\u0441\u0438\u0442\u0441\u044f \u043a \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u043c\u0443 Merzo4/my-app-updates release.";
+[19:56:44] 0527:             return false;
+[19:56:44] 0528:         }
+[19:56:44] 0529:         if (!IsValidSha256(ExtractSha256Digest(update.AssetDigest)))
+[19:56:44] 0530:         {
+[19:56:44] 0531:             error = "GitHub asset digest \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0438\u043b\u0438 \u043f\u043e\u0432\u0440\u0435\u0436\u0434\u0451\u043d.";
+[19:56:44] 0532:             return false;
+[19:56:44] 0533:         }
+[19:56:44] 0534:         return true;
+[19:56:44] 0535:     }
+[19:56:44] 0536: 
+[19:56:44] 0537:     private bool HasOfficialProductionConfiguration() =>
+[19:56:44] 0538:         string.Equals(Settings.Provider, "GitHub", StringComparison.Ordinal) &&
+[19:56:44] 0539:         string.Equals(Settings.RepositoryOwner, OfficialOwner, StringComparison.Ordinal) &&
+[19:56:44] 0540:         string.Equals(Settings.RepositoryName, OfficialRepository, StringComparison.Ordinal) &&
+[19:56:44] 0541:         string.Equals(Settings.ReleaseTagPrefix, OfficialTagPrefix, StringComparison.Ordinal) &&
+[19:56:44] 0542:         string.Equals(Settings.AssetNameContains, OfficialInstallerName, StringComparison.Ordinal);
+[19:56:44] 0543: 
+[19:56:44] 0544:     private static UpdateCheckResult Failure(string current, Version latest, string message) => new()
+[19:56:44] 0545:     {
+[19:56:44] 0546:         Success = false,
+[19:56:44] 0547:         Configured = true,
+[19:56:44] 0548:         CurrentVersion = current,
+[19:56:44] 0549:         LatestVersion = latest.ToString(3),
+[19:56:44] 0550:         Message = message
+[19:56:44] 0551:     };
+[19:56:45] 0552: 
+[19:56:45] 0553:     private static bool IsOfficialReleaseAssetUrl(string value, string expectedTag, string expectedName)
+[19:56:45] 0554:     {
+[19:56:45] 0555:         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)) return false;
+[19:56:45] 0556:         if (!uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+[19:56:45] 0557:             !uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase) ||
+[19:56:45] 0558:             !string.IsNullOrEmpty(uri.UserInfo) ||
+[19:56:45] 0559:             !uri.IsDefaultPort ||
+[19:56:45] 0560:             !string.IsNullOrEmpty(uri.Fragment))
+[19:56:45] 0561:             return false;
+[19:56:45] 0562: 
+[19:56:45] 0563:         var expectedPath = $"/{OfficialOwner}/{OfficialRepository}/releases/download/{expectedTag}/{expectedName}";
+[19:56:45] 0564:         return Uri.UnescapeDataString(uri.AbsolutePath).Equals(expectedPath, StringComparison.Ordinal);
+[19:56:45] 0619: 
+[19:56:45] 0620:     private static string GetCurrentVersion() => Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.1.48";
+[19:56:45] 0621: 
+[19:56:45] 0622:     private static Version ParseVersion(string value)
+[19:56:45] 0623:     {
+[19:56:45] 0624:         value = value.Trim().TrimStart('v', 'V');
+[19:56:45] 0625:         var numeric = new string(value.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+[19:56:45] 0626:         return Version.TryParse(numeric, out var parsed) ? parsed : new Version(0, 0);
+[19:56:45] 0627:     }
+[19:56:45] 0628: 
+[19:56:45] 0629:     private static Version? ParseTaggedVersion(string tag, string prefix)
+[19:56:45] 0630:     {
+[19:56:45] 0631:         var value = tag.StartsWith(prefix, StringComparison.Ordinal) ? tag[prefix.Length..] : tag;
+[19:56:45] 0632:         value = value.Trim().TrimStart('v', 'V');
+[19:56:45] 0633:         var numeric = new string(value.TakeWhile(c => char.IsDigit(c) || c == '.').ToArray());
+[19:56:45] 0634:         return Version.TryParse(numeric, out var parsed) ? parsed : null;
+[19:56:45] 0635:     }
+[19:56:45] 0636: 
+[19:56:45] 0637:     private static bool IsInstalledLayout()
+[19:56:45] 0638:     {
+[19:56:45] 0639:         var baseDir = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar);
+[19:56:45] 0640:         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+[19:56:45] 0641:         var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+[19:56:45] 0642:         return (!string.IsNullOrWhiteSpace(programFiles) && baseDir.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase)) ||
+[19:56:45] 0643:                (!string.IsNullOrWhiteSpace(programFilesX86) && baseDir.StartsWith(programFilesX86, StringComparison.OrdinalIgnoreCase));
+[19:56:45] 0644:     }
+[19:56:45] 0645: 
+[19:56:45] 0646:     public void Dispose() => _http.Dispose();
+[19:56:45] 0647: }
+[19:56:45] R53_UPDATER_VERSION_DIAG_END
+[19:56:45] R53 GAME apply hotfix: OK; automatic GAME Advanced/Expert= ['r53.process.service_host_density']
+[19:56:45] R53 HF1 exact project version finalize: OK projects=5 version=0.1.53.1
+[19:56:45] R54 R53-hotfix updater bridge: OK
+[19:56:46] R54.1 service control hotfix: OK
+[19:56:46] R54.1 service SelfTest SCM contract: OK
+[19:56:46] R54.2 OneDrive resilience: OK
+[19:56:46] R54.2 version finalize: OK
+[19:56:46] R49_SOURCE_SECURITY_PASS LIGHT=105 GAME=119 EXTREME=133 TOTAL=201
+[19:56:46] 
+[19:56:46] ╨Т╨░╤Б ╨┐╤А╨╕╨▓╨╡╤В╤Б╤В╨▓╤Г╨╡╤В .NET┬а10.0!
+[19:56:46] ---------------------
+[19:56:46] ╨Т╨╡╤А╤Б╨╕╤П ╨┐╨░╨║╨╡╤В╨░ SDK: 10.0.402
+[19:56:46] 
+[19:56:46] ╨в╨╡╨╗╨╡╨╝╨╡╤В╤А╨╕╤П
+[19:56:46] ---------
+[19:56:46] ╨б╤А╨╡╨┤╤Б╤В╨▓╨░ .NET ╤Б╨╛╨▒╨╕╤А╨░╤О╤В ╨┤╨░╨╜╨╜╤Л╨╡ ╨╛╨▒ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╨╕ ╨┤╨╗╤П ╨┐╨╛╨▓╤Л╤И╨╡╨╜╨╕╤П ╤Г╨┤╨╛╨▒╤Б╤В╨▓╨░. ╨Ф╨░╨╜╨╜╤Л╨╡ ╤Б╨╛╨▒╨╕╤А╨░╤О╤В╤Б╤П ╨║╨╛╤А╨┐╨╛╤А╨░╤Ж╨╕╨╡╨╣ ╨Ь╨░╨╣╨║╤А╨╛╤Б╨╛╤Д╤В ╨╕ ╨┐╤А╨╡╨┤╨╛╤Б╤В╨░╨▓╨╗╤П╤О╤В╤Б╤П ╤Б╨╛╨╛╨▒╤Й╨╡╤Б╤В╨▓╤Г. ╨Т╤Л ╨╝╨╛╨╢╨╡╤В╨╡ ╨╛╤В╨║╨╗╤О╤З╨╕╤В╤М ╨╛╤В╨┐╤А╨░╨▓╨║╤Г ╨┤╨░╨╜╨╜╤Л╤Е ╤В╨╡╨╗╨╡╨╝╨╡╤В╤А╨╕╨╕, ╤Г╤Б╤В╨░╨╜╨╛╨▓╨╕╨▓ ╨╖╨╜╨░╤З╨╡╨╜╨╕╨╡ "1" ╨╕╨╗╨╕ "true" ╨┤╨╗╤П ╨┐╨╡╤А╨╡╨╝╨╡╨╜╨╜╨╛╨╣ ╤Б╤А╨╡╨┤╤Л DOTNET_CLI_TELEMETRY_OPTOUT ╨▓ ╨┐╨╛╨┤╤Е╨╛╨┤╤П╤Й╨╡╨╣ ╨╛╨▒╨╛╨╗╨╛╤З╨║╨╡.
+[19:56:46] 
+[19:56:46] ╨Ф╨╛╨┐╨╛╨╗╨╜╨╕╤В╨╡╨╗╤М╨╜╤Л╨╡ ╤Б╨▓╨╡╨┤╨╡╨╜╨╕╤П ╨╛ ╤Б╨▒╨╛╤А╨╡ ╨┤╨░╨╜╨╜╤Л╤Е ╤В╨╡╨╗╨╡╨╝╨╡╤В╤А╨╕╨╕ ╤Б╤А╨╡╨┤╤Б╤В╨▓╨░╨╝╨╕ CLI .NET ╤Б╨╝. ╨╜╨░ ╤Б╤В╤А╨░╨╜╨╕╤Ж╨╡ https://aka.ms/dotnet-cli-telemetry.
+[19:56:46] 
+[19:56:46] ----------------
+[19:56:46] ╨г╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ ╤Б╨╡╤А╤В╨╕╤Д╨╕╨║╨░╤В ╤А╨░╨╖╤А╨░╨▒╨╛╤В╨║╨╕ ASP.NET Core HTTPS.
+[19:56:46] ╨з╤В╨╛╨▒╤Л ╨┤╨╛╨▓╨╡╤А╤П╤В╤М ╤Б╨╡╤А╤В╨╕╤Д╨╕╨║╨░╤В╤Г, ╨▓╤Л╨┐╨╛╨╗╨╜╨╕╤В╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Г "dotnet dev-certs https --trust"
+[19:56:46] ╨Ф╨╛╨┐╨╛╨╗╨╜╨╕╤В╨╡╨╗╤М╨╜╤Л╨╡ ╤Б╨▓╨╡╨┤╨╡╨╜╨╕╤П ╨╛╨▒ HTTPS: https://aka.ms/dotnet-https
+[19:56:46] 
+[19:56:46] ----------------
+[19:56:46] ╨Ъ╨░╨║ ╨╜╨░╨┐╨╕╤Б╨░╤В╤М ╤Б╨▓╨╛╨╡ ╨┐╨╡╤А╨▓╨╛╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡: https://aka.ms/dotnet-hello-world
+[19:56:46] ╨г╨╖╨╜╨░╤В╤М ╨╛ ╨╜╨╛╨▓╤Л╤Е ╨▓╨╛╨╖╨╝╨╛╨╢╨╜╨╛╤Б╤В╤П╤Е: https://aka.ms/dotnet-whats-new
+[19:56:46] ╨Я╤А╨╛╤Б╨╝╨╛╤В╤А╨╡╤В╤М ╨┤╨╛╨║╤Г╨╝╨╡╨╜╤В╨░╤Ж╨╕╤О: https://aka.ms/dotnet-docs
+[19:56:46] ╨б╨╛╨╛╨▒╤Й╨╕╤В╤М ╨╛ ╨┐╤А╨╛╨▒╨╗╨╡╨╝╨░╤Е ╨╕ ╨╜╨░╨╣╤В╨╕ ╨╕╤Б╤Е╨╛╨┤╨╜╤Л╨╣ ╨║╨╛╨┤ ╨╜╨░ GitHub: https://github.com/dotnet/core
+[19:56:46] ╨Ф╨╗╤П ╨┐╤А╨╛╤Б╨╝╨╛╤В╤А╨░ ╨┤╨╛╤Б╤В╤Г╨┐╨╜╤Л╤Е ╨║╨╛╨╝╨░╨╜╨┤ ╨▓╨▓╨╡╨┤╨╕╤В╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Г "dotnet --help" ╨╕╨╗╨╕ ╨┐╨╛╤Б╨╡╤В╨╕╤В╨╡ ╤Б╨╗╨╡╨┤╤Г╤О╤Й╤Г╤О ╤Б╤В╤А╨░╨╜╨╕╤Ж╤Г: https://aka.ms/dotnet-cli.
+[19:56:46] --------------------------------------------------------------------------------------
+[19:56:46]   ╨Ю╨┐╤А╨╡╨┤╨╡╨╗╨╡╨╜╨╕╨╡ ╨┐╤А╨╛╨╡╨║╤В╨╛╨▓ ╨┤╨╗╤П ╨▓╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П...
+[19:56:47]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.SelfTest\MerzoOptimizer.SelfTest.csproj (╨╖╨░ 171┬а╨╝╤Б).
+[19:56:47]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.App\MerzoOptimizer.App.csproj (╨╖╨░ 171┬а╨╝╤Б).
+[19:56:47]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.ElevatedHelper\MerzoOptimizer.ElevatedHelper.csproj (╨╖╨░ 171┬а╨╝╤Б).
+[19:56:47]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Windows\MerzoOptimizer.Windows.csproj (╨╖╨░ 171┬а╨╝╤Б).
+[19:56:47]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Core\MerzoOptimizer.Core.csproj (╨╖╨░ 165┬а╨╝╤Б).
+[19:56:51]   MerzoOptimizer.Core -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Core\bin\Release\net10.0\MerzoOptimizer.Core.dll
+[19:56:53]   MerzoOptimizer.Windows -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Windows\bin\Release\net10.0-windows\MerzoOptimizer.Windows.dll
+[19:56:56]   MerzoOptimizer.SelfTest -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.SelfTest\bin\Release\net10.0-windows\MerzoOptimizer.SelfTest.dll
+[19:56:57]   MerzoOptimizer.ElevatedHelper -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.ElevatedHelper\bin\Release\net10.0-windows\MerzoOptimizer.ElevatedHelper.dll
+[19:57:06]   MerzoOptimizer.App -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.App\bin\Release\net10.0-windows\MerzoWindowsOptimizer.dll
+[19:57:06] 
+[19:57:06] ╨б╨▒╨╛╤А╨║╨░ ╤Г╤Б╨┐╨╡╤И╨╜╨╛ ╨╖╨░╨▓╨╡╤А╤И╨╡╨╜╨░.
+[19:57:06]     ╨Я╤А╨╡╨┤╤Г╨┐╤А╨╡╨╢╨┤╨╡╨╜╨╕╨╣: 0
+[19:57:06]     ╨Ю╤И╨╕╨▒╨╛╨║: 0
+[19:57:06] 
+[19:57:06] ╨Я╤А╨╛╤И╨╗╨╛ ╨▓╤А╨╡╨╝╨╡╨╜╨╕ 00:00:18.23
+[19:57:14] ============================================================
+[19:57:14]  Merzo Windows Optimizer тАФ PRODUCTION R51 STABILITY + READABILITY SelfTest
+[19:57:14] ============================================================
+[19:57:14] Windows       : Windows 10 Pro
+[19:57:14] Version       : 25H2
+[19:57:14] Build         : 26200.9457
+[19:57:14] Administrator : False
+[19:57:14] CPU           : AMD Ryzen 5 5500U with Radeon Graphics
+[19:57:14] RAM used      : 50,0%
+[19:57:14] Processes     : 204
+[19:57:14] Power plan    : ╨б╨▒╨░╨╗╨░╨╜╤Б╨╕╤А╨╛╨▓╨░╨╜╨╜╨░╤П
+[19:57:14] Tweak catalog  : 201 total ┬╖ apply 151 ┬╖ scan-only 50
+[19:57:14] Profiles       : LIGHT 49 ┬╖ STANDARD 86 ┬╖ MAXIMUM 122 ┬╖ LITE BUILD 126
+[19:57:14] Update Center   : auto-check foundation + SHA-256 verified staged download
+[19:57:14] Auto-install    : live OTA installer ┬╖ SHA-256 verified ┬╖ user-confirmed install
+[19:57:14] Privilege model : main shell asInvoker ┬╖ elevated helper only for protected changes
+[19:57:14] 
+[19:57:14] SELFTEST: PASS
+[19:57:14] Audit remained read-only. SelfTest did NOT apply tweaks, services, tasks, cleanup or power changes.
+[19:57:15] R28 validation passed: privacy integrated into core profiles, visual cleanup progress, readable tooltips, release changelog UX, Snapshot+Undo and verified OTA updater.
+[19:57:16]   ╨Ю╨┐╤А╨╡╨┤╨╡╨╗╨╡╨╜╨╕╨╡ ╨┐╤А╨╛╨╡╨║╤В╨╛╨▓ ╨┤╨╗╤П ╨▓╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П...
+[19:58:17]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Core\MerzoOptimizer.Core.csproj (╨╖╨░ 1,01┬а╨╝╨╕╨╜).
+[19:58:17]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.ElevatedHelper\MerzoOptimizer.ElevatedHelper.csproj (╨╖╨░ 1,01┬а╨╝╨╕╨╜).
+[19:58:17]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.App\MerzoOptimizer.App.csproj (╨╖╨░ 1,01┬а╨╝╨╕╨╜).
+[19:58:17]   ╨Т╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜ D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Windows\MerzoOptimizer.Windows.csproj (╨╖╨░ 1,01┬а╨╝╨╕╨╜).
+[19:58:18]   MerzoOptimizer.Core -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Core\bin\Release\net10.0\MerzoOptimizer.Core.dll
+[19:58:18]   MerzoOptimizer.Windows -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Windows\bin\Release\net10.0-windows\MerzoOptimizer.Windows.dll
+[19:58:20]   MerzoOptimizer.ElevatedHelper -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.ElevatedHelper\bin\Release\net10.0-windows\win-x64\MerzoOptimizer.ElevatedHelper.dll
+[19:58:26]   MerzoOptimizer.App -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.App\bin\Release\net10.0-windows\win-x64\MerzoWindowsOptimizer.dll
+[19:58:26]   MerzoOptimizer.App -> D:\MerzoOptimizer-LocalLab\Source\r49\dist\app\
+[19:58:28]   ╨Ю╨┐╤А╨╡╨┤╨╡╨╗╨╡╨╜╨╕╨╡ ╨┐╤А╨╛╨╡╨║╤В╨╛╨▓ ╨┤╨╗╤П ╨▓╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П...
+[19:58:29]   ╨Т╤Б╨╡ ╨┐╤А╨╛╨╡╨║╤В╤Л ╨╛╨▒╨╜╨╛╨▓╨╗╨╡╨╜╤Л ╨┤╨╗╤П ╨▓╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╗╨╡╨╜╨╕╤П.
+[19:58:30]   MerzoOptimizer.Core -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Core\bin\Release\net10.0\MerzoOptimizer.Core.dll
+[19:58:30]   MerzoOptimizer.Windows -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.Windows\bin\Release\net10.0-windows\MerzoOptimizer.Windows.dll
+[19:58:30]   MerzoOptimizer.ElevatedHelper -> D:\MerzoOptimizer-LocalLab\Source\r49\src\MerzoOptimizer.ElevatedHelper\bin\Release\net10.0-windows\win-x64\MerzoOptimizer.ElevatedHelper.dll
+[19:58:31]   MerzoOptimizer.ElevatedHelper -> D:\MerzoOptimizer-LocalLab\Source\r49\dist\helper\
+[19:59:01] [OK] Production payload: D:\MerzoOptimizer-LocalLab\Source\r49\dist\app
+[19:59:01] [OK] Portable ZIP: D:\MerzoOptimizer-LocalLab\Source\r49\dist\MerzoWindowsOptimizer-portable-win-x64.zip
+[19:59:08] ============================================================
+[19:59:08]  Merzo Windows Optimizer тАФ PRODUCTION R51 STABILITY + READABILITY SelfTest
+[19:59:08] ============================================================
+[19:59:08] Windows       : Windows 10 Pro
+[19:59:08] Version       : 25H2
+[19:59:08] Build         : 26200.9457
+[19:59:08] Administrator : False
+[19:59:08] CPU           : AMD Ryzen 5 5500U with Radeon Graphics
+[19:59:08] RAM used      : 52,5%
+[19:59:08] Processes     : 201
+[19:59:08] Power plan    : ╨б╨▒╨░╨╗╨░╨╜╤Б╨╕╤А╨╛╨▓╨░╨╜╨╜╨░╤П
+[19:59:08] Tweak catalog  : 201 total ┬╖ apply 151 ┬╖ scan-only 50
+[19:59:08] Profiles       : LIGHT 49 ┬╖ STANDARD 86 ┬╖ MAXIMUM 122 ┬╖ LITE BUILD 126
+[19:59:08] Update Center   : auto-check foundation + SHA-256 verified staged download
+[19:59:08] Auto-install    : live OTA installer ┬╖ SHA-256 verified ┬╖ user-confirmed install
+[19:59:08] Privilege model : main shell asInvoker ┬╖ elevated helper only for protected changes
+[19:59:08] 
+[19:59:08] SELFTEST: PASS
+[19:59:08] Audit remained read-only. SelfTest did NOT apply tweaks, services, tasks, cleanup or power changes.
+[19:59:08] R28 validation passed: privacy integrated into core profiles, visual cleanup progress, readable tooltips, release changelog UX, Snapshot+Undo and verified OTA updater.
+[19:59:27] R49_LAYOUT_12_PAGES_PASS
+[19:59:36] R52_DISPATCH_NETWORK_PASS
+[19:59:45] R49_504_FALLBACK_PASS
+[20:00:15] [31;1mException: [0mD:\MerzoOptimizer-LocalLab\Temp\Run\Current\r50_release_expanded.ps1:175[0m
+[20:00:15] [31;1m[0m[36;1mLine |[0m
+[20:00:15] [31;1m[0m[36;1m[36;1m 175 | [0m if(-not$iscc){[36;1mthrow 'ISCC missing'[0m}[0m
+[20:00:15] [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m               ~~~~~~~~~~~~~~~~~~~~[0m
+[20:00:15] [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mISCC missing[0m
+[20:00:15] FAIL | Локальная cumulative сборка | controller exit=1
+[20:00:15] FAIL | First causal failure | Build controller failed: 1
+[20:00:15] FINAL FAIL | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
