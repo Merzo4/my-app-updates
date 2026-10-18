@@ -35,3 +35,6 @@ P4.0 Test Center GUI owner PASS. **P4.1 Diagnostics FAIL: Inno Setup 6 ISCC.exe 
 
 ## Test Center UI label diagnostic subtask, 2026-10-18
 Test Center 0.1.9 Windows 11 Edition/DisplayVersion/UBR label fix **IMPLEMENTED at source SHA 00f0484cbff48380a205410da1ebf208c7f63de6; NOT RUN on Windows**. Cosmetic, separate from R57 P4. Owner may update Test Center to check display label, but this is not a substitute for Diagnostics PASS and R57 Sync/Quick/FullSafe. Prior P4 Diagnostics FAIL Inno Setup 6 remains latest remote evidence; no new remote PASS found.
+
+## Test Center infrastructure subgate: native EXE UI migration
+Native Lab 0.2.0 source and local builder PREPARED at `mwo-local-test-center@f8757abcfabf0780fcf891661e0e1596dc1ad96a`; real Windows build/smoke and owner GUI verification **PENDING**, must not be called PASS. Restore point is existing 0.1.9 GUI and `START-TEST-CENTER-LEGACY.bat`. Validate native EXE start and close (no console), Diagnostics, auto evidence. Then fulfill R57 P4 Diagnostics prerequisites Inno 6, Source Sync, QUICK, FULL SAFE in existing safe sequence. Separate native test UI build is NOT R57 program acceptance and never authorizes GAME/RESTORE.

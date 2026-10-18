@@ -41,3 +41,6 @@ Test Center separate infrastructure `mwo-local-test-center@3523eaabba8461aa63ec8
 
 ## Current Test Center infrastructure display fix
 `mwo-local-test-center@00f0484cbff48380a205410da1ebf208c7f63de6` holds v0.1.9 read-only Windows 11 environment display correction. `optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat` pins this exact source SHA; installed `D:\MerzoOptimizer-LocalLab\UPDATE-TEST-CENTER.bat` fetches latest Lab bootstrap from infra branch. No Optimizer executable source changed.
+
+## Native Lab GUI code
+Separate `mwo-local-test-center` now stores `tools/MerzoOptimizer.LocalLab/NativeHost/{MerzoOptimizer.TestCenter.csproj,Program.cs}`, `Build-NativeHost.ps1`, updated `Install-LocalLab.ps1` and Test Center profile 0.2.0. Optimizer branch contains only pinned user BAT and SOT documentation; Optimizer R57 binary/source unchanged. No need to migrate all PowerShell runner scripts to a new process engine to achieve native standalone GUI.

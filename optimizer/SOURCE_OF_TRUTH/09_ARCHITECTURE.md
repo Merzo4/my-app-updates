@@ -26,3 +26,6 @@
 
 ## Proposed architecture only — Guardian and performance centers
 Future separate least-privileged per-user agent with tray, singleton/current-session opt-in autorun, bounded telemetry loop, local policy and action journal; existing WPF main app views and existing process-audit/selected-tweak/operation state shared via safe IPC. No second mutation engine, driver, SYSTEM service or unattended elevation. GPU feature-detected vendor adapters; Memory normalized memory-manager counters. Guardian itself may only read/alert by default, never auto kill; any reversible changes must use existing Snapshot->Apply->Verify->Undo. Not coded.
+
+## Test Center 0.2.0 native GUI frontend (infra code only)
+Separate `mwo-local-test-center/tools/MerzoOptimizer.LocalLab/NativeHost` contains WinForms C#/.NET10 WinExe with single-user mutex, four summary cards, test profiles, log tail/result view, Windows 11 display, user interaction, Pause/Stop, safe LAB-only gate. The original `Run-Profile.ps1`, `Run-Profile.Core.ps1`, `AUTO-REPORT.ps1`, evidence branch and sandbox/protected Program Files checks remain backend. UI launches them via hidden child pwsh. Native build/publish/smoke path in `Build-NativeHost.ps1` + `Install-LocalLab.ps1`; fallback `START-TEST-CENTER-LEGACY.bat`. Source implementation not Windows-verified.

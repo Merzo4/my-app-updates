@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-008-test-center-windows-11-label.md
+EXECUTION_LEDGER/2026-10-18-009-native-test-center-gui-preview.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -50,3 +50,6 @@ GitHub evidence branch SHA `22030119a4af17803fd83ce3950f2041d400b761` confirms `
  
 ## Checkpoint 008 — Test Center 0.1.9 Windows 11 presentation
 Owner Windows Settings shows 11 Pro 25H2, Test Center 0.1.8 mislabels NT kernel version 10.0. Fixed display-only at `mwo-local-test-center@00f0484cbff48380a205410da1ebf208c7f63de6`, version 0.1.9. Active Optimizer bootstrap pin updated, cosmetic Windows validation **PENDING**. R57 Diagnostics Inno 6 FAIL remains last confirmed remote result; subsequent build gates NOT RUN. Report 008.
+ 
+## Checkpoint 009 — native EXE Test Center 0.2.0 (no PowerShell UI console)
+Owner requested EXE instead of PowerShell-hosted interface. Native WinForms frontend added `mwo-local-test-center@f8757abcfabf0780fcf891661e0e1596dc1ad96a`, bootstrap pinned and legacy fallback preserved. **Implemented source; Windows .NET publish/smoke/actual user GUI still NOT RUN**. Backend profiles continue to use pwsh invisibly. R57 Diagnostics FAIL Inno 6 is last remote evidence; no product code or release changed. Report 009.

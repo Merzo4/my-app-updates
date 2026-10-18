@@ -1,17 +1,17 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Merzo Optimizer - Install Local Test Center 0.1.9
-rem Official pinned source: Merzo4/my-app-updates, commit 00f0484cbff48380a205410da1ebf208c7f63de6
+title Merzo Optimizer - Install Local Test Center 0.2.0
+rem Official pinned source: Merzo4/my-app-updates, commit f8757abcfabf0780fcf891661e0e1596dc1ad96a
 rem Test Center is independent of the stable Optimizer and requires drive D:.
 echo ===================================================
-echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.1.9
+echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.2.0
 echo ===================================================
-echo Source: GitHub / pinned commit 00f0484cbff48380a205410da1ebf208c7f63de6
+echo Source: GitHub / pinned commit f8757abcfabf0780fcf891661e0e1596dc1ad96a
 echo Install location: D:\MerzoOptimizer-LocalLab
 echo Existing installed production Optimizer is not replaced.
 echo.
 if not exist "D:\" (
-  echo ERROR: D: drive is required for the current Test Center 0.1.9.
+  echo ERROR: D: drive is required for the current Test Center 0.2.0.
   echo No disk or partition will be created automatically.
   pause
   exit /b 2
@@ -30,7 +30,7 @@ if errorlevel 1 (
 )
 echo.
 echo Important: finish any ongoing Test Center checks before restarting the GUI.
-choice /M "Close ONLY old Test Center GUI processes and continue to update 0.1.9"
+choice /M "Close ONLY old Test Center GUI processes and continue to update 0.2.0"
 if errorlevel 2 (
   echo Cancelled by user. No Test Center processes stopped.
   pause
@@ -42,19 +42,30 @@ if errorlevel 1 (
   pause
   exit /b 5
 )
-set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/00f0484cbff48380a205410da1ebf208c7f63de6/tools/MerzoOptimizer.LocalLab"
-set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.1.9-Pinned"
+set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/f8757abcfabf0780fcf891661e0e1596dc1ad96a/tools/MerzoOptimizer.LocalLab"
+set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.2.0-Pinned"
 if not exist "%STAGE%" mkdir "%STAGE%"
 if not exist "%STAGE%" (
   echo ERROR: Cannot create temporary bootstrap directory.
   pause
   exit /b 5
 )
-for %%F in (Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 AUTO-REPORT.ps1 local-lab-profile.json ENABLE-DESTRUCTIVE-LAB.ps1 PACK-EVIDENCE.ps1 PUBLISH-EVIDENCE.ps1 Install-LocalLab.ps1 README.md) do (
+for %%F in (Build-NativeHost.ps1 Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 AUTO-REPORT.ps1 local-lab-profile.json ENABLE-DESTRUCTIVE-LAB.ps1 PACK-EVIDENCE.ps1 PUBLISH-EVIDENCE.ps1 Install-LocalLab.ps1 README.md) do (
   echo Downloading pinned file %%F...
   curl.exe -fL --retry 3 --connect-timeout 15 --max-time 120 "%BASE%/%%F" -o "%STAGE%\%%F"
   if errorlevel 1 (
     echo ERROR: Download failed: %%F. Nothing was installed by this batch.
+    pause
+    exit /b 6
+  )
+)
+echo.
+if not exist "%STAGE%\NativeHost" mkdir "%STAGE%\NativeHost"
+for %%F in (MerzoOptimizer.TestCenter.csproj Program.cs) do (
+  echo Downloading native GUI source %%F...
+  curl.exe -fL --retry 3 --connect-timeout 15 --max-time 120 "%BASE%/NativeHost/%%F" -o "%STAGE%\NativeHost\%%F"
+  if errorlevel 1 (
+    echo ERROR: Download NativeHost/%%F failed. Existing Test Center shortcut stays unchanged.
     pause
     exit /b 6
   )
@@ -74,16 +85,16 @@ if not exist "%PWSH%" (
   exit /b 8
 )
 echo.
-echo Installing/updating Local Test Center in D: ...
+echo Building/updating Local Test Center native EXE in D: ...
 "%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%STAGE%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Test Center installation failed.
-  echo See D:\MerzoOptimizer-LocalLab\Logs\gui-smoke.log if present.
+  echo See D:\MerzoOptimizer-LocalLab\Logs\native-build.log and native-smoke.log if present.
   pause
   exit /b 9
 )
 echo.
-echo OK: Test Center installed. The GUI was launched.
+echo OK: Native Test Center 0.2.0 EXE installed. The GUI was launched.
 echo Use Diagnostics, Update Source, QUICK, then FULL SAFE.
 echo GAME to RESTORE is blocked on a normal workstation.
 exit /b 0

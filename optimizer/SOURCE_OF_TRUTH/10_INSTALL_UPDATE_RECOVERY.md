@@ -33,3 +33,6 @@ Test Center 0.1.8 source commit `3523eaabba8461aa63ec80a3da9d7270180ffd3a`, not 
  
 ### Final pinned Test Center hotfix SHA / parser-safety correction
 Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.
+
+## Local Test Center installer entrypoint 0.2.0
+Pinned `optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat` downloads Test Center `f8757abcfabf0780fcf891661e0e1596dc1ad96a` from separate branch including `NativeHost/` sources. Requires .NET 10 SDK on machine to compile self-contained WinExe. Native EXE installs only to `D:\MerzoOptimizer-LocalLab\App\Native` and desktop shortcut; no Program Files product overwrite. The existing installed Test Center is not converted until successful local build/smoke. If build/launch FAIL stop and use previous desktop shortcut or `START-TEST-CENTER-LEGACY.bat`, preserve reports. C# source is not a prepublished signed EXE; Windows user acceptance pending.
