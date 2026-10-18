@@ -26,3 +26,6 @@ Reported 0.1.7: no visible Test Center on first click; second click says already
  
 ### Final pinned Test Center hotfix SHA / parser-safety correction
 Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.
+
+## Test Center 0.1.9 Windows version label
+Current installer BAT pins `mwo-local-test-center@00f0484cbff48380a205410da1ebf208c7f63de6` and updates Test Center 0.1.9 with a corrected "Windows 11 Pro / 25H2 / 26200.9457" environment label. Previous 0.1.8 was Windows owner-verified visibly launched; 0.1.9 itself is **NOT RUN on owner's Windows**. Existing installed Test Center has `D:\MerzoOptimizer-LocalLab\UPDATE-TEST-CENTER.bat`, which points to the separate infrastructure branch; close the GUI before updating to avoid singleton mutex conflict. Owner installation and diagnostics results remain separate from this visual-only code change.

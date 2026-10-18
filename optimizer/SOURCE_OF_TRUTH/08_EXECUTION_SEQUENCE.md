@@ -32,3 +32,6 @@ Environment entry gate **P4.0 Test Center 0.1.8 visible GUI: OWNER OBSERVED PASS
 
 ## Real P4 diagnostics result, 2026-10-18
 P4.0 Test Center GUI owner PASS. **P4.1 Diagnostics FAIL: Inno Setup 6 ISCC.exe missing**, published automatically to `mwo-local-lab-evidence` SHA 22030119a4af17803fd83ce3950f2041d400b761. P4.2 Source Sync, P4.3 QUICK, P4.4 FULL SAFE = NOT RUN / BLOCKED on prerequisite. The fix is a developer-toolchain install, NOT a code change to R57. Recheck Diagnostics until PASS; no program tests or release implied.
+
+## Test Center UI label diagnostic subtask, 2026-10-18
+Test Center 0.1.9 Windows 11 Edition/DisplayVersion/UBR label fix **IMPLEMENTED at source SHA 00f0484cbff48380a205410da1ebf208c7f63de6; NOT RUN on Windows**. Cosmetic, separate from R57 P4. Owner may update Test Center to check display label, but this is not a substitute for Diagnostics PASS and R57 Sync/Quick/FullSafe. Prior P4 Diagnostics FAIL Inno Setup 6 remains latest remote evidence; no new remote PASS found.

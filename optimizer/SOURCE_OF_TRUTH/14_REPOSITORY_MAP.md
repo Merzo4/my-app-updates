@@ -38,3 +38,6 @@ Test Center separate infrastructure `mwo-local-test-center@3523eaabba8461aa63ec8
 
 ## Decision 002 planned feature contracts
 `optimizer/SOURCE_OF_TRUTH/FEATURES/GPU_OPTIMIZATION_CENTER.md`, `MEMORY_BACKGROUND_CENTER.md`, `MERZO_GUARDIAN.md` and `DECISIONS/2026-10-18-002-performance-gpu-memory-guardian.md` are source-of-truth specifications for planned modules, **not implementation files**. No new GPU/Guardian binary or driver in optimizer source.
+
+## Current Test Center infrastructure display fix
+`mwo-local-test-center@00f0484cbff48380a205410da1ebf208c7f63de6` holds v0.1.9 read-only Windows 11 environment display correction. `optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat` pins this exact source SHA; installed `D:\MerzoOptimizer-LocalLab\UPDATE-TEST-CENTER.bat` fetches latest Lab bootstrap from infra branch. No Optimizer executable source changed.

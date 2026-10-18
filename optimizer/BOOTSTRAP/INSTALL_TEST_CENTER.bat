@@ -1,17 +1,17 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Merzo Optimizer - Install Local Test Center 0.1.8
-rem Official pinned source: Merzo4/my-app-updates, commit a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3
+title Merzo Optimizer - Install Local Test Center 0.1.9
+rem Official pinned source: Merzo4/my-app-updates, commit 00f0484cbff48380a205410da1ebf208c7f63de6
 rem Test Center is independent of the stable Optimizer and requires drive D:.
 echo ===================================================
-echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.1.8
+echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.1.9
 echo ===================================================
-echo Source: GitHub / pinned commit a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3
+echo Source: GitHub / pinned commit 00f0484cbff48380a205410da1ebf208c7f63de6
 echo Install location: D:\MerzoOptimizer-LocalLab
 echo Existing installed production Optimizer is not replaced.
 echo.
 if not exist "D:\" (
-  echo ERROR: D: drive is required for the current Test Center 0.1.8.
+  echo ERROR: D: drive is required for the current Test Center 0.1.9.
   echo No disk or partition will be created automatically.
   pause
   exit /b 2
@@ -30,7 +30,7 @@ if errorlevel 1 (
 )
 echo.
 echo Important: finish any ongoing Test Center checks before restarting the GUI.
-choice /M "Close ONLY old Test Center GUI processes and continue to update 0.1.8"
+choice /M "Close ONLY old Test Center GUI processes and continue to update 0.1.9"
 if errorlevel 2 (
   echo Cancelled by user. No Test Center processes stopped.
   pause
@@ -42,8 +42,8 @@ if errorlevel 1 (
   pause
   exit /b 5
 )
-set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3/tools/MerzoOptimizer.LocalLab"
-set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.1.8-Pinned"
+set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/00f0484cbff48380a205410da1ebf208c7f63de6/tools/MerzoOptimizer.LocalLab"
+set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.1.9-Pinned"
 if not exist "%STAGE%" mkdir "%STAGE%"
 if not exist "%STAGE%" (
   echo ERROR: Cannot create temporary bootstrap directory.

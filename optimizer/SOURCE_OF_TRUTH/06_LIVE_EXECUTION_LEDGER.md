@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-007-diagnostics-fail-auto-evidence-published.md
+EXECUTION_LEDGER/2026-10-18-008-test-center-windows-11-label.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -47,3 +47,6 @@ On 2026-10-18 owner confirmed Test Center 0.1.8 installed and main window visibl
  
 ## Checkpoint 007 — automatic GitHub evidence confirmed, Diagnostics blocked
 GitHub evidence branch SHA `22030119a4af17803fd83ce3950f2041d400b761` confirms `profile.Diagnostics FAIL (Inno Setup 6 / ISCC.exe missing)`, and **automatic report upload PASS**. No R57 build attempted, Source still not synced. Need Inno Setup 6 + repeat Diagnostics before Sync/Quick/FullSafe. Privacy issue: event includes machine/user identity. See REPORTS/2026-10-18-007-diagnostics-auto-upload-and-inno-blocker.md.
+ 
+## Checkpoint 008 — Test Center 0.1.9 Windows 11 presentation
+Owner Windows Settings shows 11 Pro 25H2, Test Center 0.1.8 mislabels NT kernel version 10.0. Fixed display-only at `mwo-local-test-center@00f0484cbff48380a205410da1ebf208c7f63de6`, version 0.1.9. Active Optimizer bootstrap pin updated, cosmetic Windows validation **PENDING**. R57 Diagnostics Inno 6 FAIL remains last confirmed remote result; subsequent build gates NOT RUN. Report 008.
