@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-020-test-center-025-source-sync-pass.md
+EXECUTION_LEDGER/2026-10-18-021-test-center-025-quick-first-python-patch-fail.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -86,3 +86,6 @@ New remote evidence `mwo-local-lab-evidence@fe8b1f1da99770643cfeadfe0b8106a27feb
  
 ## Checkpoint 020 — Local Lab 0.2.5 Source Sync PASS, QUICK exact next
 Owner auto-uploaded new GitHub evidence `mwo-local-lab-evidence@7e9a8942dc87d16f5fc2b1642c5aeab56d7e57ee`, event `20261018T125650456Z-profile.Sync-d965463d`, Source exact checkout **PASS** `mwo-r57-safe-background-actions@1f1044bcf95bc54458dc60d53a6dc5242d35dd91`, lab D: only. Diagnostics v0.2.5 already 8/8 PASS; QUICK/FULL SAFE still NOT RUN. Commit only docs/status now; QUICK's own Sync resolves newest HEAD. Report 020.
+ 
+## Checkpoint 021 — QUICK FAIL in R49 first Python patch, root cause unconfirmed
+Actual Test Center v0.2.5 GitHub evidence `mwo-local-lab-evidence@aa91d2d16a64e68a28910cc99118691b0d7fca13` id `20261018T130032723Z-profile.Quick-6d3cf2f4`: Source Sync PASS at 1329f6cd887faa3fe85f701c988609e7aa4f16f4; cumulative Quick FAIL controller exit=1; `r50_release_expanded.ps1:35` reports `Patch failed: r24_update_center.py`. Published log omits Python subprocess diagnostic. Python runtime on owner new PC unknown; next safe owner step python --version/py -3 --version before code changes. FULL SAFE blocked and not run. Report 021.
