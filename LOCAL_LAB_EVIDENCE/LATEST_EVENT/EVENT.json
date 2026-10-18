@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "eventId": "20261018T080939838Z-profile.Diagnostics-660846e5",
+  "eventId": "20261018T083407111Z-profile.Diagnostics-ec944325",
   "event": "profile.Diagnostics",
   "outcome": "FAIL",
   "message": "Inno Setup 6: ISCC.exe",
   "profile": "Diagnostics",
-  "occurredAt": "2026-10-18T08:09:39.8381879Z",
+  "occurredAt": "2026-10-18T08:34:07.1116594Z",
   "machine": "WIN-1NPFQQOFFGC",
   "user": "Сергей",
-  "testCenterVersion": "0.2.2",
+  "testCenterVersion": "0.2.3",
   "productVersion": "0.1.57",
   "sourceBranch": "",
   "sourceCommit": "",
-  "logFile": "20261018T080939838Z-profile.Diagnostics-660846e5.log",
+  "logFile": "20261018T083407111Z-profile.Diagnostics-ec944325.log",
   "actionsMinutesUsed": 0
 }

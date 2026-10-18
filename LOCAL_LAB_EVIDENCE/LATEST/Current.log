@@ -1,18 +1,18 @@
 
-[13:09:37] Merzo Optimizer Local Test Center 0.2.2 | profile=Diagnostics
-[13:09:37] PASS | D: доступен | D: required
-[13:09:37] PASS | Git | git in PATH
-[13:09:37] PASS | PowerShell 7 | 7.6.7
-[13:09:37] PASS | .NET 10 SDK | dotnet --list-sdks
-[13:09:37] FAIL | Inno Setup 6 | ISCC.exe
-[13:09:37] PASS | Лаборатория только D: | D:\MerzoOptimizer-LocalLab
-[13:09:37] PASS | Production Program Files только чтение | protected
-[13:09:38] PASS | Свободно на D: | 287 GB
-[13:09:38] FINAL FAIL | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
-[auto-report] AUTO_REPORT_QUEUED event=profile.Diagnostics outcome=FAIL id=20261018T080939838Z-profile.Diagnostics-660846e5
+[13:34:05] Merzo Optimizer Local Test Center 0.2.3 | profile=Diagnostics
+[13:34:05] PASS | D: доступен | D: required
+[13:34:05] PASS | Git | git in PATH
+[13:34:05] PASS | PowerShell 7 | 7.6.7
+[13:34:05] PASS | .NET 10 SDK | dotnet --list-sdks
+[13:34:05] FAIL | Inno Setup 6 | ISCC.exe
+[13:34:05] PASS | Лаборатория только D: | D:\MerzoOptimizer-LocalLab
+[13:34:05] PASS | Production Program Files только чтение | protected
+[13:34:06] PASS | Свободно на D: | 286.8 GB
+[13:34:06] FINAL FAIL | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
+[auto-report] AUTO_REPORT_QUEUED event=profile.Diagnostics outcome=FAIL id=20261018T083407111Z-profile.Diagnostics-ec944325
 [auto-report] From https://github.com/Merzo4/my-app-updates
 [auto-report]  * branch            mwo-local-lab-evidence -> FETCH_HEAD
 [auto-report] Reset branch 'mwo-local-lab-evidence'
 [auto-report] branch 'mwo-local-lab-evidence' set up to track 'origin/mwo-local-lab-evidence'.
 [auto-report] Your branch is up to date with 'origin/mwo-local-lab-evidence'.
-[auto-report] HEAD is now at 2203011 Local Lab evidence queue 1 event(s)
+[auto-report] HEAD is now at 84778f7 Local Lab evidence queue 1 event(s)
