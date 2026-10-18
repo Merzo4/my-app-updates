@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "state": "ready-for-local-full-safe",
+  "productVersion": "0.1.57",
+  "preparedProductHead": "024e4bad9c6f6767044d7f1576879f4bcb85fd39",
+  "branch": "mwo-r57-safe-background-actions",
+  "publicRelease": false,
+  "githubActionsUsedForR57": false,
+  "localTestCenterVersion": "0.1.7",
+  "buildController": "optimizer/scripts/r57_safe_background_actions_release.ps1",
+  "staticAcceptance": "optimizer/scripts/r57_safe_background_actions_acceptance.ps1",
+  "destructiveAcceptance": "optimizer/scripts/r57_game_recovery_acceptance.ps1",
+  "nextGate": "Local Test Center FULL SAFE on Windows: cumulative build -> R57 acceptance -> SelfTest -> real WPF main window -> installer/portable",
+  "destructiveGate": "Blocked on normal workstation; only dedicated lab machine may run GAME -> production RestoreAll",
+  "notes": [
+    "R57 adds no direct process kill/service/task mutation.",
+    "Detected Edge(msedge), Chrome and Widgets families map only to existing reviewed reversible tweak IDs.",
+    "WebView2 unknown owner and OneDrive have no automatic action from the process audit.",
+    "The R57 button only selects existing tweak cards and routes to the Selected tab; Apply remains Snapshot -> Apply -> Verify -> Undo/Restore.",
+    "R56 remains the last fully green technical candidate; R55.1 remains public production."
+  ]
+}
