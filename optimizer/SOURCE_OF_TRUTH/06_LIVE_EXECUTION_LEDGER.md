@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-014-owner-0-2-3-diagnostics-auto-upload.md
+EXECUTION_LEDGER/2026-10-18-015-inno6-user-scope-detection.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -68,3 +68,6 @@ Owner requested automatic report indicator instead of misleading manual button. 
 
 ## Checkpoint 014 — Test Center 0.2.3 true auto-upload PASS; Diagnostics Inno 6 FAIL
 GitHub verified `mwo-local-lab-evidence@dc1ac24ed1a85a2ce0dd7d1965e31ad936e5b328`, event `20261018T083407111Z-profile.Diagnostics-ec944325`: report published automatically, Test Center 0.2.3 and all checks except Inno Setup 6 PASS. Inno Setup 6 `ISCC.exe` FAIL. R57 Sync/Quick/FullSafe not run. Next resolve exact winget major/version and ISCC path. Report 014.
+
+## Checkpoint 015 — Inno Setup 6 user-scope resolver added
+Owner screen verifies winget Inno 6.7.3 installed but Program Files ISCC search empty. Test Center v0.2.4 `mwo-local-test-center@f0044e15c1952482c65b6d3d85afa982bab4deb5` prepared read-only per-user/registry/winget detection shared by Diagnostics/Quick; R56 and R57 cumulative controllers accept env-provided verified compiler. **No new Windows build or diagnostic PASS yet.** Report 015, next owner Test Center update and Diagnostics before safe R57 tests.
