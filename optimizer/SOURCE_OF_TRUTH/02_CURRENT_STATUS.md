@@ -37,3 +37,7 @@ R55.1 public OTA v2 старый прогон завершился failure «OTA
 ## User-reported Local Test Center defect / infrastructure hotfix (2026-10-18)
 Owner screenshots: first launch of installed Test Center 0.1.7 shows no visible main UI; second launch says «уже запущен». This is **FAIL (owner UX)** on Test Center launcher, not an R57 product test failure. Source indicates WScript.Shell.Run with windowStyle=0 while mutex considers any running process an active GUI; precise causal sufficiency still **PENDING Windows retest**.
 Patch-only Test Center 0.1.8 prepared at `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a`: visible style=1 launch; hide console only after WinForms Shown; GUI-shown marker + installer gate. Test Center 0.1.8 on user PC = **NOT RUN / PENDING**. User should run updated `optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat` (or visible RECOVER BAT); no R57 FAST/FULL SAFE PASS claimed and no product code changed.
+
+ 
+### Final pinned Test Center hotfix SHA / parser-safety correction
+Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.

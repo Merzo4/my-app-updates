@@ -26,3 +26,7 @@ A directly pasteable Russian message exists at `optimizer/BOOTSTRAP/NEW_CHAT_PRO
 
 ## Live user issue after BAT distribution
 Test Center 0.1.7 produced an invisible GUI on first launch and an «already running» second-launch dialog. Test Center 0.1.8 infrastructure launcher hotfix is `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` with GUI visibility marker; user Windows confirmation is PENDING. The latest `optimizer/BOOTSTRAP/INSTALL_TEST_CENTER.bat` pins the fixed commit and offers a scoped old-GUI restart. Check last checkpoint and owner feedback before declaring PASS. R57 product gate remains NOT RUN.
+
+ 
+### Final pinned Test Center hotfix SHA / parser-safety correction
+Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.

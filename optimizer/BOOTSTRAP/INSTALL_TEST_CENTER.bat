@@ -1,12 +1,12 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
 title Merzo Optimizer - Install Local Test Center 0.1.8
-rem Official pinned source: Merzo4/my-app-updates, commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a
+rem Official pinned source: Merzo4/my-app-updates, commit a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3
 rem Test Center is independent of the stable Optimizer and requires drive D:.
 echo ===================================================
 echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.1.8
 echo ===================================================
-echo Source: GitHub / pinned commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a
+echo Source: GitHub / pinned commit a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3
 echo Install location: D:\MerzoOptimizer-LocalLab
 echo Existing installed production Optimizer is not replaced.
 echo.
@@ -42,7 +42,7 @@ if errorlevel 1 (
   pause
   exit /b 5
 )
-set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/3523eaabba8461aa63ec80a3da9d7270180ffd3a/tools/MerzoOptimizer.LocalLab"
+set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3/tools/MerzoOptimizer.LocalLab"
 set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.1.8-Pinned"
 if not exist "%STAGE%" mkdir "%STAGE%"
 if not exist "%STAGE%" (

@@ -22,3 +22,7 @@
 
 ## Windows GUI startup defect and fix (2026-10-18)
 Reported 0.1.7: no visible Test Center on first click; second click says already running. Fix 0.1.8 in `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` is prepared. Updated `INSTALL_TEST_CENTER.bat` offers to stop only old matching Test Center GUI processes after confirmation and then pins 0.1.8; preserves App/Logs/Results and installed Optimizer. If still hidden, use `RECOVER_TEST_CENTER_WINDOW.bat` to start GUI with a visible diagnostic console. Send startup-error.log or gui-visibility-error.log if necessary. Test 0.1.8 installation on user Windows remains PENDING.
+
+ 
+### Final pinned Test Center hotfix SHA / parser-safety correction
+Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.

@@ -29,3 +29,7 @@ See `optimizer/BOOTSTRAP/README.md`, `INSTALL_WINDOWS_OPTIMIZER.bat`, `INSTALL_T
  
 ## Test Center GUI visibility hotfix after 0.1.7 launch issue
 Test Center 0.1.8 source commit `3523eaabba8461aa63ec80a3da9d7270180ffd3a`, not a published Optimizer version. Bootstrap pins it. The launcher no longer passes WScript hidden window style 0; console hides only after GUI Shown and creates `D:\MerzoOptimizer-LocalLab\State\gui-shown.json`. Installer waits for marker. Until tested on owner's Windows, mark FIX PREPARED / WINDOWS PENDING.
+
+ 
+### Final pinned Test Center hotfix SHA / parser-safety correction
+Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.
