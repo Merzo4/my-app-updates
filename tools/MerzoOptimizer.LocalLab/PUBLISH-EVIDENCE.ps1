@@ -11,6 +11,30 @@ $repoUrl='https://github.com/Merzo4/my-app-updates.git'
 $branch='mwo-local-lab-evidence'
 New-Item $queue -ItemType Directory -Force|Out-Null
 
+$statusPath=Join-Path $root 'State\EvidencePublishStatus.json'
+New-Item (Split-Path $statusPath -Parent) -ItemType Directory -Force|Out-Null
+
+function Write-PublishStatus([string]$State,[string]$Note=''){
+  try{
+    $count=@(Get-ChildItem -LiteralPath $queue -Filter '*.json' -File -ErrorAction SilentlyContinue).Count
+    $record=[ordered]@{
+      schemaVersion=1
+      state=$State
+      pending=$count
+      updatedAt=(Get-Date).ToUniversalTime().ToString('o')
+      branch=$branch
+      note=$Note
+    }
+    $tmpStatus="$statusPath.$PID.tmp"
+    $record|ConvertTo-Json -Depth 3|Set-Content -LiteralPath $tmpStatus -Encoding UTF8
+    Move-Item -LiteralPath $tmpStatus -Destination $statusPath -Force
+  }catch{
+    # Upload status is best-effort; a failure must never alter test results or queue.
+  }
+}
+
+Write-PublishStatus 'SENDING' 'Sending pending evidence to GitHub'
+try {
 if(!(Get-Command git -ErrorAction SilentlyContinue)){throw 'Git не найден.'}
 if(!(Test-Path (Join-Path $checkout '.git'))){
   if(Test-Path $checkout){Remove-Item $checkout -Recurse -Force}
@@ -94,6 +118,7 @@ if($LASTEXITCODE-eq0){
     Remove-Item $eventPath -Force -ErrorAction SilentlyContinue
     if(-not[string]::IsNullOrWhiteSpace($logName)){Remove-Item (Join-Path $queue $logName) -Force -ErrorAction SilentlyContinue}
   }
+  Write-PublishStatus 'PUBLISHED' 'Evidence already current; queue empty'
   Write-Host 'EVIDENCE_ALREADY_CURRENT_OR_QUEUE_EMPTY'
   exit 0
 }
@@ -112,4 +137,9 @@ foreach($eventPath in $publishedQueue){
     if(-not[string]::IsNullOrWhiteSpace($logName)){Remove-Item (Join-Path $queue $logName) -Force -ErrorAction SilentlyContinue}
   }catch{}
 }
+Write-PublishStatus 'PUBLISHED' 'GitHub push confirmed'
 Write-Host "EVIDENCE_PUBLISHED branch=$branch queued=$($publishedQueue.Count) actionsMinutes=0"
+} catch {
+  Write-PublishStatus 'DEFERRED' 'GitHub upload failed; local queue preserved'
+  throw
+}

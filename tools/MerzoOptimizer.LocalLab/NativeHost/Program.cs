@@ -66,6 +66,8 @@ internal sealed class LabForm : Form
     private readonly List<Button> _actionButtons = [];
     private readonly Button _destructive;
     private readonly Button _stop;
+    private readonly Label _autoReportStatus;
+    private readonly Button _retryReport;
     private readonly Label _status;
     private readonly Label _environment;
     private readonly Label _sourceLabel;
@@ -78,7 +80,7 @@ internal sealed class LabForm : Form
     private bool _busy;
     private bool _closeRequested;
     private bool _currentActionIsProfile;
-    private string _version = "0.2.0";
+    private string _version = "0.2.3";
     private string _targetBranch = "mwo-r57-safe-background-actions";
     public int ExitCode { get; private set; }
 
@@ -167,12 +169,23 @@ internal sealed class LabForm : Form
         });
         MakeButton("Открыть результаты", 304, Foreground, () => OpenFolder(Path.Combine(_root, "Results", "Latest")));
         MakeButton("Собрать evidence", 343, Foreground, () => StartUtility("PACK-EVIDENCE.ps1"));
-        MakeButton("Отправить отчёт", 382, Accent, () => StartUtility("PUBLISH-EVIDENCE.ps1", "-FlushQueue"));
-        MakeButton("Открыть D:\\ Lab", 421, Foreground, () => OpenFolder(_root));
-        _stop = MakeButton("Остановить", 470, Amber, StopProfile, false);
+        _autoReportStatus = new Label
+        {
+            Text = "АВТООТЧЁТ: проверка...",
+            ForeColor = Muted, BackColor = Panel,
+            Bounds = new Rectangle(12, 380, 178, 36),
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+        nav.Controls.Add(_autoReportStatus);
+        _retryReport = MakeButton("Повторить отправку", 416, Amber,
+            () => StartUtility("PUBLISH-EVIDENCE.ps1", "-FlushQueue"), false);
+        _retryReport.Bounds = new Rectangle(12, 416, 178, 25);
+        _retryReport.Visible = false;
+        MakeButton("Открыть D:\\ Lab", 445, Foreground, () => OpenFolder(_root));
+        _stop = MakeButton("Остановить", 487, Amber, StopProfile, false);
         _stop.Enabled = false;
         nav.Controls.Add(new Label { Text = "PROTECTED • GAME BLOCKED", ForeColor = Green,
-            Bounds = new Rectangle(12, 522, 178, 44), BackColor = Panel, TextAlign = ContentAlignment.MiddleLeft });
+            Bounds = new Rectangle(12, 529, 178, 38), BackColor = Panel, TextAlign = ContentAlignment.MiddleLeft });
 
         var main = new Panel { Bounds = new Rectangle(205, 60, 835, 580), BackColor = Background,
             Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top | AnchorStyles.Bottom };
@@ -217,6 +230,7 @@ internal sealed class LabForm : Form
         Shown += (_, _) =>
         {
             RefreshCards();
+            RefreshAutoReportStatus();
             if (!_smoke)
             {
                 try
@@ -291,6 +305,66 @@ internal sealed class LabForm : Form
             catch { _resultLabel.Text = "Ошибка чтения результата"; }
         }
         else { _resultLabel.Text = "Нет запусков"; _resultLabel.ForeColor = Muted; }
+    }
+
+    // The report result (PASS/FAIL) and its delivery status are separate concepts.
+    // This indicator is sourced from the backend's persisted upload receipt and queue.
+    private void RefreshAutoReportStatus()
+    {
+        try
+        {
+            int pending = 0;
+            var queue = Path.Combine(_root, "State", "EvidenceQueue");
+            if (Directory.Exists(queue))
+                pending = Directory.EnumerateFiles(queue, "*.json", SearchOption.TopDirectoryOnly).Count();
+            string state = "";
+            string when = "";
+            var statusPath = Path.Combine(_root, "State", "EvidencePublishStatus.json");
+            if (File.Exists(statusPath))
+            {
+                using var doc = JsonDocument.Parse(File.ReadAllText(statusPath));
+                state = GetProp(doc.RootElement, "state");
+                when = GetProp(doc.RootElement, "updatedAt");
+            }
+
+            bool recentlySending = false;
+            if (state == "SENDING" &&
+                DateTimeOffset.TryParse(when, CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out var stamped))
+                recentlySending = (DateTimeOffset.UtcNow - stamped).TotalMinutes < 2;
+
+            _retryReport.Visible = false;
+            if (_busy && _currentActionIsProfile)
+            {
+                _autoReportStatus.Text = "АВТООТЧЁТ\nпосле проверки";
+                _autoReportStatus.ForeColor = Muted;
+            }
+            else if (recentlySending || (_busy && !_currentActionIsProfile))
+            {
+                _autoReportStatus.Text = "АВТООТЧЁТ\nотправляется...";
+                _autoReportStatus.ForeColor = Amber;
+            }
+            else if (pending > 0 || state == "DEFERRED" || state == "SENDING")
+            {
+                _autoReportStatus.Text = "АВТООТЧЁТ\nв очереди: " + pending;
+                _autoReportStatus.ForeColor = Amber;
+                _retryReport.Visible = pending > 0;
+                _retryReport.Enabled = pending > 0 && !_busy;
+            }
+            else if (state == "PUBLISHED")
+            {
+                _autoReportStatus.Text = "АВТООТЧЁТ\n✓ отправлено в GitHub";
+                _autoReportStatus.ForeColor = Green;
+            }
+            else
+            {
+                _autoReportStatus.Text = "АВТООТЧЁТ\nожидает проверки";
+                _autoReportStatus.ForeColor = Muted;
+            }
+        }
+        catch (IOException) { /* State file may be mid-write; retry on next timer tick. */ }
+        catch (UnauthorizedAccessException) { _autoReportStatus.Text = "АВТООТЧЁТ\nнет доступа к статусу"; _autoReportStatus.ForeColor = Red; }
+        catch (JsonException) { _autoReportStatus.Text = "АВТООТЧЁТ\nчтение статуса..."; _autoReportStatus.ForeColor = Amber; }
     }
 
     private string GetSourceIdentity()
@@ -400,6 +474,7 @@ internal sealed class LabForm : Form
         _stop.Enabled = busy;
         _status.Text = busy ? "RUNNING" : string.IsNullOrWhiteSpace(status) ? "ГОТОВ" : status;
         _status.ForeColor = busy ? Amber : status == "PASS" ? Green : status == "FAIL" ? Red : Accent;
+        RefreshAutoReportStatus();
     }
 
     private void Poll()
@@ -425,6 +500,7 @@ internal sealed class LabForm : Form
                     }
                 }
             }
+            RefreshAutoReportStatus();
             if (_running is { HasExited: true })
             {
                 int code = _running.ExitCode;
