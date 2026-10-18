@@ -1,7 +1,43 @@
 @echo off
+
 setlocal EnableExtensions
+
+rem Scoped environment repair: old installed updater sets TMP equal to the downloaded BAT file.
+
+rem This BAT must make TEMP/TMP actual directories BEFORE PowerShell/.NET/MSBuild.
+
+if not exist "D:\" (
+
+  echo ERROR: Test Center requires drive D:.
+
+  pause
+
+  exit /b 2
+
+)
+
+set "MWO_LAB_TEMP=D:\MerzoOptimizer-LocalLab\Temp\ToolchainTemp"
+
+if not exist "%MWO_LAB_TEMP%" mkdir "%MWO_LAB_TEMP%"
+
+if not exist "%MWO_LAB_TEMP%\." (
+
+  echo ERROR: Cannot create a safe MSBuild temporary folder on D:.
+
+  pause
+
+  exit /b 3
+
+)
+
+set "TEMP=%MWO_LAB_TEMP%"
+
+set "TMP=%MWO_LAB_TEMP%"
+
+echo TEMP/TMP verified as directory: %MWO_LAB_TEMP%
+
 set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/mwo-local-test-center/tools/MerzoOptimizer.LocalLab"
-set "TMPDIR=%TEMP%\MerzoOptimizer-LocalLab-Bootstrap"
+set "TMPDIR=D:\MerzoOptimizer-LocalLab\Temp\BootstrapSource"
 if exist "%TMPDIR%" rmdir /s /q "%TMPDIR%"
 mkdir "%TMPDIR%" || exit /b 1
 
@@ -53,11 +89,11 @@ if not exist "%PWSH%" (
 set "PATH=C:\Program Files\PowerShell\7;%PATH%"
 
 echo.
-echo Installing Merzo Optimizer Local Test Center 0.2.1 NATIVE EXE / R57 profile ...
+echo Installing Merzo Optimizer Local Test Center 0.2.2 NATIVE EXE / R57 profile ...
 "%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Local Test Center installation failed.
-  echo Check D:\MerzoOptimizer-LocalLab\Logs\gui-smoke.log if the GUI smoke test failed.
+  echo Check D:\MerzoOptimizer-LocalLab\Logs\native-build.log or native-smoke.log.
   pause
   exit /b 1
 )

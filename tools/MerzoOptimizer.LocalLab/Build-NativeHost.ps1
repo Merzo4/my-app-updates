@@ -1,6 +1,14 @@
 param([string]$LabRoot='D:\MerzoOptimizer-LocalLab')
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
+# Fail-safe even when Build-NativeHost.ps1 is launched outside the installer:
+# .NET/MSBuild must never inherit a TMP path pointing at downloaded BAT file.
+$labTemp=Join-Path $LabRoot 'Temp\ToolchainTemp'
+New-Item -Path $labTemp -ItemType Directory -Force|Out-Null
+if(!(Test-Path -LiteralPath $labTemp -PathType Container)){throw "Invalid temporary directory: $labTemp"}
+$env:TEMP=$labTemp
+$env:TMP=$labTemp
+Write-Host "NATIVE_BUILD_TEMP_READY: $labTemp" -ForegroundColor Green
 $project=Join-Path $PSScriptRoot 'NativeHost\MerzoOptimizer.TestCenter.csproj'
 $publish=Join-Path $LabRoot 'Temp\NativeHostPublish'
 $destination=Join-Path $LabRoot 'App\Native'

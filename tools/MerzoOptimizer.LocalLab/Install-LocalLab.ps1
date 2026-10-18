@@ -4,6 +4,15 @@ Set-StrictMode -Version Latest
 
 $root='D:\MerzoOptimizer-LocalLab'
 if(!(Test-Path 'D:\')){throw 'Для Merzo Optimizer Local Test Center нужен диск D:. Лаборатория не устанавливается в Program Files или профиль пользователя.'}
+# Defensive isolation: an older UPDATE-TEST-CENTER.bat set system TMP to a .bat FILE.
+# PowerShell/.NET/MSBuild require TMP and TEMP to point to an existing DIRECTORY.
+# Set process-scoped paths before parsing source or invoking any child process.
+$labTemp=Join-Path $root 'Temp\ToolchainTemp'
+New-Item -Path $labTemp -ItemType Directory -Force|Out-Null
+if(!(Test-Path -LiteralPath $labTemp -PathType Container)){throw "Not a directory: $labTemp"}
+$env:TEMP=$labTemp
+$env:TMP=$labTemp
+Write-Host "LAB_TEMP_READY: $labTemp" -ForegroundColor Green
 
 function Resolve-PwshPath {
   $cmd=Get-Command pwsh.exe -ErrorAction SilentlyContinue
@@ -108,9 +117,9 @@ $updateLauncher=@'
 @echo off
 setlocal EnableExtensions
 set "URL=https://raw.githubusercontent.com/Merzo4/my-app-updates/mwo-local-test-center/INSTALL-MERZO-OPTIMIZER-TEST-CENTER.bat"
-set "TMP=%TEMP%\INSTALL-MERZO-OPTIMIZER-TEST-CENTER.bat"
-curl.exe -fL --retry 3 "%URL%" -o "%TMP%" || (pause & exit /b 1)
-call "%TMP%"
+set "MWO_UPDATE_DOWNLOAD=%TEMP%\INSTALL-MERZO-OPTIMIZER-TEST-CENTER.bat"
+curl.exe -fL --retry 3 "%URL%" -o "%MWO_UPDATE_DOWNLOAD%" || (pause & exit /b 1)
+call "%MWO_UPDATE_DOWNLOAD%"
 '@
 Set-Content (Join-Path $root 'UPDATE-TEST-CENTER.bat') $updateLauncher -Encoding ASCII
 
