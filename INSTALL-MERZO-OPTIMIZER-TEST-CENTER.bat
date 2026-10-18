@@ -18,7 +18,7 @@ if errorlevel 1 (
   exit /b 1
 )
 
-for %%F in (Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 AUTO-REPORT.ps1 local-lab-profile.json ENABLE-DESTRUCTIVE-LAB.ps1 PACK-EVIDENCE.ps1 PUBLISH-EVIDENCE.ps1 Install-LocalLab.ps1 README.md) do (
+for %%F in (Build-NativeHost.ps1 Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalLab.ps1 Run-Profile.ps1 Run-Profile.Core.ps1 AUTO-REPORT.ps1 local-lab-profile.json ENABLE-DESTRUCTIVE-LAB.ps1 PACK-EVIDENCE.ps1 PUBLISH-EVIDENCE.ps1 Install-LocalLab.ps1 README.md) do (
   echo Downloading %%F...
   curl.exe -fsSL --retry 3 --connect-timeout 15 "%BASE%/%%F" -o "%TMPDIR%\%%F"
   if errorlevel 1 (
@@ -28,6 +28,13 @@ for %%F in (Bootstrap-PowerShell7.ps1 Start-TestCenter.ps1 MerzoOptimizer.LocalL
   )
 )
 
+echo.
+if not exist "%TMPDIR%\NativeHost" mkdir "%TMPDIR%\NativeHost"
+for %%F in (MerzoOptimizer.TestCenter.csproj Program.cs) do (
+  echo Downloading NativeHost/%%F...
+  curl.exe -fsSL --retry 3 --connect-timeout 15 "%BASE%/NativeHost/%%F" -o "%TMPDIR%\NativeHost\%%F"
+  if errorlevel 1 (echo ERROR: NativeHost/%%F missing & pause & exit /b 1)
+)
 echo.
 echo Preparing stable PowerShell 7...
 powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%TMPDIR%\Bootstrap-PowerShell7.ps1"
@@ -46,7 +53,7 @@ if not exist "%PWSH%" (
 set "PATH=C:\Program Files\PowerShell\7;%PATH%"
 
 echo.
-echo Installing Merzo Optimizer Local Test Center 0.1.8 / R57 profile ...
+echo Installing Merzo Optimizer Local Test Center 0.2.0 NATIVE EXE / R57 profile ...
 "%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Local Test Center installation failed.
@@ -57,6 +64,7 @@ if errorlevel 1 (
 
 echo.
 echo DONE. Parser and GUI smoke gates passed.
-echo Detached GUI and automatic evidence queue are enabled.
+echo Native EXE GUI and automatic evidence queue are enabled.
+echo PowerShell remains the hidden backend only while tests execute.
 echo GitHub Actions workflows were not started.
 exit /b 0

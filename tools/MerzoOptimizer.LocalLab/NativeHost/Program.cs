@@ -77,6 +77,7 @@ internal sealed class LabForm : Form
     private long _logOffset;
     private bool _busy;
     private bool _closeRequested;
+    private bool _currentActionIsProfile;
     private string _version = "0.2.0";
     private string _targetBranch = "mwo-r57-safe-background-actions";
     public int ExitCode { get; private set; }
@@ -216,6 +217,16 @@ internal sealed class LabForm : Form
         Shown += (_, _) =>
         {
             RefreshCards();
+            if (!_smoke)
+            {
+                try
+                {
+                    Directory.CreateDirectory(Path.Combine(_root, "State"));
+                    File.WriteAllText(Path.Combine(_root, "State", "native-gui-shown.json"),
+                        JsonSerializer.Serialize(new { visible = Visible, version = _version, pid = Environment.ProcessId, at = DateTimeOffset.UtcNow }));
+                }
+                catch (Exception ex) { Debug.WriteLine(ex); }
+            }
             if (_smoke)
             {
                 Console.WriteLine("LOCAL_NATIVE_TEST_CENTER_SMOKE_PASS");
@@ -321,6 +332,7 @@ internal sealed class LabForm : Form
     private void StartProfile(string profile, bool elevate = false)
     {
         if (_busy) return;
+        _currentActionIsProfile = true;
         StartPwsh(Path.Combine(_app, "Run-Profile.ps1"),
             $"-Profile {profile}", elevate);
     }
@@ -330,6 +342,7 @@ internal sealed class LabForm : Form
         if (_busy) return;
         var path = Path.Combine(_app, script);
         if (!File.Exists(path)) { MessageBox.Show($"Файл не найден: {path}"); return; }
+        _currentActionIsProfile = false;
         StartPwsh(path, args, false);
     }
 
@@ -339,7 +352,7 @@ internal sealed class LabForm : Form
     {
         _journal.Clear();
         _checks.Items.Clear();
-        _logOffset = File.Exists(_log) ? new FileInfo(_log).Length : 0;
+        _logOffset = 0;
         SetBusy(true);
         var psi = new ProcessStartInfo(_pwsh,
             $"-NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File {Quote(script)} {args}")
@@ -417,8 +430,9 @@ internal sealed class LabForm : Form
                 int code = _running.ExitCode;
                 _running.Dispose();
                 _running = null;
-                LoadResult(code);
-                SetBusy(false, code == 0 ? "PASS" : "FAIL");
+                if (_currentActionIsProfile) LoadResult(code);
+                else RefreshCards();
+                SetBusy(false, code == 0 ? (_currentActionIsProfile ? "PASS" : "DONE") : "FAIL");
             }
         }
         catch (IOException) { }
@@ -463,6 +477,7 @@ internal sealed class LabForm : Form
             try { if (_running is { HasExited: false }) _running.Kill(entireProcessTree: true); } catch { }
         }
         _timer.Stop();
+        try { File.Delete(Path.Combine(_root, "State", "native-gui-shown.json")); } catch { }
         _running?.Dispose();
     }
 }

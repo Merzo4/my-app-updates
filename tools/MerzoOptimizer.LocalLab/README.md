@@ -165,3 +165,13 @@ GUI и Local Lab layout остаются прежними.
 The Environment card used to print `[Environment]::OSVersion.Version` and thus looked like "Windows 10.0.26200.0" on Windows 11, because Windows 11 still uses kernel version 10.0. Version 0.1.9 reads the **Windows NT CurrentVersion registry properties** `CurrentBuildNumber`, `UBR`, `DisplayVersion`, `EditionID` for clear display. Build >= 22000 is labelled "Windows 11"; Professional is labelled "Pro". For example Windows 11 Pro 25H2 build 26200.9457 shows as two rows `Windows 11 Pro` and `25H2 | 26200.9457`. A fallback uses only the available kernel information rather than crashing the GUI if the registry read fails. The machine name is omitted from this visible environment card.
 
 This is **display-only**; no change to Windows compatibility checks, registry writes, safety gates, runtime profile executions, user programs or the product. The 0.1.9 parser/GUI/owner Windows retest remains PENDING until observed. Test Center 0.1.8 is already owner GUI PASS. Updating the Test Center should not require R57 build verification to be repeated.
+
+ 
+## 0.2.0 Native Windows GUI EXE (source-only until local Windows verification)
+New `NativeHost/` is a WinForms C#/.NET 10 `WinExe`. Installer compiles a self-contained x64 EXE on the Windows developer machine via `Build-NativeHost.ps1`, tests actual native WinForms smoke, only then redirects desktop shortcut to `D:\MerzoOptimizer-LocalLab\App\Native\MerzoOptimizer.TestCenter.exe`. The native GUI does not open or require a visible PowerShell console.
+
+Diagnostics, Sync, Quick, FullSafe and the automatic evidence push still execute the existing `Run-Profile.ps1` runner in child pwsh processes without console windows. The source/risk/checkpoint contracts, production Program Files protection, no Actions minutes and GAME->RestoreAll dedicated-lab gate are unchanged.
+
+If native compilation/smoke fails, the installer stops before shortcut replacement. `START-TEST-CENTER-LEGACY.bat` opens the previous PowerShell GUI as backup; `START-TEST-CENTER.bat` uses native EXE. Installer waits for State/native-gui-shown.json. Source authored, Windows compile/runtime **NOT RUN** until the owner updates.
+
+**Do not confuse EXE GUI with conversion of all backend scripts:** PowerShell 7 still powers build and reporting behind the scenes, and can appear in Task Manager during an active test.

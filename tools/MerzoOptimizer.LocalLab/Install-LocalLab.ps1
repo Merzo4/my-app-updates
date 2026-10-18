@@ -18,6 +18,10 @@ function Ensure-PowerShell7 {
 }
 
 $sourceToolDir=Split-Path $MyInvocation.MyCommand.Path -Parent
+$nativeBuilder=Join-Path $sourceToolDir 'Build-NativeHost.ps1'
+foreach($nativeFile in @($nativeBuilder,(Join-Path $sourceToolDir 'NativeHost\MerzoOptimizer.TestCenter.csproj'),(Join-Path $sourceToolDir 'NativeHost\Program.cs'))){
+  if(!(Test-Path -LiteralPath $nativeFile)){throw "Missing native Test Center source: $nativeFile"}
+}
 $required=@('Start-TestCenter.ps1','MerzoOptimizer.LocalLab.ps1','Run-Profile.ps1','Run-Profile.Core.ps1','AUTO-REPORT.ps1','local-lab-profile.json','ENABLE-DESTRUCTIVE-LAB.ps1','PACK-EVIDENCE.ps1','PUBLISH-EVIDENCE.ps1')
 foreach($name in $required){if(!(Test-Path (Join-Path $sourceToolDir $name))){throw "Не хватает файла Test Center: $name"}}
 foreach($name in $required|Where-Object{$_-like'*.ps1'}){
@@ -50,6 +54,12 @@ if($smokeCode-ne0-or$smokeText-notmatch'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS'){
   throw "LOCAL TEST CENTER GUI SMOKE FAIL. Код=$smokeCode. Лог: $smokeLog"
 }
 Write-Host 'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS' -ForegroundColor Green
+# Build and smoke the native GUI before replacing the desktop shortcut.
+& $pwshPath -NoLogo -NoProfile -ExecutionPolicy Bypass -File $nativeBuilder -LabRoot $root
+if($LASTEXITCODE-ne0){throw "Native EXE build/smoke FAIL; see Logs\native-build.log"}
+$nativeExe=Join-Path $root 'App\Native\MerzoOptimizer.TestCenter.exe'
+if(!(Test-Path $nativeExe)){throw "Native EXE not installed: $nativeExe"}
+Write-Host 'NATIVE EXE READY' -ForegroundColor Green
 
 # WinForms-first launcher: wscript starts pwsh normally. The host console is hidden ONLY after GUI Shown.
 $vbsPath=Join-Path $app 'Launch-TestCenter.vbs'
@@ -61,10 +71,17 @@ cmd = Chr(34) & "$pwshPath" & Chr(34) & " -NoLogo -NoProfile -STA -ExecutionPoli
 sh.Run cmd, 1, False
 "@
 Set-Content $vbsPath $vbs -Encoding ASCII
+# Rollback path for pre-native PowerShell WinForms GUI.
+$legacy=@"
+@echo off
+start "" wscript.exe "$vbsPath"
+exit /b 0
+"@
+Set-Content (Join-Path $root 'START-TEST-CENTER-LEGACY.bat') $legacy -Encoding ASCII
 
 $launcher=@"
 @echo off
-start "" wscript.exe "$vbsPath"
+start "" "$nativeExe"
 exit /b 0
 "@
 Set-Content (Join-Path $root 'START-TEST-CENTER.bat') $launcher -Encoding ASCII
@@ -103,12 +120,12 @@ try{
   if(Test-Path $shortcutPath){Remove-Item $shortcutPath -Force}
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut($shortcutPath)
-  $shortcut.TargetPath=Join-Path $env:SystemRoot 'System32\wscript.exe'
-  $shortcut.Arguments='"D:\MerzoOptimizer-LocalLab\App\Launch-TestCenter.vbs"'
+  $shortcut.TargetPath=$nativeExe
+  $shortcut.Arguments=''
   $shortcut.WorkingDirectory=$app
   $shortcut.Description='Merzo Optimizer Local Test Center — локальная проверка без GitHub Actions минут'
   $productExe='C:\Program Files\Merzo Windows Optimizer\MerzoWindowsOptimizer.exe'
-  if(Test-Path $productExe){$shortcut.IconLocation="$productExe,0"}else{$shortcut.IconLocation="$env:SystemRoot\System32\shell32.dll,167"}
+  $shortcut.IconLocation="$nativeExe,0"
   $shortcut.Save()
 }catch{throw "Не удалось создать ярлык: $($_.Exception.Message)"}
 
@@ -119,17 +136,18 @@ Write-Host "Test Center: $($profile.testCenterVersion) | Product profile: $($pro
 Write-Host "PowerShell: $pwshPath"
 Write-Host 'Parser gate: PASS'
 Write-Host 'GUI smoke gate: PASS'
-Write-Host 'Launcher: WScript detached — visible terminal is not used.'
+Write-Host "Launcher: NATIVE EXE $nativeExe — no PowerShell UI host console."
+Write-Host 'Backup: START-TEST-CENTER-LEGACY.bat (PowerShell WinForms UI)'
 Write-Host 'Auto-report: queued + mwo-local-lab-evidence, Actions minutes = 0.'
-$showMarker=Join-Path $root 'State\\gui-shown.json'
+$showMarker=Join-Path $root 'State\native-gui-shown.json'
 Remove-Item -LiteralPath $showMarker -Force -ErrorAction SilentlyContinue
-Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\\wscript.exe') -ArgumentList @($vbsPath)
+Start-Process -FilePath $nativeExe
 $observed=$false
 foreach($attempt in 1..20){
   Start-Sleep -Seconds 1
   if(Test-Path -LiteralPath $showMarker){$observed=$true;break}
 }
 if(-not $observed){
-  throw 'GUI did not report WinForms Shown in 20 seconds. Check Logs\\startup-error.log and Logs\\gui-visibility-error.log. An old instance may still own the mutex; use the recovery BAT.'
+  throw 'Native WinForms EXE did not show within 20 seconds. Close previous Test Center instance and inspect Logs\native-gui-error.log. Legacy launcher preserved.'
 }
-Write-Host 'LOCAL_TEST_CENTER_GUI_SHOWN_MARKER_OBSERVED' -ForegroundColor Green
+Write-Host 'NATIVE_TEST_CENTER_GUI_SHOWN_MARKER_OBSERVED' -ForegroundColor Green
