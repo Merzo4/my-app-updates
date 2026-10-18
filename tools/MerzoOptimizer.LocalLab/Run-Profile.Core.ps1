@@ -137,13 +137,81 @@ function Sync-Source {
   return $sha
 }
 
+
+# Read-only discovery: winget may install Inno Setup 6 per-user, not under Program Files.
+# Require a physical ISCC.exe with version metadata identifying major version 6.
+# Do not copy local user paths into GitHub diagnostic stage summaries.
+function Resolve-InnoSetup6Compiler {
+  $candidates=[System.Collections.Generic.List[string]]::new()
+  $x86=[Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+  foreach($dir in @(
+    (Join-Path $env:ProgramFiles 'Inno Setup 6'),
+    (Join-Path $x86 'Inno Setup 6'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6'),
+    (Join-Path $env:LOCALAPPDATA 'Inno Setup 6')
+  )) { if($dir){ $candidates.Add((Join-Path $dir 'ISCC.exe')) } }
+  try {
+    $cmd=Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if($cmd -and $cmd.Source){$candidates.Add([string]$cmd.Source)}
+  }catch{}
+  foreach($keyPath in @(
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\ISCC.exe',
+    'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\ISCC.exe'
+  )){
+    try{
+      $appPath=(Get-Item -LiteralPath $keyPath -ErrorAction Stop).GetValue('')
+      if($appPath){$candidates.Add([string]$appPath)}
+    }catch{}
+  }
+  foreach($uninstallRoot in @(
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+    'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall',
+    'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall'
+  )){
+    foreach($key in @(Get-ChildItem -LiteralPath $uninstallRoot -ErrorAction SilentlyContinue)){
+      try{
+        $info=Get-ItemProperty -LiteralPath $key.PSPath -ErrorAction Stop
+        if(([string]$info.DisplayName -notmatch '(?i)^Inno Setup(?:,? version)?\s*6(\b|\.)') -and
+           ([string]$key.PSChildName -notmatch '(?i)^Inno Setup 6')){continue}
+        foreach($location in @([string]$info.InstallLocation,[string]$info.'Inno Setup: App Path')){
+          if(-not [string]::IsNullOrWhiteSpace($location)){
+            $candidates.Add((Join-Path $location.Trim('"') 'ISCC.exe'))
+          }
+        }
+      }catch{}
+    }
+  }
+  # Search only the registered winget Inno package family, not the whole disk.
+  $packages=Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+  if(Test-Path -LiteralPath $packages -PathType Container){
+    foreach($package in @(Get-ChildItem -LiteralPath $packages -Directory -Filter 'JRSoftware.InnoSetup*' -ErrorAction SilentlyContinue)){
+      foreach($item in @(Get-ChildItem -LiteralPath $package.FullName -File -Filter 'ISCC.exe' -Recurse -ErrorAction SilentlyContinue)){
+        $candidates.Add([string]$item.FullName)
+      }
+    }
+  }
+  foreach($candidate in @($candidates | Select-Object -Unique)){
+    try{
+      $file=Get-Item -LiteralPath $candidate -ErrorAction Stop
+      if($file.PSIsContainer -or $file.Name -ine 'ISCC.exe'){continue}
+      $versions=@([string]$file.VersionInfo.FileVersion,[string]$file.VersionInfo.ProductVersion)
+      if(@($versions | Where-Object{$_ -match '(?<!\d)6\.[0-9]+'}).Count-gt0){
+        return [string]$file.FullName
+      }
+    }catch{}
+  }
+  return $null
+}
+
 function Invoke-Diagnostics {
+  $compiler=Resolve-InnoSetup6Compiler
+  if($compiler){$env:MWO_INNO6_ISCC=$compiler}else{Remove-Item Env:\MWO_INNO6_ISCC -ErrorAction SilentlyContinue}
   $checks = @()
   $checks += @{ id='env.d'; name='D: доступен'; test={ Test-Path 'D:\' }; detail='D: required' }
   $checks += @{ id='env.git'; name='Git'; test={ [bool](Get-Command git -ErrorAction SilentlyContinue) }; detail='git in PATH' }
   $checks += @{ id='env.pwsh'; name='PowerShell 7'; test={ $PSVersionTable.PSVersion.Major -ge 7 }; detail=$PSVersionTable.PSVersion.ToString() }
   $checks += @{ id='env.dotnet'; name='.NET 10 SDK'; test={ try { [bool]((& dotnet --list-sdks 2>$null) -match '^10\.') } catch { $false } }; detail='dotnet --list-sdks' }
-  $checks += @{ id='env.inno'; name='Inno Setup 6'; test={ (Test-Path 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe') -or (Test-Path 'C:\Program Files\Inno Setup 6\ISCC.exe') }; detail='ISCC.exe' }
+  $checks += @{ id='env.inno'; name='Inno Setup 6'; test={ [bool]$compiler }; detail=$(if($compiler){'ISCC.exe (version 6 detected)'}else{'ISCC.exe not found; inspect install location'}) }
   $checks += @{ id='safe.root'; name='Лаборатория только D:'; test={ $LabRoot.StartsWith('D:\',[System.StringComparison]::OrdinalIgnoreCase) }; detail=$LabRoot }
   $checks += @{ id='safe.prod'; name='Production Program Files только чтение'; test={ -not $LabRoot.StartsWith('C:\Program Files\Merzo Windows Optimizer',[System.StringComparison]::OrdinalIgnoreCase) }; detail='protected' }
   if (Test-Path (Join-Path $SourceDir '.git')) {
@@ -204,6 +272,9 @@ function Stage-QuickBuild([string]$SourceSha) {
 }
 
 function Invoke-Quick {
+  $compiler=Resolve-InnoSetup6Compiler
+  if(!$compiler){throw 'Inno Setup 6 ISCC.exe not found; run Diagnostics for prerequisite check.'}
+  $env:MWO_INNO6_ISCC=$compiler
   $sourceSha=Sync-Source
   Prepare-BuildEnvironment
   $controller=Join-Path $SourceDir ([string]$Cfg.buildController)
