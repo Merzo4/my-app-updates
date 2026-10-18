@@ -15,4 +15,4 @@ STAGES:
 [FAIL] Inno Setup 6 — ISCC.exe
 [PASS] Лаборатория только D: — D:\MerzoOptimizer-LocalLab
 [PASS] Production Program Files только чтение — protected
-[PASS] Свободно на D: — 288.2 GB
+[PASS] Свободно на D: — 287 GB

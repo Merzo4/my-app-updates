@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "testCenterVersion": "0.1.8",
+  "testCenterVersion": "0.2.2",
   "productVersion": "0.1.57",
   "profile": "Diagnostics",
   "conclusion": "FAIL",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-10-18T07:23:17.9825767Z",
-  "finishedAt": "2026-10-18T07:23:20.4690931Z",
+  "startedAt": "2026-10-18T08:09:37.5097793Z",
+  "finishedAt": "2026-10-18T08:09:38.6819969Z",
   "machine": "WIN-1NPFQQOFFGC",
   "sourceBranch": "",
   "sourceCommit": "",
@@ -17,49 +17,49 @@
       "id": "env.d",
       "name": "D: доступен",
       "state": "PASS",
-      "durationSeconds": 0.03,
+      "durationSeconds": 0.02,
       "summary": "D: required"
     },
     {
       "id": "env.git",
       "name": "Git",
       "state": "PASS",
-      "durationSeconds": 0.04,
+      "durationSeconds": 0.02,
       "summary": "git in PATH"
     },
     {
       "id": "env.pwsh",
       "name": "PowerShell 7",
       "state": "PASS",
-      "durationSeconds": 0.03,
+      "durationSeconds": 0.01,
       "summary": "7.6.7"
     },
     {
       "id": "env.dotnet",
       "name": ".NET 10 SDK",
       "state": "PASS",
-      "durationSeconds": 0.08,
+      "durationSeconds": 0.05,
       "summary": "dotnet --list-sdks"
     },
     {
       "id": "env.inno",
       "name": "Inno Setup 6",
       "state": "FAIL",
-      "durationSeconds": 0.03,
+      "durationSeconds": 0.01,
       "summary": "ISCC.exe"
     },
     {
       "id": "safe.root",
       "name": "Лаборатория только D:",
       "state": "PASS",
-      "durationSeconds": 0.02,
+      "durationSeconds": 0.01,
       "summary": "D:\\MerzoOptimizer-LocalLab"
     },
     {
       "id": "safe.prod",
       "name": "Production Program Files только чтение",
       "state": "PASS",
-      "durationSeconds": 0.03,
+      "durationSeconds": 0.01,
       "summary": "protected"
     },
     {
@@ -67,7 +67,7 @@
       "name": "Свободно на D:",
       "state": "PASS",
       "durationSeconds": 0.0,
-      "summary": "288.2 GB"
+      "summary": "287 GB"
     }
   ]
 }
