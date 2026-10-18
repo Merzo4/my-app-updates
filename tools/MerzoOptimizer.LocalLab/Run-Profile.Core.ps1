@@ -242,6 +242,21 @@ function Resolve-InnoSetup6Compiler {
   return $null
 }
 
+# Python 3 must be a working interpreter. The Windows App Execution Alias
+# returns "Python" with exit code 9009 and is NOT a usable runtime.
+# Running a tiny in-memory -c script is safer than trusting --version text.
+function Test-Python3Runtime {
+  try {
+    $cmd=Get-Command python -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if(-not $cmd){return $false}
+    $result=@(& python -c 'import sys; print("MWO_PYTHON3_OK" if sys.version_info >= (3,10) else "MWO_PYTHON3_TOO_OLD")' 2>$null)
+    if($LASTEXITCODE -ne 0){return $false}
+    return (@($result|Where-Object{[string]$_ -eq 'MWO_PYTHON3_OK'}).Count -gt 0)
+  }catch{
+    return $false
+  }
+}
+
 function Invoke-Diagnostics {
   $compiler=Resolve-InnoSetup6Compiler
   if($compiler){$env:MWO_INNO6_ISCC=$compiler}else{Remove-Item Env:\MWO_INNO6_ISCC -ErrorAction SilentlyContinue}
@@ -250,6 +265,7 @@ function Invoke-Diagnostics {
   $checks += @{ id='env.git'; name='Git'; test={ [bool](Get-Command git -ErrorAction SilentlyContinue) }; detail='git in PATH' }
   $checks += @{ id='env.pwsh'; name='PowerShell 7'; test={ $PSVersionTable.PSVersion.Major -ge 7 }; detail=$PSVersionTable.PSVersion.ToString() }
   $checks += @{ id='env.dotnet'; name='.NET 10 SDK'; test={ try { [bool]((& dotnet --list-sdks 2>$null) -match '^10\.') } catch { $false } }; detail='dotnet --list-sdks' }
+  $checks += @{ id='env.python'; name='Python 3.10+'; test={ Test-Python3Runtime }; detail='python -c script (reject Store alias exit 9009)' }
   $checks += @{ id='env.inno'; name='Inno Setup 6'; test={ [bool]$compiler }; detail=$(if($compiler){'ISCC.exe (version 6 detected)'}else{'ISCC.exe not found; inspect install location'}) }
   $checks += @{ id='safe.root'; name='Лаборатория только D:'; test={ $LabRoot.StartsWith('D:\',[System.StringComparison]::OrdinalIgnoreCase) }; detail=$LabRoot }
   $checks += @{ id='safe.prod'; name='Production Program Files только чтение'; test={ -not $LabRoot.StartsWith('C:\Program Files\Merzo Windows Optimizer',[System.StringComparison]::OrdinalIgnoreCase) }; detail='protected' }
@@ -311,6 +327,7 @@ function Stage-QuickBuild([string]$SourceSha) {
 }
 
 function Invoke-Quick {
+  if(-not(Test-Python3Runtime)){throw 'Python 3.10+ interpreter unavailable. The Windows python alias (exit 9009) is not Python; install Python 3 and restart Test Center.'}
   $compiler=Resolve-InnoSetup6Compiler
   if(!$compiler){throw 'Inno Setup 6 ISCC.exe not found; run Diagnostics for prerequisite check.'}
   $env:MWO_INNO6_ISCC=$compiler
