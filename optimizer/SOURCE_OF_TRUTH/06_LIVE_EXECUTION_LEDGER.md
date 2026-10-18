@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-018-inno6-zero-version-cli-fallback.md
+EXECUTION_LEDGER/2026-10-18-019-test-center-025-diagnostics-pass.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -80,3 +80,6 @@ GitHub `mwo-local-lab-evidence@ca858f12ccc66a6bee2086a8d9e7738ab446763b` event `
  
 ## Checkpoint 018 — zero-version Inno 6 compiler identity fallback
 Owner screenshot confirms local ISCC.exe version resource `0.0.0.0` for both FileVersion and ProductVersion, causing v0.2.4 reject. Source fix Test Center v0.2.5 `7626f1fd28d931620b9a255a3d88672a9192578b` + cumulative R56/R57 scripts: strict bounded read-only official compiler `/?` banner fallback. User Windows **NOT RUN** for 0.2.5. Previous Diagnostics FAIL and Auto GitHub Upload PASS remain historical. Report 018.
+ 
+## Checkpoint 019 — owner Test Center 0.2.5 Diagnostics 8/8 PASS
+New remote evidence `mwo-local-lab-evidence@fe8b1f1da99770643cfeadfe0b8106a27febcb20` shows v0.2.5 Diagnostics PASS, real Inno Setup 6 detected, other seven checks PASS, auto GitHub upload PASS. P4.1 DONE. R57 Source Sync, QUICK, FULL SAFE NOT RUN. EXACT NEXT: owner Update Source → verify PASS; then QUICK → FULL SAFE gated. Report 019.

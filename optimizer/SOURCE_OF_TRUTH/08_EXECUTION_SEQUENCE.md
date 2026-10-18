@@ -65,3 +65,6 @@ P4.1 Diagnostics v0.2.4: **FAIL** Inno 6 `ISCC.exe not found; inspect install lo
 
 ## Test Center 0.2.5 major-six fallback — P4 prerequisite
 Screenshot evidence shows local ISCC.exe metadata both 0.0.0.0 and v0.2.4 rejects by version resource; source fix 0.2.5 `7626f1fd28d931620b9a255a3d88672a9192578b` uses bounded read-only /? help banner for version6 as fallback. Both cumulative Optimizer R56/R57 scripts now use matching identity check. **IMPLEMENTED SOURCE; Windows Diagnostics NOT RUN**. Next owner update to v0.2.5 and Diagnostics PASS before R57 Sync -> QUICK -> FULL SAFE. Preserve prior FAIL and do not bypass gates or run destructive profiles.
+
+## Current exact gate 2026-10-18 — P4.1 Diagnostics PASS (Test Center 0.2.5)
+Remote evidence `mwo-local-lab-evidence@fe8b1f1da99770643cfeadfe0b8106a27febcb20`, Test Center 0.2.5, `profile.Diagnostics` 2026-10-18T12:50Z: **PASS 8/8**, including owner per-user Inno Setup 6 after strict compiler help-banner fallback. Auto-report transport PASS. P4.1 prerequisite now completed on user's Windows, old Inno detection blocker resolved. **P4.2 Source Sync NOT RUN (NEXT)**; **P4.3 QUICK NOT RUN**; **P4.4 FULL SAFE NOT RUN**. Gate logic remains strict, no R57 build/release accepted yet. Run Sync in D: sandbox, then Quick, then FullSafe, stopping at first fail. P5 dangerous lab-only, P8 release no authorization.
