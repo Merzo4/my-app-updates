@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-011-test-center-tmp-msbuild-fix.md
+EXECUTION_LEDGER/2026-10-18-012-test-center-0-2-2-owner-launch-and-diagnostics.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -59,3 +59,6 @@ Owner Test Center 0.2.0 installation FAIL on `MerzoOptimizer.LocalLab.ps1` parse
  
 ## Checkpoint 011 — Test Center 0.2.1 MSBuild temp path FAIL, 0.2.2 fix
 Owner 0.2.1 installation proved legacy GUI Parse/Smoke PASS, native build FAIL due `TMP` set to downloaded BAT **file** by old updater. Fixed source 0.2.2 at `mwo-local-test-center@39b17f00c7270bca7ee3a5df607e51420c4ae2fc`; pinned bootstrap updated. Native Windows .NET compile/smoke **NOT RUN** post-fix; latest R57 product Diagnostics preflight still Inno Setup 6 FAIL. See REPORTS/2026-10-18-011-test-center-temp-var-msbuild-fail.md.
+ 
+## Checkpoint 012 — owner Test Center 0.2.2 GUI opened, Diagnostics auto evidence FAIL
+User reports 0.2.2 GUI opens. Confirmed actual `mwo-local-lab-evidence@84778f7e5c390f3c3a6e5ad8ef60ad07eadaceaa` event `20261018T080939838Z-profile.Diagnostics-660846e5`: version 0.2.2 Diagnostics **FAIL** only Inno Setup 6; remaining toolchain, lab protection PASS, automatic GitHub evidence PASS. Source/QUICK/FULL SAFE NOT RUN. Install Inno Setup 6, repeat Diagnostics then proceed gated safe sequence. Report 012.

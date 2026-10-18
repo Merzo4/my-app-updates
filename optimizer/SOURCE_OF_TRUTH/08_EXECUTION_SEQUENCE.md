@@ -44,3 +44,6 @@ Test Center 0.2.0 local parser gate owner **FAIL**, before NativeHost compile. R
 
 ## Test Center 0.2.1 -> 0.2.2 native build gate
 Owner 0.2.1: PowerShell Parser PASS, legacy GUI Smoke PASS, native `dotnet publish` **FAIL** (MSB1025 inherited TEMP/TMP invalid); no native EXE Windows PASS. v0.2.2 source/generator/temp guards `39b17f00c7270bca7ee3a5df607e51420c4ae2fc` ready, next local install retest PENDING. Do not bypass parser, smoke or full error checks. R57 P4 remains blocked on Test Center native install and Inno Setup 6 preflight; Sync/Quick/FullSafe not run.
+
+## Owner 0.2.2 environment gate update — 2026-10-18
+Test Center 0.2.2 **GUI owner-visible PASS** and **profile.Diagnostics executed, AUTO EVIDENCE PASS**. Actual Diagnostics **FAIL** due missing Inno Setup 6 `ISCC.exe`; GitHub evidence `20261018T080939838Z-profile.Diagnostics-660846e5` SHA 84778f7e5c390f3c3a6e5ad8ef60ad07eadaceaa. Toolchain non-Inno checks PASS, source sync/Quick/FullSafe BLOCKED/PENDING. No need to repeat previous installer scripts when GUI already opens. Next blocker resolution Inno Setup **6**; retest Diagnostics exact run then Sync/Quick/FullSafe on PASS. Native EXE console visibility not explicitly confirmed; do not assume complete native frontend acceptance.
