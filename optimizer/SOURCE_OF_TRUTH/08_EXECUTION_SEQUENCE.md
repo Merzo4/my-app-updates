@@ -26,3 +26,6 @@
 
 ## Future gated phases for Decision 002 — NOT YET AUTHORIZED TO START
 F0 scope/risk/capabilities; F1 GPU+memory read-only measurement; F2 resident Guardian monitor-only lifecycle/tray; F3 critical-alert synthetic verification; F4 allowlisted Auto SAFE identity/graceful-close isolated-lab safety; F5 real hardware benchmarks, sleep/resume, recording/streaming, security, install/uninstall and owner acceptance. All FUTURE / NOT RUN. **Do not bypass current R57 P4–P8 prerequisites.** No public release or process-termination trials on normal owner workstation.
+
+## R57 P4 subgate progress — Test Center visible GUI (owner, 2026-10-18)
+Environment entry gate **P4.0 Test Center 0.1.8 visible GUI: OWNER OBSERVED PASS** after 0.1.7 failure, no independent log furnished. The remaining required P4 steps are **P4.1 Diagnostics NOT RUN**, **P4.2 Sync NOT RUN**, **P4.3 QUICK NOT RUN**, **P4.4 FULL SAFE NOT RUN**, plus follow-up exact logs/review. Run in that order, stop on failure; Test Center FULL SAFE internally repeats QUICK by design. This does not modify P5 lab-only safety, P6 OTA or P8 release authority.

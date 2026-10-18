@@ -44,3 +44,6 @@ Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c99433
 
 ## Approved future scope (Decision 002) — not active implementation
 GPU Optimization Center, Memory & Background Center and Merzo Guardian have been specified at owner's request. **STATUS: APPROVED FUTURE SCOPE; CODE NOT IMPLEMENTED; TESTS NOT RUN.** Current R57 P4 and Test Center 0.1.8 owner-visible window confirmation unchanged and still PENDING. No background monitor deployed, no automatic process closing enabled.
+
+## Test Center 0.1.8 — owner visible GUI confirmation (2026-10-18)
+The owner explicitly reported: "тест центр установлен открылся 0.1.8". **PASS (owner-observed visible GUI/installed Test Center)** for the previously broken 0.1.7 startup symptom. This confirms only that 0.1.8 opens visibly on owner's Windows, **NOT** that Diagnostics, Sync, QUICK, FULL SAFE, R57 product runtime, or automatic GitHub evidence upload passed. No new Windows logs/screenshots were supplied; installer parser/smoke internals remain unverified independently. R57 P4 remains PENDING.

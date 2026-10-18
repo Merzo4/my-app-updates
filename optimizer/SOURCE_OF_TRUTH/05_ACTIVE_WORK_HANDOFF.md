@@ -45,3 +45,7 @@ Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c99433
 
 ## Future feature scope, not a switch of PRIMARY
 Decision 002 + FEATURES/ approved GPU optimization, Memory & Background and user-session Merzo Guardian monitoring with opt-in allowlisted graceful mitigation. No Guardian binary or Windows process deployed. Current P4 EXACT NEXT EXECUTION unchanged: verify Test Center 0.1.8 visible GUI on owner Windows then R57 QUICK/FULL SAFE, evidence; future F0 only when sequence permits. Do not repeat R56 accepted tests or conflate new docs SHA with new validated product code.
+
+## Latest owner Windows evidence — Test Center GUI recovered
+Owner reports Test Center 0.1.8 installed and main GUI opened. Set GUI visibility issue: **PASS / OWNER OBSERVATION** (prior 0.1.7 FAIL preserved); test run logs/smoke gates **NOT VERIFIED**. Exact next instruction for owner: run **Диагностика**, check each stage PASS and available free D:; if PASS press **Обновить Source**, then **QUICK**, then **FULL SAFE**. Stop at first FAIL and send LAB-RESULT.json, REPORT.txt, Current.log (sanitize system/user details). Test Center local profile targets R57 mwo-r57-safe-background-actions and has 0.1.8; live source HEAD after docs may differ from R57 code SHA. Test Center re-syncs a dedicated D: checkout and SAFE run verifies production Program Files fingerprint.
+**DO NOT PRESS GAME → RESTORE** on normal workstation. After actual test results, commit report/immutable checkpoint, exact OS/run/SHA/artifacts; release unchanged R55.1.

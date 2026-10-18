@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-005-gpu-memory-guardian-design.md
+EXECUTION_LEDGER/2026-10-18-006-owner-test-center-gui-pass-r57-test-next.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -41,3 +41,6 @@ Test Center 0.1.8 final source `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a0
  
 ## Decision 002 scope approved / Checkpoint 005
 GPU Optimization Center + Memory & Background Center + Merzo Guardian design recorded. Implementation **NOT STARTED**, Windows tests **NOT RUN**; no process closing or public release. Primary remains owner Test Center 0.1.8 GUI verification then R57 P4 FULL SAFE. Details: REPORTS/2026-10-18-005-gpu-memory-guardian-design.md.
+ 
+## Checkpoint 006 — Test Center GUI visibility owner PASS
+On 2026-10-18 owner confirmed Test Center 0.1.8 installed and main window visibly opens. This is **PASS limited to observed GUI recovery**, not a lab profile execution or R57 code acceptance. R57 Diagnostics/Sync/QUICK/FULL SAFE still **NOT RUN / no evidence supplied**. Latest next owner action: Diagnostics → Sync → QUICK → FULL SAFE only while each prior gate PASS; never GAME → RESTORE on main PC. Report 006.
