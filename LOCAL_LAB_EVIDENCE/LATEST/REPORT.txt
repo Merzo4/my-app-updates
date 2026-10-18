@@ -1,18 +1,11 @@
 MERZO OPTIMIZER LOCAL TEST CENTER
-Profile: Diagnostics
+Profile: Sync
 Result: PASS
 Product: 0.1.57
-Branch: 
-SHA: 
+Branch: mwo-r57-safe-background-actions
+SHA: 1f1044bcf95bc54458dc60d53a6dc5242d35dd91
 Machine: WIN-1NPFQQOFFGC
 First failure: 
 
 STAGES:
-[PASS] D: доступен — D: required
-[PASS] Git — git in PATH
-[PASS] PowerShell 7 — 7.6.7
-[PASS] .NET 10 SDK — dotnet --list-sdks
-[PASS] Inno Setup 6 — ISCC.exe (version 6 detected)
-[PASS] Лаборатория только D: — D:\MerzoOptimizer-LocalLab
-[PASS] Production Program Files только чтение — protected
-[PASS] Свободно на D: — 286.8 GB
+[PASS] Source exact checkout — mwo-r57-safe-background-actions @ 1f1044bcf95bc54458dc60d53a6dc5242d35dd91

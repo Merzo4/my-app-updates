@@ -2,72 +2,23 @@
   "schemaVersion": 1,
   "testCenterVersion": "0.2.5",
   "productVersion": "0.1.57",
-  "profile": "Diagnostics",
+  "profile": "Sync",
   "conclusion": "PASS",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-10-18T12:50:06.3276065Z",
-  "finishedAt": "2026-10-18T12:50:09.1697188Z",
+  "startedAt": "2026-10-18T12:56:30.0191322Z",
+  "finishedAt": "2026-10-18T12:56:48.9899596Z",
   "machine": "WIN-1NPFQQOFFGC",
-  "sourceBranch": "",
-  "sourceCommit": "",
+  "sourceBranch": "mwo-r57-safe-background-actions",
+  "sourceCommit": "1f1044bcf95bc54458dc60d53a6dc5242d35dd91",
   "firstCausalFailure": null,
   "stages": [
     {
-      "id": "env.d",
-      "name": "D: доступен",
+      "id": "source.sync",
+      "name": "Source exact checkout",
       "state": "PASS",
-      "durationSeconds": 0.01,
-      "summary": "D: required"
-    },
-    {
-      "id": "env.git",
-      "name": "Git",
-      "state": "PASS",
-      "durationSeconds": 0.03,
-      "summary": "git in PATH"
-    },
-    {
-      "id": "env.pwsh",
-      "name": "PowerShell 7",
-      "state": "PASS",
-      "durationSeconds": 0.01,
-      "summary": "7.6.7"
-    },
-    {
-      "id": "env.dotnet",
-      "name": ".NET 10 SDK",
-      "state": "PASS",
-      "durationSeconds": 0.05,
-      "summary": "dotnet --list-sdks"
-    },
-    {
-      "id": "env.inno",
-      "name": "Inno Setup 6",
-      "state": "PASS",
-      "durationSeconds": 0.0,
-      "summary": "ISCC.exe (version 6 detected)"
-    },
-    {
-      "id": "safe.root",
-      "name": "Лаборатория только D:",
-      "state": "PASS",
-      "durationSeconds": 0.0,
-      "summary": "D:\\MerzoOptimizer-LocalLab"
-    },
-    {
-      "id": "safe.prod",
-      "name": "Production Program Files только чтение",
-      "state": "PASS",
-      "durationSeconds": 0.0,
-      "summary": "protected"
-    },
-    {
-      "id": "env.disk",
-      "name": "Свободно на D:",
-      "state": "PASS",
-      "durationSeconds": 0.0,
-      "summary": "286.8 GB"
+      "durationSeconds": 18.7,
+      "summary": "mwo-r57-safe-background-actions @ 1f1044bcf95bc54458dc60d53a6dc5242d35dd91"
     }
   ]
 }

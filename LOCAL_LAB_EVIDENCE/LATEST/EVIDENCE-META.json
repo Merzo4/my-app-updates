@@ -1,11 +1,11 @@
 {
-  "publishedAt": "2026-10-18T12:50:13.8757362Z",
+  "publishedAt": "2026-10-18T12:56:53.3281426Z",
   "testCenterVersion": "0.2.5",
   "productVersion": "0.1.57",
-  "profile": "Diagnostics",
+  "profile": "Sync",
   "conclusion": "PASS",
-  "sourceBranch": "",
-  "sourceCommit": "",
+  "sourceBranch": "mwo-r57-safe-background-actions",
+  "sourceCommit": "1f1044bcf95bc54458dc60d53a6dc5242d35dd91",
   "machine": "WIN-1NPFQQOFFGC",
   "actionsMinutesUsed": 0,
   "evidenceBranch": "mwo-local-lab-evidence"
