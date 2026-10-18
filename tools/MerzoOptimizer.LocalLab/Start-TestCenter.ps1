@@ -1,4 +1,7 @@
+param([switch]$ManagedShortcut)
+
 $ErrorActionPreference='Stop'
+if($ManagedShortcut){$env:MWO_TESTCENTER_HIDE_CONSOLE='1'}
 Set-StrictMode -Version Latest
 
 $root=if($env:MWO_LAB_ROOT){$env:MWO_LAB_ROOT}else{'D:\MerzoOptimizer-LocalLab'}

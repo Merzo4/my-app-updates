@@ -428,6 +428,42 @@ $btnStop.Add_Click({
   }
 })
 
+# GUI visibility is an independent gate. Creating WinForms controls (SmokeTest) does
+# not prove that a user-facing window actually became visible.
+$form.Add_Shown({
+  try {
+    $form.WindowState=[Windows.Forms.FormWindowState]::Normal
+    $form.ShowInTaskbar=$true
+    $form.BringToFront()
+    [void]$form.Activate()
+    if(-not $form.Visible){throw 'WinForms Shown fired but the form is not visible.'}
+    $marker=Join-Path $LabRoot 'State\\gui-shown.json'
+    $record=[ordered]@{date=(Get-Date).ToString('o');pid=$PID;visible=$form.Visible;windowState=[string]$form.WindowState;testCenterVersion=[string]$Cfg.testCenterVersion}
+    $record|ConvertTo-Json|Set-Content -LiteralPath $marker -Encoding UTF8
+    # Only the managed shortcut hides its own console AFTER the GUI has shown.
+    # A manual console launch keeps its window so startup errors remain readable.
+    if($env:MWO_TESTCENTER_HIDE_CONSOLE -eq '1'){
+      if(-not ('MerzoOptimizer.GuiConsole' -as [type])){
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+namespace MerzoOptimizer {
+  public static class GuiConsole {
+    [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
+  }
+}
+'@ -ErrorAction Stop
+      }
+      $console=[MerzoOptimizer.GuiConsole]::GetConsoleWindow()
+      if($console -ne [IntPtr]::Zero){[void][MerzoOptimizer.GuiConsole]::ShowWindow($console,0)}
+    }
+  }catch{
+    try{$_.Exception.ToString()|Set-Content (Join-Path $LabRoot 'Logs\\gui-visibility-error.log') -Encoding UTF8}catch{}
+    [Windows.Forms.MessageBox]::Show($_.Exception.Message,'Merzo Optimizer Test Center - GUI visibility error')|Out-Null
+  }
+})
+
 $form.Add_FormClosing({
   param($sender,$e)
   if($script:Busy){
@@ -441,6 +477,7 @@ $form.Add_FormClosing({
     if($null-ne$script:CurrentProcess){try{& taskkill.exe /PID $script:CurrentProcess.Id /T /F|Out-Null}catch{}}
   }
   $timer.Stop()
+  try{Remove-Item -LiteralPath (Join-Path $LabRoot 'State\\gui-shown.json') -Force -ErrorAction SilentlyContinue}catch{}
   try{$mutex.ReleaseMutex()}catch{}
   $mutex.Dispose()
 })

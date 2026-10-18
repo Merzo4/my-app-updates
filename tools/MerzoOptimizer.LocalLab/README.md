@@ -16,9 +16,15 @@ Test Center — это инфраструктура разработки, а н�
 
 Безопасные профили не устанавливают туда кандидат и обязаны доказать, что fingerprint Program Files не изменился.
 
+## Fix 0.1.8: invisible window on first launch
+
+Previous 0.1.7 used `WScript.Shell.Run(..., 0)` to hide pwsh; that may also suppress the visible WinForms main window, while the mutex still blocks a second launch. Version 0.1.8 starts with a normal window style and hides ONLY the host console after the WinForms Shown event. A GUI-shown marker is written to `D:\\MerzoOptimizer-LocalLab\\State\\gui-shown.json`; installer waits for it and fails rather than claiming that an invisible UI is working.
+
+If an old hidden GUI owns the mutex, use the scoped `optimizer/BOOTSTRAP/RECOVER_TEST_CENTER_WINDOW.bat` from active Optimizer branch before reinstall. It must not stop other PowerShell processes or other programs.
+
 ## Запуск без терминала
 
-Рабочий ярлык **Merzo Optimizer Test Center** запускает `wscript.exe`, который создаёт скрытый `pwsh`-процесс. Пользователь видит только WinForms GUI. Видимый PowerShell/Windows Terminal не является частью нормального запуска, поэтому его нельзя случайно закрыть вместе с Test Center.
+Рабочий ярлык **Merzo Optimizer Test Center** запускает `wscript.exe`, который создаёт скрытый `pwsh`-процесс. Пользователь видит WinForms GUI. В версии 0.1.8 консоль может кратковременно появиться до события Shown; затем скрывается сама консоль, а не окно UI. Видимый PowerShell/Windows Terminal не является частью нормального запуска, поэтому его нельзя случайно закрыть вместе с Test Center.
 
 `START-TEST-CENTER.bat` также только передаёт запуск в `wscript.exe` и сразу завершается.
 

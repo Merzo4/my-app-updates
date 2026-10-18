@@ -39,7 +39,7 @@ foreach($name in $required){Copy-Item (Join-Path $sourceToolDir $name) (Join-Pat
 if(Test-Path (Join-Path $sourceToolDir 'README.md')){Copy-Item (Join-Path $sourceToolDir 'README.md') (Join-Path $app 'README.md') -Force}
 
 # Runtime GUI smoke gate on the real local Windows before shortcut creation.
-$smokeLog=Join-Path $root 'Logs\gui-smoke.log'
+$smokeLog=Join-Path $root 'Logs\\gui-smoke.log'
 Remove-Item $smokeLog -Force -ErrorAction SilentlyContinue
 $smokeArgs=@('-NoLogo','-NoProfile','-STA','-ExecutionPolicy','Bypass','-File',(Join-Path $app 'MerzoOptimizer.LocalLab.ps1'),'-SmokeTest')
 $smokeOut=& $pwshPath @smokeArgs 2>&1
@@ -56,8 +56,9 @@ $vbsPath=Join-Path $app 'Launch-TestCenter.vbs'
 $startScript=Join-Path $app 'Start-TestCenter.ps1'
 $vbs=@"
 Set sh = CreateObject("WScript.Shell")
-cmd = Chr(34) & "$pwshPath" & Chr(34) & " -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File " & Chr(34) & "$startScript" & Chr(34)
-sh.Run cmd, 0, False
+cmd = Chr(34) & "$pwshPath" & Chr(34) & " -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File " & Chr(34) & "$startScript" & Chr(34) & " -ManagedShortcut"
+' Window style 1 makes the WinForms UI visible; the GUI hides its console only after Shown.
+sh.Run cmd, 1, False
 "@
 Set-Content $vbsPath $vbs -Encoding ASCII
 
@@ -120,4 +121,15 @@ Write-Host 'Parser gate: PASS'
 Write-Host 'GUI smoke gate: PASS'
 Write-Host 'Launcher: WScript detached — visible terminal is not used.'
 Write-Host 'Auto-report: queued + mwo-local-lab-evidence, Actions minutes = 0.'
-Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\wscript.exe') -ArgumentList @($vbsPath)
+$showMarker=Join-Path $root 'State\\gui-shown.json'
+Remove-Item -LiteralPath $showMarker -Force -ErrorAction SilentlyContinue
+Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\\wscript.exe') -ArgumentList @($vbsPath)
+$observed=$false
+foreach($attempt in 1..20){
+  Start-Sleep -Seconds 1
+  if(Test-Path -LiteralPath $showMarker){$observed=$true;break}
+}
+if(-not $observed){
+  throw 'GUI did not report WinForms Shown in 20 seconds. Check Logs\\startup-error.log and Logs\\gui-visibility-error.log. An old instance may still own the mutex; use the recovery BAT.'
+}
+Write-Host 'LOCAL_TEST_CENTER_GUI_SHOWN_MARKER_OBSERVED' -ForegroundColor Green
