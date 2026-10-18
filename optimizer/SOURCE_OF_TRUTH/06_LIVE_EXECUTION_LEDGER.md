@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-010-test-center-parser-source-restoration.md
+EXECUTION_LEDGER/2026-10-18-011-test-center-tmp-msbuild-fix.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -56,3 +56,6 @@ Owner requested EXE instead of PowerShell-hosted interface. Native WinForms fron
  
 ## Checkpoint 010 — Test Center 0.2.0 parser FAIL repaired in source
 Owner Test Center 0.2.0 installation FAIL on `MerzoOptimizer.LocalLab.ps1` parse. Source confirmed malformed (~1538 lines, duplicated sections). Restored baseline 0.1.8 + single Windows 11 label helper to 531 lines; independent Test Center fix `1db2b1d91ea699a84fd0a374b00867c185d9e8c9`, new 0.2.1 pinned BAT. No Windows re-run yet. R57 P4 still blocked, last Diagnostics Inno 6 FAIL unchanged. REPORTS/2026-10-18-010-native-gui-parser-source-repair.md.
+ 
+## Checkpoint 011 — Test Center 0.2.1 MSBuild temp path FAIL, 0.2.2 fix
+Owner 0.2.1 installation proved legacy GUI Parse/Smoke PASS, native build FAIL due `TMP` set to downloaded BAT **file** by old updater. Fixed source 0.2.2 at `mwo-local-test-center@39b17f00c7270bca7ee3a5df607e51420c4ae2fc`; pinned bootstrap updated. Native Windows .NET compile/smoke **NOT RUN** post-fix; latest R57 product Diagnostics preflight still Inno Setup 6 FAIL. See REPORTS/2026-10-18-011-test-center-temp-var-msbuild-fail.md.

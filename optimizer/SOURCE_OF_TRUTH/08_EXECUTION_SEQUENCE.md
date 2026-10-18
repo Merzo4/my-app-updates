@@ -41,3 +41,6 @@ Native Lab 0.2.0 source and local builder PREPARED at `mwo-local-test-center@f87
 
 ## Test Center Native EXE 0.2.1 unblocker
 Test Center 0.2.0 local parser gate owner **FAIL**, before NativeHost compile. Restored PS source and pinned fixed Test Center 0.2.1 at `1db2b1d91ea699a84fd0a374b00867c185d9e8c9`: GitHub source corrected, native Windows parser/.NET build/GUI still **PENDING**. Reattempt local installer; stop on first FAIL, preserve logs and previous launcher. Once PASS, continue the R57 P4 sequence Diagnostics (requires Inno Setup 6), Sync, QUICK, FULL SAFE. This issue does not authorize bypass of parser gate or destructive modes.
+
+## Test Center 0.2.1 -> 0.2.2 native build gate
+Owner 0.2.1: PowerShell Parser PASS, legacy GUI Smoke PASS, native `dotnet publish` **FAIL** (MSB1025 inherited TEMP/TMP invalid); no native EXE Windows PASS. v0.2.2 source/generator/temp guards `39b17f00c7270bca7ee3a5df607e51420c4ae2fc` ready, next local install retest PENDING. Do not bypass parser, smoke or full error checks. R57 P4 remains blocked on Test Center native install and Inno Setup 6 preflight; Sync/Quick/FullSafe not run.

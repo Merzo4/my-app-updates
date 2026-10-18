@@ -33,3 +33,6 @@ New C# frontend is NOT an R57 product build. Test: actual dotnet publish win-x64
 
 ## Test Center 0.2.0 parser regression evidence
 0.2.0 failed ParseFile on owner's Windows with repeated pasted PowerShell source sections. Requirements for future GUI/bootstrap changes: parser gate PASS before native compile, invariant count of root definitions/GUI entry exactly once, native dotnet publish smoke, launcher no-console behavior, rollback preservation; mark corrected code as IMPLEMENTED only until owner installs 0.2.1 and captures logs. This was test of infrastructure, not the R57 runtime.
+
+## Test Center Native EXE MSBuild temp regression
+Test Center 0.2.1 exposed environment misuse: updater `set TMP=<downloaded BAT file>` corrupts MSBuild temporary directory, error MSB1025. Future bootstrap tests must simulate poisoned TEMP/TMP inherited from legacy/updater, run parser gate, real C# publish/smoke, create shortcut only on success and verify temp cleanup confined to Lab. Test Center 0.2.2 code attempts fail-safe scoped correction; no actual Windows re-run yet. Record original FAIL, don't relabel as .NET SDK corruption.
