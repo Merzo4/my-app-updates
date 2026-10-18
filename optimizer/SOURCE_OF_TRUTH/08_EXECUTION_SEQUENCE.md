@@ -62,3 +62,6 @@ Confirmed by owner read-only PowerShell file existence check: current-user `Prog
 
 ## Actual 0.2.4 owner execution, 2026-10-18
 P4.1 Diagnostics v0.2.4: **FAIL** Inno 6 `ISCC.exe not found; inspect install location` (GitHub evidence ca858f12ccc66a6bee2086a8d9e7738ab446763b); other diagnostics PASS, Auto-Report upload PASS. Previous compiler file presence True. Subreason of resolver rejection still unknown; obtain exact executable embedded version metadata, do not relax safety/version gate on assumption. P4.2 Sync, P4.3 Quick, P4.4 FullSafe remain NOT RUN/BLOCKED. R57 product source unchanged by this evidence-only cycle, no destructive testing on workstation.
+
+## Test Center 0.2.5 major-six fallback — P4 prerequisite
+Screenshot evidence shows local ISCC.exe metadata both 0.0.0.0 and v0.2.4 rejects by version resource; source fix 0.2.5 `7626f1fd28d931620b9a255a3d88672a9192578b` uses bounded read-only /? help banner for version6 as fallback. Both cumulative Optimizer R56/R57 scripts now use matching identity check. **IMPLEMENTED SOURCE; Windows Diagnostics NOT RUN**. Next owner update to v0.2.5 and Diagnostics PASS before R57 Sync -> QUICK -> FULL SAFE. Preserve prior FAIL and do not bypass gates or run destructive profiles.

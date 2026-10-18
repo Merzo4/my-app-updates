@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-017-inno6-0-2-4-diagnostics-still-fail.md
+EXECUTION_LEDGER/2026-10-18-018-inno6-zero-version-cli-fallback.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -77,3 +77,6 @@ Owner's PowerShell screenshot: `Test-Path (Join-Path $env:LOCALAPPDATA 'Programs
  
 ## Checkpoint 017 — Actual Test Center 0.2.4 Diagnostics FAIL, Auto Evidence PASS
 GitHub `mwo-local-lab-evidence@ca858f12ccc66a6bee2086a8d9e7738ab446763b` event `20261018T093622014Z-profile.Diagnostics-48622cba`: genuine 0.2.4 Diagnostics FAIL on Inno Setup 6 resolver, remaining checks PASS and transport PASS. Owner's physical per-user ISCC.exe presence True yet no matching compiler found. Root cause of resolver rejection PENDING; inspect embedded FileVersion/ProductVersion read-only before another patch. No Source/QUICK/FULL SAFE. Report 017.
+ 
+## Checkpoint 018 — zero-version Inno 6 compiler identity fallback
+Owner screenshot confirms local ISCC.exe version resource `0.0.0.0` for both FileVersion and ProductVersion, causing v0.2.4 reject. Source fix Test Center v0.2.5 `7626f1fd28d931620b9a255a3d88672a9192578b` + cumulative R56/R57 scripts: strict bounded read-only official compiler `/?` banner fallback. User Windows **NOT RUN** for 0.2.5. Previous Diagnostics FAIL and Auto GitHub Upload PASS remain historical. Report 018.
