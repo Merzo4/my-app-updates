@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "testCenterVersion": "0.2.4",
+  "testCenterVersion": "0.2.5",
   "productVersion": "0.1.57",
   "profile": "Diagnostics",
-  "conclusion": "FAIL",
+  "conclusion": "PASS",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-10-18T09:36:16.1995981Z",
-  "finishedAt": "2026-10-18T09:36:20.2259800Z",
+  "startedAt": "2026-10-18T12:50:06.3276065Z",
+  "finishedAt": "2026-10-18T12:50:09.1697188Z",
   "machine": "WIN-1NPFQQOFFGC",
   "sourceBranch": "",
   "sourceCommit": "",
-  "firstCausalFailure": "Inno Setup 6: ISCC.exe not found; inspect install location",
+  "firstCausalFailure": null,
   "stages": [
     {
       "id": "env.d",
@@ -24,7 +24,7 @@
       "id": "env.git",
       "name": "Git",
       "state": "PASS",
-      "durationSeconds": 0.01,
+      "durationSeconds": 0.03,
       "summary": "git in PATH"
     },
     {
@@ -38,15 +38,15 @@
       "id": "env.dotnet",
       "name": ".NET 10 SDK",
       "state": "PASS",
-      "durationSeconds": 0.04,
+      "durationSeconds": 0.05,
       "summary": "dotnet --list-sdks"
     },
     {
       "id": "env.inno",
       "name": "Inno Setup 6",
-      "state": "FAIL",
-      "durationSeconds": 0.02,
-      "summary": "ISCC.exe not found; inspect install location"
+      "state": "PASS",
+      "durationSeconds": 0.0,
+      "summary": "ISCC.exe (version 6 detected)"
     },
     {
       "id": "safe.root",
@@ -59,7 +59,7 @@
       "id": "safe.prod",
       "name": "Production Program Files только чтение",
       "state": "PASS",
-      "durationSeconds": 0.02,
+      "durationSeconds": 0.0,
       "summary": "protected"
     },
     {
