@@ -444,7 +444,7 @@ $form.Add_Shown({
     # A manual console launch keeps its window so startup errors remain readable.
     if($env:MWO_TESTCENTER_HIDE_CONSOLE -eq '1'){
       if(-not ('MerzoOptimizer.GuiConsole' -as [type])){
-        Add-Type -TypeDefinition @'
+        $nativeSource=@'
 using System;
 using System.Runtime.InteropServices;
 namespace MerzoOptimizer {
@@ -453,7 +453,8 @@ namespace MerzoOptimizer {
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hwnd, int command);
   }
 }
-'@ -ErrorAction Stop
+'@
+        Add-Type -TypeDefinition $nativeSource -ErrorAction Stop
       }
       $console=[MerzoOptimizer.GuiConsole]::GetConsoleWindow()
       if($console -ne [IntPtr]::Zero){[void][MerzoOptimizer.GuiConsole]::ShowWindow($console,0)}

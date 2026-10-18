@@ -51,7 +51,7 @@ if($smokeCode-ne0-or$smokeText-notmatch'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS'){
 }
 Write-Host 'LOCAL_TEST_CENTER_GUI_SMOKE_TEST_PASS' -ForegroundColor Green
 
-# Detached GUI launcher: wscript starts hidden pwsh without creating a visible console/Windows Terminal window.
+# WinForms-first launcher: wscript starts pwsh normally. The host console is hidden ONLY after GUI Shown.
 $vbsPath=Join-Path $app 'Launch-TestCenter.vbs'
 $startScript=Join-Path $app 'Start-TestCenter.ps1'
 $vbs=@"
