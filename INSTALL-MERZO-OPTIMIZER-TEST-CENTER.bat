@@ -53,7 +53,7 @@ if not exist "%PWSH%" (
 set "PATH=C:\Program Files\PowerShell\7;%PATH%"
 
 echo.
-echo Installing Merzo Optimizer Local Test Center 0.2.0 NATIVE EXE / R57 profile ...
+echo Installing Merzo Optimizer Local Test Center 0.2.1 NATIVE EXE / R57 profile ...
 "%PWSH%" -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%TMPDIR%\Install-LocalLab.ps1"
 if errorlevel 1 (
   echo ERROR: Local Test Center installation failed.
