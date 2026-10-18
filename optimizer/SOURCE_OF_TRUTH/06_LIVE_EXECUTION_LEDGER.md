@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-016-inno6-current-user-file-confirmed.md
+EXECUTION_LEDGER/2026-10-18-017-inno6-0-2-4-diagnostics-still-fail.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -74,3 +74,6 @@ Owner screen verifies winget Inno 6.7.3 installed but Program Files ISCC search 
  
 ## Checkpoint 016 — Inno Setup 6 per-user compiler file exists
 Owner's PowerShell screenshot: `Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe')` yielded **True**. Supports current-user installation; no reinstalls. Windows real Test Center 0.2.4 Diagnostics/QUICK not yet run, remote evidence still previous 0.2.3 failure. Report 016; exact next local 0.2.4 Diagnostics PASS then safe R57 Source → QUICK → FULL SAFE.
+ 
+## Checkpoint 017 — Actual Test Center 0.2.4 Diagnostics FAIL, Auto Evidence PASS
+GitHub `mwo-local-lab-evidence@ca858f12ccc66a6bee2086a8d9e7738ab446763b` event `20261018T093622014Z-profile.Diagnostics-48622cba`: genuine 0.2.4 Diagnostics FAIL on Inno Setup 6 resolver, remaining checks PASS and transport PASS. Owner's physical per-user ISCC.exe presence True yet no matching compiler found. Root cause of resolver rejection PENDING; inspect embedded FileVersion/ProductVersion read-only before another patch. No Source/QUICK/FULL SAFE. Report 017.

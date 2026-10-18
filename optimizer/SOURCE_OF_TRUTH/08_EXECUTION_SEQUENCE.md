@@ -59,3 +59,6 @@ Observed winget 6.7.3 installed but `ISCC.exe` absent from both Program Files gl
 
 ## 2026-10-18 — P4 prerequisite narrowed to real Test Center 0.2.4 Diagnostics
 Confirmed by owner read-only PowerShell file existence check: current-user `Programs\Inno Setup 6\ISCC.exe` exists (PASS); `winget` earlier reports Inno 6.7.3. New v0.2.4 resolver is coded but not Windows-accepted; no new GitHub local-lab-evidence beyond v0.2.3. Do not reinstall toolchain or skip version verification. Next local 0.2.4 Diagnostics → on PASS Sync → QUICK → FULL SAFE. Preserve status segregation and auto reports; main-PC GAME/RESTORE prohibited.
+
+## Actual 0.2.4 owner execution, 2026-10-18
+P4.1 Diagnostics v0.2.4: **FAIL** Inno 6 `ISCC.exe not found; inspect install location` (GitHub evidence ca858f12ccc66a6bee2086a8d9e7738ab446763b); other diagnostics PASS, Auto-Report upload PASS. Previous compiler file presence True. Subreason of resolver rejection still unknown; obtain exact executable embedded version metadata, do not relax safety/version gate on assumption. P4.2 Sync, P4.3 Quick, P4.4 FullSafe remain NOT RUN/BLOCKED. R57 product source unchanged by this evidence-only cycle, no destructive testing on workstation.
