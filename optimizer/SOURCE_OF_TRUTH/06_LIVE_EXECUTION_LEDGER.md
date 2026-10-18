@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-019-test-center-025-diagnostics-pass.md
+EXECUTION_LEDGER/2026-10-18-020-test-center-025-source-sync-pass.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -83,3 +83,6 @@ Owner screenshot confirms local ISCC.exe version resource `0.0.0.0` for both Fil
  
 ## Checkpoint 019 — owner Test Center 0.2.5 Diagnostics 8/8 PASS
 New remote evidence `mwo-local-lab-evidence@fe8b1f1da99770643cfeadfe0b8106a27febcb20` shows v0.2.5 Diagnostics PASS, real Inno Setup 6 detected, other seven checks PASS, auto GitHub upload PASS. P4.1 DONE. R57 Source Sync, QUICK, FULL SAFE NOT RUN. EXACT NEXT: owner Update Source → verify PASS; then QUICK → FULL SAFE gated. Report 019.
+ 
+## Checkpoint 020 — Local Lab 0.2.5 Source Sync PASS, QUICK exact next
+Owner auto-uploaded new GitHub evidence `mwo-local-lab-evidence@7e9a8942dc87d16f5fc2b1642c5aeab56d7e57ee`, event `20261018T125650456Z-profile.Sync-d965463d`, Source exact checkout **PASS** `mwo-r57-safe-background-actions@1f1044bcf95bc54458dc60d53a6dc5242d35dd91`, lab D: only. Diagnostics v0.2.5 already 8/8 PASS; QUICK/FULL SAFE still NOT RUN. Commit only docs/status now; QUICK's own Sync resolves newest HEAD. Report 020.
