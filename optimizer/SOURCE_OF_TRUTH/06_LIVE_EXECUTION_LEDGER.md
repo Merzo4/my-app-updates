@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-009-native-test-center-gui-preview.md
+EXECUTION_LEDGER/2026-10-18-010-test-center-parser-source-restoration.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -53,3 +53,6 @@ Owner Windows Settings shows 11 Pro 25H2, Test Center 0.1.8 mislabels NT kernel 
  
 ## Checkpoint 009 — native EXE Test Center 0.2.0 (no PowerShell UI console)
 Owner requested EXE instead of PowerShell-hosted interface. Native WinForms frontend added `mwo-local-test-center@f8757abcfabf0780fcf891661e0e1596dc1ad96a`, bootstrap pinned and legacy fallback preserved. **Implemented source; Windows .NET publish/smoke/actual user GUI still NOT RUN**. Backend profiles continue to use pwsh invisibly. R57 Diagnostics FAIL Inno 6 is last remote evidence; no product code or release changed. Report 009.
+ 
+## Checkpoint 010 — Test Center 0.2.0 parser FAIL repaired in source
+Owner Test Center 0.2.0 installation FAIL on `MerzoOptimizer.LocalLab.ps1` parse. Source confirmed malformed (~1538 lines, duplicated sections). Restored baseline 0.1.8 + single Windows 11 label helper to 531 lines; independent Test Center fix `1db2b1d91ea699a84fd0a374b00867c185d9e8c9`, new 0.2.1 pinned BAT. No Windows re-run yet. R57 P4 still blocked, last Diagnostics Inno 6 FAIL unchanged. REPORTS/2026-10-18-010-native-gui-parser-source-repair.md.

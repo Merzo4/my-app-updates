@@ -30,3 +30,6 @@ Actual `profile.Diagnostics` event at `20261018T072321769Z-profile.Diagnostics-7
 
 ## Native Test Center 0.2.0 acceptance required before owner signoff
 New C# frontend is NOT an R57 product build. Test: actual dotnet publish win-x64, smoke launch with clean mutex, user desktop EXE direct launch without PowerShell console, no duplicate GUI windows, Windows 11 edition/build card, Diagnostics missing Inno6 reports FAIL accurately, auto evidence published (when authorized), GUI controls, Source/QUICK/FULL SAFE parity after prerequisites, ProcessExit/Stop and profile logging, evidence utility dialogs, dedicated lab-only destructive action blocked on owner PC, rollback to legacy GUI. Inspect relevant Logs/native-build.log/native-smoke.log/native-gui-error.log. No code signing/Windows runtime PASS inferred from the GitHub source commit.
+
+## Test Center 0.2.0 parser regression evidence
+0.2.0 failed ParseFile on owner's Windows with repeated pasted PowerShell source sections. Requirements for future GUI/bootstrap changes: parser gate PASS before native compile, invariant count of root definitions/GUI entry exactly once, native dotnet publish smoke, launcher no-console behavior, rollback preservation; mark corrected code as IMPLEMENTED only until owner installs 0.2.1 and captures logs. This was test of infrastructure, not the R57 runtime.

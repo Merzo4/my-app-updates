@@ -38,3 +38,6 @@ Test Center 0.1.9 Windows 11 Edition/DisplayVersion/UBR label fix **IMPLEMENTED 
 
 ## Test Center infrastructure subgate: native EXE UI migration
 Native Lab 0.2.0 source and local builder PREPARED at `mwo-local-test-center@f8757abcfabf0780fcf891661e0e1596dc1ad96a`; real Windows build/smoke and owner GUI verification **PENDING**, must not be called PASS. Restore point is existing 0.1.9 GUI and `START-TEST-CENTER-LEGACY.bat`. Validate native EXE start and close (no console), Diagnostics, auto evidence. Then fulfill R57 P4 Diagnostics prerequisites Inno 6, Source Sync, QUICK, FULL SAFE in existing safe sequence. Separate native test UI build is NOT R57 program acceptance and never authorizes GAME/RESTORE.
+
+## Test Center Native EXE 0.2.1 unblocker
+Test Center 0.2.0 local parser gate owner **FAIL**, before NativeHost compile. Restored PS source and pinned fixed Test Center 0.2.1 at `1db2b1d91ea699a84fd0a374b00867c185d9e8c9`: GitHub source corrected, native Windows parser/.NET build/GUI still **PENDING**. Reattempt local installer; stop on first FAIL, preserve logs and previous launcher. Once PASS, continue the R57 P4 sequence Diagnostics (requires Inno Setup 6), Sync, QUICK, FULL SAFE. This issue does not authorize bypass of parser gate or destructive modes.

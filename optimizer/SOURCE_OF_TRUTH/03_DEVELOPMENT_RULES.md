@@ -51,3 +51,6 @@ Checkpoint никогда не редактировать задним числ�
 
 ## Resident Guardian safety boundary (Decision 002)
 Long-running agent must default OFF/monitor-only, be per-user interactive with visible tray/exit/uninstall, low sampling overhead, bounded audit logs, user-defined action policies and no hidden SYSTEM privilege. A critical threshold never grants process kill authority. Unattended actions must be exact identity-checked, separately consented, stateless, gracious close only, with no unsaved work, persistent exclusions, cooldown and fail-closed semantics. No arbitrary cache clearing or false RAM/FPS claims. Do not implement before R57 gate sequence authorizes future block.
+
+## Source patching hazard noted at Test Center 0.2.0
+Text transformations must never use replacement strings with unescaped JavaScript `$'`, `$&`, `$1` substitution patterns when authored source contains PowerShell-dollar variables and regex strings. Use index-based splice or replace-function callbacks; assert exact anchors and no duplicated root functions/terminators; run authoritative PowerShell Parser.ParseFile and C# compilation on Windows before marking PASS. Source corruption in v0.1.9 persisted to v0.2.0 because the parser gate correctly blocked owner installation — **DO NOT DISABLE THIS GATE**. A missing test cannot be papered over with source-only PASS.
