@@ -1,65 +1,65 @@
 {
   "schemaVersion": 1,
-  "testCenterVersion": "0.1.4",
-  "productVersion": "0.1.56",
+  "testCenterVersion": "0.1.8",
+  "productVersion": "0.1.57",
   "profile": "Diagnostics",
   "conclusion": "FAIL",
   "authoritative": false,
   "systemMutationUsed": false,
-  "startedAt": "2026-09-02T02:30:38.6384687Z",
-  "finishedAt": "2026-09-02T02:30:42.6535678Z",
-  "machine": "WIN-8MMDIRKE3AV",
+  "startedAt": "2026-10-18T07:23:17.9825767Z",
+  "finishedAt": "2026-10-18T07:23:20.4690931Z",
+  "machine": "WIN-1NPFQQOFFGC",
   "sourceBranch": "",
   "sourceCommit": "",
-  "firstCausalFailure": ".NET 10 SDK: dotnet --list-sdks",
+  "firstCausalFailure": "Inno Setup 6: ISCC.exe",
   "stages": [
     {
       "id": "env.d",
       "name": "D: доступен",
       "state": "PASS",
-      "durationSeconds": 0.02,
+      "durationSeconds": 0.03,
       "summary": "D: required"
     },
     {
       "id": "env.git",
       "name": "Git",
       "state": "PASS",
-      "durationSeconds": 0.02,
+      "durationSeconds": 0.04,
       "summary": "git in PATH"
     },
     {
       "id": "env.pwsh",
       "name": "PowerShell 7",
       "state": "PASS",
-      "durationSeconds": 0.01,
-      "summary": "7.6.4"
+      "durationSeconds": 0.03,
+      "summary": "7.6.7"
     },
     {
       "id": "env.dotnet",
       "name": ".NET 10 SDK",
-      "state": "FAIL",
-      "durationSeconds": 3.33,
+      "state": "PASS",
+      "durationSeconds": 0.08,
       "summary": "dotnet --list-sdks"
     },
     {
       "id": "env.inno",
       "name": "Inno Setup 6",
       "state": "FAIL",
-      "durationSeconds": 0.02,
+      "durationSeconds": 0.03,
       "summary": "ISCC.exe"
     },
     {
       "id": "safe.root",
       "name": "Лаборатория только D:",
       "state": "PASS",
-      "durationSeconds": 0.01,
+      "durationSeconds": 0.02,
       "summary": "D:\\MerzoOptimizer-LocalLab"
     },
     {
       "id": "safe.prod",
       "name": "Production Program Files только чтение",
       "state": "PASS",
-      "durationSeconds": 0.01,
+      "durationSeconds": 0.03,
       "summary": "protected"
     },
     {
@@ -67,7 +67,7 @@
       "name": "Свободно на D:",
       "state": "PASS",
       "durationSeconds": 0.0,
-      "summary": "276.3 GB"
+      "summary": "288.2 GB"
     }
   ]
 }

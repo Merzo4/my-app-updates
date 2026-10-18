@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "eventId": "20261018T072321769Z-profile.Diagnostics-7cd11a93",
+  "event": "profile.Diagnostics",
+  "outcome": "FAIL",
+  "message": "Inno Setup 6: ISCC.exe",
+  "profile": "Diagnostics",
+  "occurredAt": "2026-10-18T07:23:21.7696166Z",
+  "machine": "WIN-1NPFQQOFFGC",
+  "user": "Сергей",
+  "testCenterVersion": "0.1.8",
+  "productVersion": "0.1.57",
+  "sourceBranch": "",
+  "sourceCommit": "",
+  "logFile": "20261018T072321769Z-profile.Diagnostics-7cd11a93.log",
+  "actionsMinutesUsed": 0
+}

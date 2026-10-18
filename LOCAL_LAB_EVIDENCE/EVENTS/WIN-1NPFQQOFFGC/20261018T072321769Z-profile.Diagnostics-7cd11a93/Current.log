@@ -1,0 +1,11 @@
+
+[12:23:18] Merzo Optimizer Local Test Center 0.1.8 | profile=Diagnostics
+[12:23:18] PASS | D: доступен | D: required
+[12:23:18] PASS | Git | git in PATH
+[12:23:18] PASS | PowerShell 7 | 7.6.7
+[12:23:18] PASS | .NET 10 SDK | dotnet --list-sdks
+[12:23:18] FAIL | Inno Setup 6 | ISCC.exe
+[12:23:18] PASS | Лаборатория только D: | D:\MerzoOptimizer-LocalLab
+[12:23:18] PASS | Production Program Files только чтение | protected
+[12:23:20] PASS | Свободно на D: | 288.2 GB
+[12:23:20] FINAL FAIL | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
