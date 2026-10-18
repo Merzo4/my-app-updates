@@ -346,10 +346,13 @@ internal sealed class LabForm : Form
             }
             else if (pending > 0 || state == "DEFERRED" || state == "SENDING")
             {
-                _autoReportStatus.Text = "АВТООТЧЁТ\nв очереди: " + pending;
+                _autoReportStatus.Text = pending > 0
+                    ? "АВТООТЧЁТ\nв очереди: " + pending
+                    : "АВТООТЧЁТ\nотложено · повторить";
                 _autoReportStatus.ForeColor = Amber;
-                _retryReport.Visible = pending > 0;
-                _retryReport.Enabled = pending > 0 && !_busy;
+                // Also allow retry if the latest report failed to publish without a queued event.
+                _retryReport.Visible = true;
+                _retryReport.Enabled = !_busy;
             }
             else if (state == "PUBLISHED")
             {
@@ -358,8 +361,19 @@ internal sealed class LabForm : Form
             }
             else
             {
-                _autoReportStatus.Text = "АВТООТЧЁТ\nожидает проверки";
-                _autoReportStatus.ForeColor = Muted;
+                // Migration from v0.2.2: the old publisher had no local status receipt.
+                // A confirmed EVIDENCE_PUBLISHED line is evidence of the last GitHub push.
+                bool previousPublished = false;
+                if (File.Exists(_log))
+                {
+                    using var reader = new StreamReader(_log, Encoding.UTF8, true);
+                    var content = reader.ReadToEnd();
+                    previousPublished = content.Contains("EVIDENCE_PUBLISHED branch=", StringComparison.Ordinal);
+                }
+                _autoReportStatus.Text = previousPublished
+                    ? "АВТООТЧЁТ\n✓ ранее отправлено"
+                    : "АВТООТЧЁТ\nожидает проверки";
+                _autoReportStatus.ForeColor = previousPublished ? Green : Muted;
             }
         }
         catch (IOException) { /* State file may be mid-write; retry on next timer tick. */ }
