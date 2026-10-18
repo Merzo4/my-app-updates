@@ -14,7 +14,8 @@ $marker=Join-Path $SourceRoot 'R57_SAFE_BACKGROUND_ACTIONS.marker'
 
 Require (Test-Path $marker) 'MARKER'
 Require ($models.Contains('string Management,') -and $models.Contains('IReadOnlyList<string> SafeTweakIds')) 'MODEL_ACTIONABILITY'
-Require ($analyzer.Contains('ResolveSafeManagement') -and $analyzer.Contains('r34.edge.disable_startup_boost') -and $analyzer.Contains('browser.chrome.disable_background_mode') -and $analyzer.Contains('r34.widgets.disable_widgets_policy')) 'REVIEWED_MAPPING'\nRequire ($analyzer.Contains('string.Equals(family, "msedge", StringComparison.OrdinalIgnoreCase)')) 'EDGE_FAMILY_MAPPING'
+Require ($analyzer.Contains('ResolveSafeManagement') -and $analyzer.Contains('r34.edge.disable_startup_boost') -and $analyzer.Contains('browser.chrome.disable_background_mode') -and $analyzer.Contains('r34.widgets.disable_widgets_policy')) 'REVIEWED_MAPPING'
+Require ($analyzer.Contains('string.Equals(family, "msedge", StringComparison.OrdinalIgnoreCase)')) 'EDGE_FAMILY_MAPPING'
 Require ($analyzer.Contains('WebView2 — общий runtime автоматически не отключается') -and $analyzer.Contains('OneDrive/Автозагрузка сценарий; из аудита не удалять')) 'UNKNOWN_OWNER_GUARD'
 
 $allowed=@('r34.edge.disable_startup_boost','r34.edge.disable_background_mode','browser.chrome.disable_background_mode','r34.widgets.disable_widgets_policy')
