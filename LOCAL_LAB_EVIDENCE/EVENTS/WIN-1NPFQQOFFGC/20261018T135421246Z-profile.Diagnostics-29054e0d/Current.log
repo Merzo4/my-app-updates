@@ -1,0 +1,13 @@
+
+[18:54:16] Merzo Optimizer Local Test Center 0.2.6 | profile=Diagnostics
+[18:54:18] PASS | D: доступен | D: required
+[18:54:18] PASS | Git | git in PATH
+[18:54:18] PASS | PowerShell 7 | 7.6.7
+[18:54:18] PASS | .NET 10 SDK | dotnet --list-sdks
+[18:54:18] PASS | Python 3.10+ | python -c script (reject Store alias exit 9009)
+[18:54:18] PASS | Inno Setup 6 | ISCC.exe (version 6 detected)
+[18:54:18] PASS | Лаборатория только D: | D:\MerzoOptimizer-LocalLab
+[18:54:18] PASS | Production Program Files только чтение | protected
+[18:54:18] PASS | Source origin | Merzo4/my-app-updates
+[18:54:18] PASS | Свободно на D: | 286.8 GB
+[18:54:19] FINAL PASS | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json

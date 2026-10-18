@@ -1,9 +1,9 @@
 {
-  "publishedAt": "2026-10-18T13:00:35.8894622Z",
-  "testCenterVersion": "0.2.5",
+  "publishedAt": "2026-10-18T13:54:25.2430352Z",
+  "testCenterVersion": "0.2.6",
   "productVersion": "0.1.57",
-  "profile": "Quick",
-  "conclusion": "FAIL",
+  "profile": "Diagnostics",
+  "conclusion": "PASS",
   "sourceBranch": "mwo-r57-safe-background-actions",
   "sourceCommit": "1329f6cd887faa3fe85f701c988609e7aa4f16f4",
   "machine": "WIN-1NPFQQOFFGC",

@@ -1,13 +1,20 @@
 MERZO OPTIMIZER LOCAL TEST CENTER
-Profile: Quick
-Result: FAIL
+Profile: Diagnostics
+Result: PASS
 Product: 0.1.57
 Branch: mwo-r57-safe-background-actions
 SHA: 1329f6cd887faa3fe85f701c988609e7aa4f16f4
 Machine: WIN-1NPFQQOFFGC
-First failure: Локальная cumulative сборка: controller exit=1
+First failure: 
 
 STAGES:
-[PASS] Source exact checkout — mwo-r57-safe-background-actions @ 1329f6cd887faa3fe85f701c988609e7aa4f16f4
-[FAIL] Локальная cumulative сборка — controller exit=1
-[FAIL] First causal failure — Build controller failed: 1
+[PASS] D: доступен — D: required
+[PASS] Git — git in PATH
+[PASS] PowerShell 7 — 7.6.7
+[PASS] .NET 10 SDK — dotnet --list-sdks
+[PASS] Python 3.10+ — python -c script (reject Store alias exit 9009)
+[PASS] Inno Setup 6 — ISCC.exe (version 6 detected)
+[PASS] Лаборатория только D: — D:\MerzoOptimizer-LocalLab
+[PASS] Production Program Files только чтение — protected
+[PASS] Source origin — Merzo4/my-app-updates
+[PASS] Свободно на D: — 286.8 GB

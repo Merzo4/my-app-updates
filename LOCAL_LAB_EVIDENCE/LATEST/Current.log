@@ -1,26 +1,20 @@
 
-[18:00:21] Merzo Optimizer Local Test Center 0.2.5 | profile=Quick
-[18:00:23] Fetching exact branch mwo-r57-safe-background-actions
-[18:00:24] From https://github.com/Merzo4/my-app-updates
-[18:00:24]  * branch            mwo-r57-safe-background-actions -> FETCH_HEAD
-[18:00:24]    1f1044b..1329f6c  mwo-r57-safe-background-actions -> origin/mwo-r57-safe-background-actions
-[18:00:24] Reset branch 'mwo-r57-safe-background-actions'
-[18:00:24] branch 'mwo-r57-safe-background-actions' set up to track 'origin/mwo-r57-safe-background-actions'.
-[18:00:24] Your branch is up to date with 'origin/mwo-r57-safe-background-actions'.
-[18:00:25] HEAD is now at 1329f6c docs(optimizer): record Test Center 0.2.5 exact R57 Source Sync PASS, checkpoint 020
-[18:00:25] PASS | Source exact checkout | mwo-r57-safe-background-actions @ 1329f6cd887faa3fe85f701c988609e7aa4f16f4
-[18:00:30] Python [31;1mException: [0mD:\MerzoOptimizer-LocalLab\Temp\Run\Current\r50_release_expanded.ps1:35[0m
-[18:00:30] [31;1m[0m[36;1mLine |[0m
-[18:00:30] [31;1m[0m[36;1m[36;1m  35 | [0m : r/patches/$name");if($LASTEXITCODE-ne0){[36;1mthrow "Patch failed: $name"[0m}}[0m
-[18:00:30] [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
-[18:00:30] [31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mPatch failed: r24_update_center.py[0m
-[18:00:30] FAIL | Локальная cumulative сборка | controller exit=1
-[18:00:30] FAIL | First causal failure | Build controller failed: 1
-[18:00:30] FINAL FAIL | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
-[auto-report] AUTO_REPORT_QUEUED event=profile.Quick outcome=FAIL id=20261018T130032723Z-profile.Quick-6d3cf2f4
+[18:54:16] Merzo Optimizer Local Test Center 0.2.6 | profile=Diagnostics
+[18:54:18] PASS | D: доступен | D: required
+[18:54:18] PASS | Git | git in PATH
+[18:54:18] PASS | PowerShell 7 | 7.6.7
+[18:54:18] PASS | .NET 10 SDK | dotnet --list-sdks
+[18:54:18] PASS | Python 3.10+ | python -c script (reject Store alias exit 9009)
+[18:54:18] PASS | Inno Setup 6 | ISCC.exe (version 6 detected)
+[18:54:18] PASS | Лаборатория только D: | D:\MerzoOptimizer-LocalLab
+[18:54:18] PASS | Production Program Files только чтение | protected
+[18:54:18] PASS | Source origin | Merzo4/my-app-updates
+[18:54:18] PASS | Свободно на D: | 286.8 GB
+[18:54:19] FINAL PASS | evidence=D:\MerzoOptimizer-LocalLab\Results\Latest\LAB-RESULT.json
+[auto-report] AUTO_REPORT_QUEUED event=profile.Diagnostics outcome=PASS id=20261018T135421246Z-profile.Diagnostics-29054e0d
 [auto-report] From https://github.com/Merzo4/my-app-updates
 [auto-report]  * branch            mwo-local-lab-evidence -> FETCH_HEAD
 [auto-report] Reset branch 'mwo-local-lab-evidence'
 [auto-report] branch 'mwo-local-lab-evidence' set up to track 'origin/mwo-local-lab-evidence'.
 [auto-report] Your branch is up to date with 'origin/mwo-local-lab-evidence'.
-[auto-report] HEAD is now at 7e9a894 Local Lab evidence queue 1 event(s)
+[auto-report] HEAD is now at aa91d2d Local Lab evidence queue 1 event(s)
