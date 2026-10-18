@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-022-python-alias-9009-fix-toolchain-preflight.md
+EXECUTION_LEDGER/2026-10-18-023-owner-python-313-runtime-pass.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -92,3 +92,6 @@ Actual Test Center v0.2.5 GitHub evidence `mwo-local-lab-evidence@aa91d2d16a64e6
  
 ## Checkpoint 022 — missing Python 3 proven by exit 9009, Lab v0.2.6 preflight
 Owner PowerShell `python --version` produced bare `Python` exit 9009, `py -3` command not found. Confirms no usable Python interpreter, exact root cause of QUICK FAIL at first Python patch. Test Center source-only v0.2.6 SHA `95c735c54ced62605e9c02cd98569b0b4d023665` adds functional Python 3.10+ execution Diagnostics gate and fail-fast QUICK; pinned BAT updated. Owner must install Python and rerun real Windows tests; currently Python install/0.2.6 runtime **NOT RUN**, QUICK remains FAIL, FULL SAFE BLOCKED. Report 022.
+ 
+## Checkpoint 023 — Python 3.13.15 local runtime PASS, Lab 0.2.6 Diagnostics next
+Owner provided real PowerShell `python --version` = 3.13.15, `python -c` prints Python 3.13.15 64-bit, exit 0: previous executable alias 9009 block resolved in fresh terminal. Test Center source v0.2.6 remains pinned. **NO current Test Center 0.2.6 run/evidence**, new Diagnostics/QUICK NOT RUN; prior QUICK FAIL retained. Next install/update Test Center 0.2.6 and Diagnostics, then gated QUICK and FULL SAFE. Report 023.
