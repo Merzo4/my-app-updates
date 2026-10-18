@@ -141,6 +141,46 @@ function Sync-Source {
 # Read-only discovery: winget may install Inno Setup 6 per-user, not under Program Files.
 # Require a physical ISCC.exe with version metadata identifying major version 6.
 # Do not copy local user paths into GitHub diagnostic stage summaries.
+
+# Genuine Inno Setup 6 may expose 0.0.0.0 as the ISCC.exe file version.
+# Its documented "/?" banner is a safe, read-only secondary identity check.
+# Only a discovered ISCC.exe is invoked, with a fixed argument and timeout.
+function Test-Inno6CompilerIdentity {
+  param([Parameter(Mandatory)][string]$CompilerPath)
+  try {
+    $file=Get-Item -LiteralPath $CompilerPath -ErrorAction Stop
+    if($file.PSIsContainer -or $file.Name -ine 'ISCC.exe'){return $false}
+    $versions=@([string]$file.VersionInfo.FileVersion,[string]$file.VersionInfo.ProductVersion)
+    if(@($versions|Where-Object{$_ -match '(?<!\d)7\.[0-9]+'}).Count-gt0){return $false}
+    if(@($versions|Where-Object{$_ -match '(?<!\d)6\.[0-9]+'}).Count-gt0){return $true}
+    $psi=[Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName=[string]$file.FullName
+    $psi.ArgumentList.Add('/?')
+    $psi.WorkingDirectory=[string]$file.DirectoryName
+    $psi.UseShellExecute=$false
+    $psi.CreateNoWindow=$true
+    $psi.RedirectStandardOutput=$true
+    $psi.RedirectStandardError=$true
+    $proc=[Diagnostics.Process]::new()
+    try {
+      $proc.StartInfo=$psi
+      if(-not $proc.Start()){return $false}
+      $outputTask=$proc.StandardOutput.ReadToEndAsync()
+      $errorTask=$proc.StandardError.ReadToEndAsync()
+      if(-not $proc.WaitForExit(6000)){
+        try{$proc.Kill($true)}catch{}
+        return $false
+      }
+      $banner=$outputTask.GetAwaiter().GetResult()+[Environment]::NewLine+$errorTask.GetAwaiter().GetResult()
+      return ($banner -match '(?im)^\s*Inno Setup 6(?:\.\d+)*\s+Command[- ]Line Compiler\b')
+    }finally{
+      $proc.Dispose()
+    }
+  }catch{
+    return $false
+  }
+}
+
 function Resolve-InnoSetup6Compiler {
   $candidates=[System.Collections.Generic.List[string]]::new()
   $x86=[Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
@@ -194,8 +234,7 @@ function Resolve-InnoSetup6Compiler {
     try{
       $file=Get-Item -LiteralPath $candidate -ErrorAction Stop
       if($file.PSIsContainer -or $file.Name -ine 'ISCC.exe'){continue}
-      $versions=@([string]$file.VersionInfo.FileVersion,[string]$file.VersionInfo.ProductVersion)
-      if(@($versions | Where-Object{$_ -match '(?<!\d)6\.[0-9]+'}).Count-gt0){
+      if(Test-Inno6CompilerIdentity -CompilerPath ([string]$file.FullName)){
         return [string]$file.FullName
       }
     }catch{}
