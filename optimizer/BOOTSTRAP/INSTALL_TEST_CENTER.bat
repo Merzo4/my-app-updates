@@ -1,17 +1,17 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title Merzo Optimizer - Install Local Test Center 0.2.5
-rem Official pinned source: Merzo4/my-app-updates, commit 7626f1fd28d931620b9a255a3d88672a9192578b
+title Merzo Optimizer - Install Local Test Center 0.2.6
+rem Official pinned source: Merzo4/my-app-updates, commit 95c735c54ced62605e9c02cd98569b0b4d023665
 rem Test Center is independent of the stable Optimizer and requires drive D:.
 echo ===================================================
-echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.2.5
+echo  MERZO OPTIMIZER - LOCAL TEST CENTER 0.2.6
 echo ===================================================
-echo Source: GitHub / pinned commit 7626f1fd28d931620b9a255a3d88672a9192578b
+echo Source: GitHub / pinned commit 95c735c54ced62605e9c02cd98569b0b4d023665
 echo Install location: D:\MerzoOptimizer-LocalLab
 echo Existing installed production Optimizer is not replaced.
 echo.
 if not exist "D:\" (
-  echo ERROR: D: drive is required for the current Test Center 0.2.5.
+  echo ERROR: D: drive is required for the current Test Center 0.2.6.
   echo No disk or partition will be created automatically.
   pause
   exit /b 2
@@ -30,7 +30,7 @@ if errorlevel 1 (
 )
 echo.
 echo Important: finish any ongoing Test Center checks before restarting the GUI.
-choice /M "Close ONLY old Test Center GUI processes and continue to update 0.2.5"
+choice /M "Close ONLY old Test Center GUI processes and continue to update 0.2.6"
 if errorlevel 2 (
   echo Cancelled by user. No Test Center processes stopped.
   pause
@@ -53,8 +53,8 @@ if not exist "%MWO_SAFE_BUILD_TEMP%\." (
 )
 set "TEMP=%MWO_SAFE_BUILD_TEMP%"
 set "TMP=%MWO_SAFE_BUILD_TEMP%"
-set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/7626f1fd28d931620b9a255a3d88672a9192578b/tools/MerzoOptimizer.LocalLab"
-set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.2.5-Pinned"
+set "BASE=https://raw.githubusercontent.com/Merzo4/my-app-updates/95c735c54ced62605e9c02cd98569b0b4d023665/tools/MerzoOptimizer.LocalLab"
+set "STAGE=%TEMP%\MerzoOptimizer-TestCenter-0.2.6-Pinned"
 if not exist "%STAGE%" mkdir "%STAGE%"
 if not exist "%STAGE%" (
   echo ERROR: Cannot create temporary bootstrap directory.
@@ -105,7 +105,7 @@ if errorlevel 1 (
   exit /b 9
 )
 echo.
-echo OK: Native Test Center 0.2.5 EXE installed. The GUI was launched.
+echo OK: Native Test Center 0.2.6 EXE installed. The GUI was launched.
 echo Use Diagnostics, Update Source, QUICK, then FULL SAFE.
 echo GAME to RESTORE is blocked on a normal workstation.
 exit /b 0

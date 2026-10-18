@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-021-test-center-025-quick-first-python-patch-fail.md
+EXECUTION_LEDGER/2026-10-18-022-python-alias-9009-fix-toolchain-preflight.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -89,3 +89,6 @@ Owner auto-uploaded new GitHub evidence `mwo-local-lab-evidence@7e9a8942dc87d16f
  
 ## Checkpoint 021 — QUICK FAIL in R49 first Python patch, root cause unconfirmed
 Actual Test Center v0.2.5 GitHub evidence `mwo-local-lab-evidence@aa91d2d16a64e68a28910cc99118691b0d7fca13` id `20261018T130032723Z-profile.Quick-6d3cf2f4`: Source Sync PASS at 1329f6cd887faa3fe85f701c988609e7aa4f16f4; cumulative Quick FAIL controller exit=1; `r50_release_expanded.ps1:35` reports `Patch failed: r24_update_center.py`. Published log omits Python subprocess diagnostic. Python runtime on owner new PC unknown; next safe owner step python --version/py -3 --version before code changes. FULL SAFE blocked and not run. Report 021.
+ 
+## Checkpoint 022 — missing Python 3 proven by exit 9009, Lab v0.2.6 preflight
+Owner PowerShell `python --version` produced bare `Python` exit 9009, `py -3` command not found. Confirms no usable Python interpreter, exact root cause of QUICK FAIL at first Python patch. Test Center source-only v0.2.6 SHA `95c735c54ced62605e9c02cd98569b0b4d023665` adds functional Python 3.10+ execution Diagnostics gate and fail-fast QUICK; pinned BAT updated. Owner must install Python and rerun real Windows tests; currently Python install/0.2.6 runtime **NOT RUN**, QUICK remains FAIL, FULL SAFE BLOCKED. Report 022.
