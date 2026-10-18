@@ -23,3 +23,6 @@
 
 ## Дисциплина
 Технический PASS можно зафиксировать только для конкретных SHA/build/run/environment. Не переносить PASS R56 на R57; не тестировать risky gate на рабочем ПК. Перед выходом из этапа обновить current/handoff/ledger/roadmap. Отдельный документальный коммит не закрывает технологический gate.
+
+## Future gated phases for Decision 002 — NOT YET AUTHORIZED TO START
+F0 scope/risk/capabilities; F1 GPU+memory read-only measurement; F2 resident Guardian monitor-only lifecycle/tray; F3 critical-alert synthetic verification; F4 allowlisted Auto SAFE identity/graceful-close isolated-lab safety; F5 real hardware benchmarks, sleep/resume, recording/streaming, security, install/uninstall and owner acceptance. All FUTURE / NOT RUN. **Do not bypass current R57 P4–P8 prerequisites.** No public release or process-termination trials on normal owner workstation.

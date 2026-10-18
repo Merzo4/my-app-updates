@@ -41,3 +41,6 @@ Patch-only Test Center 0.1.8 prepared at `mwo-local-test-center@3523eaabba8461aa
  
 ### Final pinned Test Center hotfix SHA / parser-safety correction
 Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.
+
+## Approved future scope (Decision 002) — not active implementation
+GPU Optimization Center, Memory & Background Center and Merzo Guardian have been specified at owner's request. **STATUS: APPROVED FUTURE SCOPE; CODE NOT IMPLEMENTED; TESTS NOT RUN.** Current R57 P4 and Test Center 0.1.8 owner-visible window confirmation unchanged and still PENDING. No background monitor deployed, no automatic process closing enabled.

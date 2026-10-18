@@ -35,3 +35,6 @@ Never silently alter MerzoStream files, public release tags, shared updater reso
 `optimizer/BOOTSTRAP/` — version-pinned user-facing BATs for Test Center and publicly released Optimizer; also README and NEW_CHAT_PROMPT. Do not confuse them with product compilation scripts in optimizer/scripts. See REPORTS/2026-10-18-002-install-bootstrap-and-new-chat.md.
  
 Test Center separate infrastructure `mwo-local-test-center@3523eaabba8461aa63ec80a3da9d7270180ffd3a` has 0.1.8 hotfix. The active Optimizer branch contains the pinned repair installer and scoped `optimizer/BOOTSTRAP/RECOVER_TEST_CENTER_WINDOW.bat` for troubleshooting. Source of Test Center is NOT bundled into optimizer/SOURCE_OF_TRUTH and not merged into Optimizer product code.
+
+## Decision 002 planned feature contracts
+`optimizer/SOURCE_OF_TRUTH/FEATURES/GPU_OPTIMIZATION_CENTER.md`, `MEMORY_BACKGROUND_CENTER.md`, `MERZO_GUARDIAN.md` and `DECISIONS/2026-10-18-002-performance-gpu-memory-guardian.md` are source-of-truth specifications for planned modules, **not implementation files**. No new GPU/Guardian binary or driver in optimizer source.

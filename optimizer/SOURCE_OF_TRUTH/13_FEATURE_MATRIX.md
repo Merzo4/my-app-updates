@@ -26,3 +26,12 @@ Date: 2026-10-18. Status column distinguishes available public from candidate/pr
 | Full owner Windows 11 R57 acceptance | no verified result | PENDING |
 
 Rule: edit this matrix with exact evidence and release gate; do not overwrite previous historical failure or promote a draft.
+
+## Additional planned features / Decision 002
+| Feature | Binding source | Status |
+|---|---|---|
+| GPU Optimization Center | FEATURES/GPU_OPTIMIZATION_CENTER.md | APPROVED SCOPE; NOT IMPLEMENTED; NOT RUN |
+| Memory & Background Center | FEATURES/MEMORY_BACKGROUND_CENTER.md | APPROVED SCOPE; NOT IMPLEMENTED; NOT RUN |
+| Merzo Guardian resident monitor | FEATURES/MERZO_GUARDIAN.md | APPROVED SCOPE; NOT IMPLEMENTED; NOT RUN |
+| Guardian auto SAFE app mitigation | Decision 002, explicit per-app opt-in & isolated tests | FUTURE / NOT RUN |
+| Windows idle 2–3 GB RAM | measured target, dependent on workload | ASPIRATIONAL ONLY; NOT GUARANTEED |

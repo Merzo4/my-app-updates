@@ -40,3 +40,6 @@ Merzo Windows Optimizer — графическая Windows-программа д
 
 ## Критерий готового продукта
 Установщик, все предусмотренные основные пользовательские сценарии, отсутствие launch/crash регрессий, безопасный Update/Recovery, проверенный на целевой Windows UX и подтверждённые тестами отличия по рискам. Stable/public release — только после явного разрешения владельца.
+
+## Future approved product direction: GPU / Memory / Merzo Guardian
+Decision 002 authorizes the **future scope** of GPU Optimization Center, Memory & Background Center and optional resident Merzo Guardian. Read three FEATURES specifications. None of these has code, Windows test evidence or public availability as of this checkpoint. Guardian defaults to OFF / monitor-only and may only opt-in graceful-close positively verified stateless apps; no blanket killing, disabling system services, or 2–3 GB idle guarantee.

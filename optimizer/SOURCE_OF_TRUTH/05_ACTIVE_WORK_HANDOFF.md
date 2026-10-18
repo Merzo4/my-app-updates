@@ -42,3 +42,6 @@ EXACT NEXT OWNER STEP: close any active Test Center tests, run patched Test Cent
  
 ### Final pinned Test Center hotfix SHA / parser-safety correction
 Final Test Center 0.1.8 source is `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3` (supersedes earlier infrastructure hotfix commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a ONLY for the installer source pin). This is a minimal parse-safe native Console Add-Type adjustment; 0.1.8 **WINDOWS NOT RUN/PENDING**. Updated pinned BAT uses this exact immutable SHA. Prior checkpoint 003 is kept unchanged as historical.
+
+## Future feature scope, not a switch of PRIMARY
+Decision 002 + FEATURES/ approved GPU optimization, Memory & Background and user-session Merzo Guardian monitoring with opt-in allowlisted graceful mitigation. No Guardian binary or Windows process deployed. Current P4 EXACT NEXT EXECUTION unchanged: verify Test Center 0.1.8 visible GUI on owner Windows then R57 QUICK/FULL SAFE, evidence; future F0 only when sequence permits. Do not repeat R56 accepted tests or conflate new docs SHA with new validated product code.

@@ -23,3 +23,6 @@
 
 ## Непроверенное
 Полная карта зависимостей каждого класса/сервиса, обещания о complete source migration и всех конфигурациях Windows не утверждаются без отдельного исходного аудита. Этот файл обновлять только с указанием SHA и фактов, не гипотез.
+
+## Proposed architecture only — Guardian and performance centers
+Future separate least-privileged per-user agent with tray, singleton/current-session opt-in autorun, bounded telemetry loop, local policy and action journal; existing WPF main app views and existing process-audit/selected-tweak/operation state shared via safe IPC. No second mutation engine, driver, SYSTEM service or unattended elevation. GPU feature-detected vendor adapters; Memory normalized memory-manager counters. Guardian itself may only read/alert by default, never auto kill; any reversible changes must use existing Snapshot->Apply->Verify->Undo. Not coded.

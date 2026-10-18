@@ -48,3 +48,6 @@ Checkpoint никогда не редактировать задним числ�
 
 ## F. Рабочий цикл нового ИИ
 Полное чтение согласно 00 -> сверка live HEAD -> определить один основной блок -> выполнить только разрешённые действия -> реальные проверки -> запись REPORT/LEDGER/live status до финального отчёта пользователю. Фразы «продолжай» и «отчет отправлен» не создают PASS сами по себе.
+
+## Resident Guardian safety boundary (Decision 002)
+Long-running agent must default OFF/monitor-only, be per-user interactive with visible tray/exit/uninstall, low sampling overhead, bounded audit logs, user-defined action policies and no hidden SYSTEM privilege. A critical threshold never grants process kill authority. Unattended actions must be exact identity-checked, separately consented, stateless, gracious close only, with no unsaved work, persistent exclusions, cooldown and fail-closed semantics. No arbitrary cache clearing or false RAM/FPS claims. Do not implement before R57 gate sequence authorizes future block.

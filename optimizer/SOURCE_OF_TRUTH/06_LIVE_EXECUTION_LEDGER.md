@@ -3,7 +3,7 @@
 This is a mutable pointer/summary, NOT the append-only checkpoint itself.
 
 ## Latest immutable checkpoint
-EXECUTION_LEDGER/2026-10-18-004-test-center-parser-safe-bootstrap-pin.md
+EXECUTION_LEDGER/2026-10-18-005-gpu-memory-guardian-design.md
 
 ## Current authority
 Repo: Merzo4/my-app-updates.
@@ -38,3 +38,6 @@ Owner screenshots: invisible WinForms UI 0.1.7, second launch blocked by mutex. 
  
 ## Parser-safe final 0.1.8 infrastructure pin
 Test Center 0.1.8 final source `mwo-local-test-center@a6f2cd3fcd31a9b10c994333a00ae5ca3b05b1d3`. Earlier 0.1.8 provisional commit 3523eaabba8461aa63ec80a3da9d7270180ffd3a remains as historical checkpoint evidence; pinned bootstrap updated. No owner Windows runtime PASS yet. Report 004.
+ 
+## Decision 002 scope approved / Checkpoint 005
+GPU Optimization Center + Memory & Background Center + Merzo Guardian design recorded. Implementation **NOT STARTED**, Windows tests **NOT RUN**; no process closing or public release. Primary remains owner Test Center 0.1.8 GUI verification then R57 P4 FULL SAFE. Details: REPORTS/2026-10-18-005-gpu-memory-guardian-design.md.
